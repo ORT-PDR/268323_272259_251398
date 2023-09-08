@@ -25,12 +25,53 @@ namespace Cliente
             var endpointServidor = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
 
             bool salirMenu = false;
+            bool conectado = false;
+
+            socketCliente.Connect(endpointServidor);
+            conectado = true;
+
+            ManejoDataSocket manejoDataSocket = new ManejoDataSocket(socketCliente);
+
+            Console.Write("Ingrese su nombre de usuario: ");
+            string usuario = Console.ReadLine();
+
+            byte[] data = Encoding.UTF8.GetBytes(usuario);
+            byte[] largoData = BitConverter.GetBytes(data.Length);
+
+            try
+            {
+                manejoDataSocket.Send(largoData); //Parte fija del mensaje. Largo
+                manejoDataSocket.Send(data); //Parte variable, el mensaje.
+            }
+            catch (SocketException)
+            {
+                Console.WriteLine("Error de conexión");
+                //salir = true;
+            }
+
+            Console.Write("Ingrese su contraseña: ");
+            string contraseña = Console.ReadLine();
+
+            data = Encoding.UTF8.GetBytes(contraseña);
+            largoData = BitConverter.GetBytes(data.Length);
+
+            try
+            {
+                manejoDataSocket.Send(largoData); //Parte fija del mensaje. Largo
+                manejoDataSocket.Send(data); //Parte variable, el mensaje.
+            }
+            catch (SocketException)
+            {
+                Console.WriteLine("Error de conexión");
+                //salir = true;
+            }
 
             while (!salirMenu)
             {
                 Console.Clear();
                 Console.WriteLine("Menú Principal");
-                Console.WriteLine("1. Conectarse");
+   
+                Console.WriteLine("1. Desconectarse");
                 Console.WriteLine("2. Publicación de producto");
                 Console.WriteLine("3. Compra de productos");
                 Console.WriteLine("4. Modificación de producto");
@@ -43,37 +84,39 @@ namespace Cliente
 
                 string opcion = Console.ReadLine();
 
+                data = Encoding.UTF8.GetBytes(opcion);
+                largoData = BitConverter.GetBytes(data.Length);
+                try
+                {
+                    manejoDataSocket.Send(largoData); //Parte fija del mensaje. Largo
+                    manejoDataSocket.Send(data); //Parte variable, el mensaje.
+                }
+                catch (SocketException)
+                {
+                    Console.WriteLine("Error de conexión");
+                    //salir = true;
+                }
+
                 switch (opcion)
                 {
                     case "1":
-                        Console.WriteLine("Has seleccionado la opción Conectarse.");
+                        
 
                         //5- Establecemos conexión del socket con el endpointServidor (remoto)
-                        socketCliente.Connect(endpointServidor);
-
-                        ManejoDataSocket manejoDataSocket = new ManejoDataSocket(socketCliente);
-
-                        Console.Write("Ingrese su nombre de usuario: ");
-                        string usuario = Console.ReadLine();
-
-                        Console.Write("Ingrese su contraseña: ");
-                        string contraseña = Console.ReadLine();
-
-                        byte[] data = Encoding.UTF8.GetBytes(usuario);
-                        byte[] largoData = BitConverter.GetBytes(data.Length);
-
-                        try
+                        if (!conectado)
                         {
-                            manejoDataSocket.Send(largoData); //Parte fija del mensaje. Largo
-                            manejoDataSocket.Send(data); //Parte variable, el mensaje.
-                        }
-                        catch (SocketException)
-                        {
-                            Console.WriteLine("Error de conexión");
-                            //salir = true;
-                        }
+                            Console.WriteLine("Has seleccionado la opción Conectarse.");
+                            
 
-                        
+                        }
+                        else
+                        {
+                            Console.WriteLine("Has seleccionado la opción Desconectarse.");
+                            //socketCliente.Shutdown(SocketShutdown.Both);
+                            conectado = false;
+                            salirMenu = true;
+                            //socketCliente.Close();
+                        }                        
 /*
                         Console.Write("Ingrese su contraseña: ");
                         string contraseña = Console.ReadLine();
@@ -118,11 +161,38 @@ namespace Cliente
                         break;
                     case "2":
                         Console.WriteLine("Has seleccionado la opción Publicación de producto");
+
                         Console.Write("Nombre del producto: ");
-                        string nombre = Console.ReadLine();
+                        string nombreProducto = Console.ReadLine();
+
+                        data = Encoding.UTF8.GetBytes(nombreProducto);
+                        largoData = BitConverter.GetBytes(data.Length);
+                        try
+                        {
+                            manejoDataSocket.Send(largoData); //Parte fija del mensaje. Largo
+                            manejoDataSocket.Send(data); //Parte variable, el mensaje.
+                        }
+                        catch (SocketException)
+                        {
+                            Console.WriteLine("Error de conexión");
+                            //salir = true;
+                        }
 
                         Console.Write("Descripción del producto: ");
                         string descripcion = Console.ReadLine();
+
+                        data = Encoding.UTF8.GetBytes(descripcion);
+                        largoData = BitConverter.GetBytes(data.Length);
+                        try
+                        {
+                            manejoDataSocket.Send(largoData); //Parte fija del mensaje. Largo
+                            manejoDataSocket.Send(data); //Parte variable, el mensaje.
+                        }
+                        catch (SocketException)
+                        {
+                            Console.WriteLine("Error de conexión");
+                            //salir = true;
+                        }
 
                         int cantidadDisponible;
 
@@ -139,6 +209,19 @@ namespace Cliente
                             {
                                 Console.WriteLine("Ingrese un número entero válido.");
                             }
+                        }
+                        string aux = "" + cantidadDisponible;
+                        data = Encoding.UTF8.GetBytes(aux);
+                        largoData = BitConverter.GetBytes(data.Length);
+                        try
+                        {
+                            manejoDataSocket.Send(largoData); //Parte fija del mensaje. Largo
+                            manejoDataSocket.Send(data); //Parte variable, el mensaje.
+                        }
+                        catch (SocketException)
+                        {
+                            Console.WriteLine("Error de conexión");
+                            //salir = true;
                         }
 
 
@@ -158,8 +241,37 @@ namespace Cliente
                             }
                         }
 
+                        aux = "" + precioProducto;
+                        data = Encoding.UTF8.GetBytes(aux);
+                        largoData = BitConverter.GetBytes(data.Length);
+                        try
+                        {
+                            manejoDataSocket.Send(largoData); //Parte fija del mensaje. Largo
+                            manejoDataSocket.Send(data); //Parte variable, el mensaje.
+                        }
+                        catch (SocketException)
+                        {
+                            Console.WriteLine("Error de conexión");
+                            //salir = true;
+                        }
+
                         Console.Write("Ruta de la imagen del producto: ");
                         string imagen = Console.ReadLine();
+
+                        data = Encoding.UTF8.GetBytes(imagen);
+                        largoData = BitConverter.GetBytes(data.Length);
+                        try
+                        {
+                            manejoDataSocket.Send(largoData); //Parte fija del mensaje. Largo
+                            manejoDataSocket.Send(data); //Parte variable, el mensaje.
+                        }
+                        catch (SocketException)
+                        {
+                            Console.WriteLine("Error de conexión");
+                            //salir = true;
+                        }
+
+
                         break;
                     case "3":
                         Console.WriteLine("Has seleccionado la opción Compra de productos");
@@ -199,10 +311,6 @@ namespace Cliente
                 Console.WriteLine("\nPresiona cualquier tecla para continuar...");
                 Console.ReadKey();
             }
-
-
-
-            
 
             socketCliente.Shutdown(SocketShutdown.Both);
             socketCliente.Close();
