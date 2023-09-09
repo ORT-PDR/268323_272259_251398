@@ -57,8 +57,6 @@ namespace PrimerEjemploSocket
             byte[] data = manejoDataSocket.Receive(BitConverter.ToInt32(largoData));
             try
             {
-                
-
                 usuario.Username = Encoding.UTF8.GetString(data);
                 Console.WriteLine("nombre: " + usuario.Username);
             }
@@ -124,7 +122,7 @@ namespace PrimerEjemploSocket
                 {
                     case 1:
 
-
+                        /*
                         if (usuarios.Contains(usuario))
                         {
 
@@ -143,8 +141,8 @@ namespace PrimerEjemploSocket
                             }
                         }
 
-
                         Console.WriteLine("Hola desde el hilo de " + usuario.Username);
+                        */
                         break;
                     case 2:
                         Console.WriteLine("en case 2");
@@ -225,12 +223,44 @@ namespace PrimerEjemploSocket
                         producto.Stock = stock;
                         producto.Image = imagen;
 
+
                         if (!productos.Contains(producto))
                         {
                             productos.Add(producto);
                             Console.WriteLine(" se agrego el producto");
                         }
                         Console.WriteLine("esperando");
+                        break;
+                    case 3:
+                        for(int i=0; i<productos.Count; i++)
+                        {
+                            string productoMostrado = productos.ElementAt(i).Name;
+                            data = Encoding.UTF8.GetBytes(productoMostrado);
+                            largoData = BitConverter.GetBytes(data.Length);
+                            try
+                            {
+                                manejoDataSocket.Send(largoData);
+                                manejoDataSocket.Send(data);
+                            }
+                            catch (SocketException)
+                            {
+                                Console.WriteLine("Error de conexión");
+                                
+                            }
+                        }
+                        data = Encoding.UTF8.GetBytes("end");
+                        largoData = BitConverter.GetBytes(data.Length);
+                        try
+                        {
+                            manejoDataSocket.Send(largoData);
+                            manejoDataSocket.Send(data);
+                        }
+                        catch (SocketException)
+                        {
+                            Console.WriteLine("Error de conexión");
+
+                        }
+
                         break;
 
                 }

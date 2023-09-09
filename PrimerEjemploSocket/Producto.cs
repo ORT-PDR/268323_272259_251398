@@ -14,6 +14,13 @@ namespace Servidor
         public int Stock { get; set; }
         public int Price { get; set; }
         public string Image { get; set; }
-        public bool Connected { get; set; }
+        public override bool Equals(object? obj)
+        {
+            if (obj is Producto otherProducto)
+            {
+                return this.Id == otherProducto.Id;
+            }
+            return false;
+        }
     }
 }

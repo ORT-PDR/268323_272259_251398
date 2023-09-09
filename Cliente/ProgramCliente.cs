@@ -275,6 +275,51 @@ namespace Cliente
                         break;
                     case "3":
                         Console.WriteLine("Has seleccionado la opción Compra de productos");
+                        bool escucharProductos = true;
+                        while(escucharProductos)
+                        {
+                            try
+                            {
+                                // Recibo el largo del mensaje
+                                byte[] largoDataDelServidor = new byte[4];
+                                int cantRecibida = socketCliente.Receive(largoData);
+
+                                if (cantRecibida == 0)
+                                {
+                                    escucharProductos = false;
+                                }
+                                else
+                                {
+                                    int largo = BitConverter.ToInt32(largoData);
+
+                                    // Recibo el mensaje
+                                    data = new byte[largo];
+                                    int recibidoData = socketCliente.Receive(data);
+                                    if (recibidoData == 0)
+                                    {
+                                        conectado = false;
+                                    }
+                                    else
+                                    {
+                                        string mensaje = Encoding.UTF8.GetString(data);
+                                        if (mensaje.Equals("end"))
+                                        {
+                                            escucharProductos = false;
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("Producto: {0}", mensaje);
+                                        }
+                                        
+                                    }
+                                }
+                            }
+                            catch (SocketException e)
+                            {
+                                conectado = false;
+                            }
+                        }
+
 
                         break;
                     case "4":
