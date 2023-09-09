@@ -303,7 +303,17 @@ namespace PrimerEjemploSocket
                             largoData = manejoDataSocket.Receive(Constantes.LargoFijo);
                             data = manejoDataSocket.Receive(BitConverter.ToInt32(largoData));
                             string nombreProductoAEliminar = Encoding.UTF8.GetString(data);
-                            productos = productos.Where(prod => !prod.Name.Equals(nombreProductoAEliminar)).ToList();
+                            int stockProdcto = productosDelCliente.FirstOrDefault(prod => prod.Name == nombreProductoAEliminar).Stock;
+                            Console.WriteLine("stock de " + nombreProductoAEliminar + " es " + stockProdcto);
+                            if(stockProdcto == 1) {
+                                productos = productos.Where(prod => !(prod.Name.Equals(nombreProductoAEliminar) && prod.OwnerId == nroCliente)).ToList();
+                            }
+                            else
+                            {
+                                Producto productoAModificar = productos.FirstOrDefault(prod => prod.Name == nombreProductoAEliminar && prod.OwnerId == nroCliente );
+                                productoAModificar.Stock--;
+                            }
+                            
                         }
                         catch (Exception ex)
                         {
