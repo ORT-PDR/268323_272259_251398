@@ -222,6 +222,7 @@ namespace PrimerEjemploSocket
                         producto.Price = precio;
                         producto.Stock = stock;
                         producto.Image = imagen;
+                        producto.OwnerId = nroCliente;
 
 
                         if (!productos.Contains(producto))
@@ -261,6 +262,56 @@ namespace PrimerEjemploSocket
 
                         }
 
+                        break;
+                    case 4:
+
+                        break;
+                    case 5:
+                        List<Producto> productosDelCliente = productos.Where(prod => prod.OwnerId == nroCliente).ToList();
+
+                        for (int i = 0; i < productosDelCliente.Count; i++)
+                        {
+                            string productoMostrado = productos.ElementAt(i).Name;
+                            data = Encoding.UTF8.GetBytes(productoMostrado);
+                            largoData = BitConverter.GetBytes(data.Length);
+                            try
+                            {
+                                manejoDataSocket.Send(largoData);
+                                manejoDataSocket.Send(data);
+                            }
+                            catch (SocketException)
+                            {
+                                Console.WriteLine("Error de conexión");
+
+                            }
+                        }
+                        data = Encoding.UTF8.GetBytes("end");
+                        largoData = BitConverter.GetBytes(data.Length);
+                        try
+                        {
+                            manejoDataSocket.Send(largoData);
+                            manejoDataSocket.Send(data);
+                        }
+                        catch (SocketException)
+                        {
+                            Console.WriteLine("Error de conexión");
+
+                        }
+
+                        try
+                        {
+                            largoData = manejoDataSocket.Receive(Constantes.LargoFijo);
+                            data = manejoDataSocket.Receive(BitConverter.ToInt32(largoData));
+                            string nombreProductoAEliminar = Encoding.UTF8.GetString(data);
+                            productos = productos.Where(prod => !prod.Name.Equals(nombreProductoAEliminar)).ToList();
+                        }
+                        catch (Exception ex)
+                        {
+
+                        }
+
+                        break;
+                    case 6:
                         break;
 
                 }

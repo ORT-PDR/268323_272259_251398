@@ -328,6 +328,66 @@ namespace Cliente
                         break;
                     case "5":
                         Console.WriteLine("Has seleccionado la opción Baja de producto");
+                        List<string> productNames = new List<string>();
+                        bool escucharProductosAEliminar = true;
+                        while (escucharProductosAEliminar)
+                        {
+                            try
+                            {
+                                byte[] largoDataDelServidor = new byte[4];
+                                int cantRecibida = socketCliente.Receive(largoData);
+
+                                if (cantRecibida == 0)
+                                {
+                                    escucharProductos = false;
+                                }
+                                else
+                                {
+                                    int largo = BitConverter.ToInt32(largoData);
+
+                                    data = new byte[largo];
+                                    int recibidoData = socketCliente.Receive(data);
+                                    if (recibidoData == 0)
+                                    {
+                                        conectado = false;
+                                    }
+                                    else
+                                    {
+                                        string mensaje = Encoding.UTF8.GetString(data);
+                                        if (mensaje.Equals("end"))
+                                        {
+                                            escucharProductosAEliminar = false;
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("Producto: {0}", mensaje);
+                                            productNames.Add(mensaje);
+                                        }
+
+                                    }
+                                }
+                            }
+                            catch (SocketException e)
+                            {
+                                conectado = false;
+                            }
+                        }
+
+                        Console.Write("Ingrese  nombre del producto a eliminar ");
+                        string eleccion = Console.ReadLine();
+
+                        data = Encoding.UTF8.GetBytes(eleccion);
+                        largoData = BitConverter.GetBytes(data.Length);
+
+                        try
+                        {
+                            manejoDataSocket.Send(largoData); 
+                            manejoDataSocket.Send(data); 
+                        }
+                        catch (SocketException)
+                        {
+                            Console.WriteLine("Error de conexión");
+                        }
 
                         break;
                     case "6":

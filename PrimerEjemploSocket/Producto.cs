@@ -9,6 +9,7 @@ namespace Servidor
     internal class Producto
     {
         public int Id { get; set; }
+        public int OwnerId { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public int Stock { get; set; }
@@ -18,7 +19,7 @@ namespace Servidor
         {
             if (obj is Producto otherProducto)
             {
-                return this.Id == otherProducto.Id;
+                return this.Name == otherProducto.Name;
             }
             return false;
         }
