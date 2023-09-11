@@ -76,7 +76,15 @@ namespace Cliente
                         break;
                     case "6":
                         Println("Has seleccionado la opción Búsqueda de productos");
-
+                        Print("Ingrese el nombre para filtrar: ");
+                        string filterText = Console.ReadLine();
+                        SendData(manejoDataSocket, filterText);
+                        string product = "";
+                        while (product != "end")
+                        {
+                            Println(product);
+                            ReceiveData(manejoDataSocket, ref product);
+                        }
 
                         break;
                     case "7":
@@ -147,6 +155,22 @@ namespace Cliente
             catch (SocketException)
             {
                 Println("Error de conexión");
+            }
+        }
+
+        private static bool ReceiveData(ManejoDataSocket manejoDataSocket, ref string text)
+        {
+            try
+            {
+                byte[] largoData = manejoDataSocket.Receive(Constantes.LargoFijo);
+                byte[] data = manejoDataSocket.Receive(BitConverter.ToInt32(largoData));
+
+                text = Encoding.UTF8.GetString(data);
+                return true;
+            }
+            catch (SocketException e)
+            {
+                return false;
             }
         }
 

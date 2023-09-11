@@ -21,6 +21,16 @@ namespace Servidor
             this.Reviews = new List<Reseña>();
         }
 
+        public override string ToString()
+        {
+            return "\nId: " + this.Id +
+                "\nId Dueño: " + this.OwnerId +
+                "\nNombre: " + this.Name +
+                "\nDescripción: " + this.Description +
+                "\nStock: " + this.Stock +
+                "\nPrecio: $" + this.Price;
+        }
+
         public override bool Equals(object? obj)
         {
             if (obj is Producto otherProducto)

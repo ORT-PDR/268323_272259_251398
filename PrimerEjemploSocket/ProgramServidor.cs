@@ -118,7 +118,18 @@ namespace PrimerEjemploSocket
                         break;
                     case 6:
                         //Búsqueda de productos
+                        string filterText = "";
+                        connected = ReceiveData(manejoDataSocket, ref filterText);
 
+                        foreach (var prod in products)
+                        {
+                            if (prod.Name.Contains(filterText))
+                            {
+                                SendData(manejoDataSocket, prod.ToString());
+                                Println(prod.Name);
+                            }
+                        }
+                        SendData(manejoDataSocket, "end");
 
                         break;
                     
@@ -216,7 +227,7 @@ namespace PrimerEjemploSocket
             connected = ReceiveData(manejoDataSocket, ref productName);
 
             string productDescription = "";
-            connected = ReceiveData(manejoDataSocket, ref productName);
+            connected = ReceiveData(manejoDataSocket, ref productDescription);
 
             string strProductStock = "";
             connected = ReceiveData(manejoDataSocket, ref strProductStock);
