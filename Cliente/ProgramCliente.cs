@@ -69,8 +69,7 @@ namespace Cliente
             while (!salirMenu)
             {
                 Console.Clear();
-                Console.WriteLine("Menú Principal");
-   
+                Console.WriteLine("Menú Principal");  
                 Console.WriteLine("1. Desconectarse");
                 Console.WriteLine("2. Publicación de producto");
                 Console.WriteLine("3. Compra de productos");
@@ -396,6 +395,193 @@ namespace Cliente
                         break;
                     case "7":
                         Console.WriteLine("Has seleccionado la opción Consultar un producto específico");
+
+                        List<string> productosAConsultar = new List<string>();
+                        bool escucharProductosAConsultar = true;
+                        while (escucharProductosAConsultar)
+                        {
+                            try
+                            {
+                                byte[] largoDataDelServidor = new byte[4];
+                                int cantRecibida = socketCliente.Receive(largoData);
+
+                                if (cantRecibida == 0)
+                                {
+                                    escucharProductos = false;
+                                }
+                                else
+                                {
+                                    int largo = BitConverter.ToInt32(largoData);
+
+                                    data = new byte[largo];
+                                    int recibidoData = socketCliente.Receive(data);
+                                    if (recibidoData == 0)
+                                    {
+                                        conectado = false;
+                                    }
+                                    else
+                                    {
+                                        string mensaje = Encoding.UTF8.GetString(data);
+                                        if (mensaje.Equals("end"))
+                                        {
+                                            escucharProductosAConsultar = false;
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("Producto: {0}", mensaje);
+                                            productosAConsultar.Add(mensaje);
+                                        }
+
+                                    }
+                                }
+                            }
+                            catch (SocketException e)
+                            {
+                                conectado = false;
+                            }
+                        }
+
+                        Console.Write("Ingrese  nombre del producto que quiera consultar ");
+                        eleccion = Console.ReadLine();
+
+                        while (!productosAConsultar.Contains(eleccion))
+                        {
+                            Console.Write("Ingrese alguna de las opciones listadas ");
+                            eleccion = Console.ReadLine();
+                        }
+
+
+                        data = Encoding.UTF8.GetBytes(eleccion);
+                        largoData = BitConverter.GetBytes(data.Length);
+
+                        Console.WriteLine("Sobre el producto: "+ eleccion);
+
+                        try
+                        {
+                            manejoDataSocket.Send(largoData);
+                            manejoDataSocket.Send(data);
+                        }
+                        catch (SocketException)
+                        {
+                            Console.WriteLine("Error de conexión");
+                        }
+
+                        try
+                        {
+                            byte[] largoDataDelServidor = new byte[4];
+                            int cantRecibida = socketCliente.Receive(largoData);
+
+                            if (cantRecibida == 0)
+                            {
+                                escucharProductos = false;
+                            }
+                            else
+                            {
+                                int largo = BitConverter.ToInt32(largoData);
+
+                                data = new byte[largo];
+                                int recibidoData = socketCliente.Receive(data);
+                                if (recibidoData == 0)
+                                {
+                                    conectado = false;
+                                }
+                                else
+                                {
+                                    string mensaje = Encoding.UTF8.GetString(data);
+                                    if (mensaje.Equals("end"))
+                                    {
+                                        escucharProductosAEliminar = false;
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("stock: {0}", mensaje);
+                                    }
+
+                                }
+                            }
+                        }
+                        catch (SocketException e)
+                        {
+                            conectado = false;
+                        }
+
+                        try
+                        {
+                            byte[] largoDataDelServidor = new byte[4];
+                            int cantRecibida = socketCliente.Receive(largoData);
+
+                            if (cantRecibida == 0)
+                            {
+                                escucharProductos = false;
+                            }
+                            else
+                            {
+                                int largo = BitConverter.ToInt32(largoData);
+
+                                data = new byte[largo];
+                                int recibidoData = socketCliente.Receive(data);
+                                if (recibidoData == 0)
+                                {
+                                    conectado = false;
+                                }
+                                else
+                                {
+                                    string mensaje = Encoding.UTF8.GetString(data);
+                                    if (mensaje.Equals("end"))
+                                    {
+                                        escucharProductosAEliminar = false;
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("descripcion: {0}", mensaje);
+                                    }
+
+                                }
+                            }
+                        }
+                        catch (SocketException e)
+                        {
+                            conectado = false;
+                        }
+
+                        try
+                        {
+                            byte[] largoDataDelServidor = new byte[4];
+                            int cantRecibida = socketCliente.Receive(largoData);
+
+                            if (cantRecibida == 0)
+                            {
+                                escucharProductos = false;
+                            }
+                            else
+                            {
+                                int largo = BitConverter.ToInt32(largoData);
+
+                                data = new byte[largo];
+                                int recibidoData = socketCliente.Receive(data);
+                                if (recibidoData == 0)
+                                {
+                                    conectado = false;
+                                }
+                                else
+                                {
+                                    string mensaje = Encoding.UTF8.GetString(data);
+                                    if (mensaje.Equals("end"))
+                                    {
+                                        escucharProductosAEliminar = false;
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("precio: {0}", mensaje);
+                                    }
+
+                                }
+                            }
+                        }
+                        catch (SocketException e)
+                        {
+                            conectado = false;
+                        }
 
                         break;
                     case "8":

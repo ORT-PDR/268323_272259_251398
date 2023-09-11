@@ -44,19 +44,21 @@ namespace PrimerEjemploSocket
             //Console.ReadLine();
         }
 
-        static void HandleClient(Socket socketClient, int nroCliente, List<Usuario> usuarios, List<Producto> productos) 
+        static void HandleClient(Socket socketClient, int nroCliente, List<Usuario> usuarios, List<Producto> productos)
         {
             bool conectado = true;
             ManejoDataSocket manejoDataSocket = new ManejoDataSocket(socketClient);
 
-            
+
 
             Usuario usuario = new Usuario();
             usuario.Id = nroCliente;
-            byte[] largoData = manejoDataSocket.Receive(Constantes.LargoFijo);
-            byte[] data = manejoDataSocket.Receive(BitConverter.ToInt32(largoData));
+            byte[] largoData = {  };
+            byte[] data = {};
             try
             {
+                largoData = manejoDataSocket.Receive(Constantes.LargoFijo);
+                data = manejoDataSocket.Receive(BitConverter.ToInt32(largoData));
                 usuario.Username = Encoding.UTF8.GetString(data);
                 Console.WriteLine("nombre: " + usuario.Username);
             }
@@ -271,7 +273,7 @@ namespace PrimerEjemploSocket
 
                         for (int i = 0; i < productosDelCliente.Count; i++)
                         {
-                            string productoMostrado = productos.ElementAt(i).Name;
+                            string productoMostrado = productosDelCliente.ElementAt(i).Name;
                             data = Encoding.UTF8.GetBytes(productoMostrado);
                             largoData = BitConverter.GetBytes(data.Length);
                             try
@@ -331,6 +333,95 @@ namespace PrimerEjemploSocket
 
                         break;
                     case 6:
+                        break;
+                    case 7:
+
+                        for (int i = 0; i < productos.Count; i++)
+                        {
+                            string productoMostrado = productos.ElementAt(i).Name;
+                            data = Encoding.UTF8.GetBytes(productoMostrado);
+                            largoData = BitConverter.GetBytes(data.Length);
+                            try
+                            {
+                                manejoDataSocket.Send(largoData);
+                                manejoDataSocket.Send(data);
+                            }
+                            catch (SocketException)
+                            {
+                                Console.WriteLine("Error de conexión");
+
+                            }
+                        }
+
+                        data = Encoding.UTF8.GetBytes("end");
+                        largoData = BitConverter.GetBytes(data.Length);
+                        try
+                        {
+                            manejoDataSocket.Send(largoData);
+                            manejoDataSocket.Send(data);
+                        }
+                        catch (SocketException)
+                        {
+                            Console.WriteLine("Error de conexión");
+
+                        }
+
+                        try
+                        {
+                            largoData = manejoDataSocket.Receive(Constantes.LargoFijo);
+                            data = manejoDataSocket.Receive(BitConverter.ToInt32(largoData));
+                                              
+                        }
+                        catch (Exception ex)
+                        {
+
+                        }
+
+                        string nombreProductoAConsultar = Encoding.UTF8.GetString(data);
+                        int stockProdctoConsutlado = productos.FirstOrDefault(prod => prod.Name == nombreProductoAConsultar).Stock;
+
+                        data = Encoding.UTF8.GetBytes(stockProdctoConsutlado.ToString());
+                        largoData = BitConverter.GetBytes(data.Length);
+                        try
+                        {
+                            manejoDataSocket.Send(largoData);
+                            manejoDataSocket.Send(data);
+                        }
+                        catch (SocketException)
+                        {
+                            Console.WriteLine("Error de conexión");
+
+                        }
+
+                        string descripcionProdctoConsutlado = productos.FirstOrDefault(prod => prod.Name == nombreProductoAConsultar).Description;
+
+                        data = Encoding.UTF8.GetBytes(descripcionProdctoConsutlado);
+                        largoData = BitConverter.GetBytes(data.Length);
+                        try
+                        {
+                            manejoDataSocket.Send(largoData);
+                            manejoDataSocket.Send(data);
+                        }
+                        catch (SocketException)
+                        {
+                            Console.WriteLine("Error de conexión");
+
+                        }
+
+                        int precioProdctoConsutlado = productos.FirstOrDefault(prod => prod.Name == nombreProductoAConsultar).Price;
+                        data = Encoding.UTF8.GetBytes(precioProdctoConsutlado.ToString());
+                        largoData = BitConverter.GetBytes(data.Length);
+                        try
+                        {
+                            manejoDataSocket.Send(largoData);
+                            manejoDataSocket.Send(data);
+                        }
+                        catch (SocketException)
+                        {
+                            Console.WriteLine("Error de conexión");
+
+                        }
+                        
                         break;
 
                 }

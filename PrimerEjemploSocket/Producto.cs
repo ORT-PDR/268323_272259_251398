@@ -19,7 +19,7 @@ namespace Servidor
         {
             if (obj is Producto otherProducto)
             {
-                return this.Name == otherProducto.Name;
+                return (this.OwnerId == otherProducto.OwnerId) && (this.Name == otherProducto.Name);
             }
             return false;
         }
