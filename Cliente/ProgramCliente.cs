@@ -71,8 +71,59 @@ namespace Cliente
 
                         break;
                     case "5":
-                        Println("Has seleccionado la opción Baja de producto");
-                        
+                        Console.WriteLine("Has seleccionado la opción Baja de producto");
+                        List<string> productNames = new List<string>();
+                        bool escucharProductosAEliminar = true;
+                        byte[] data;
+                        byte[] largoDataDelServidor;
+                        while (escucharProductosAEliminar)
+                        {
+                            try
+                            {
+                                largoDataDelServidor = new byte[4];
+                                int cantRecibida = socketClient.Receive(largoDataDelServidor);
+
+                                if (cantRecibida == 0)
+                                {
+                                    escucharProductosAEliminar = false;
+                                }
+                                else
+                                {
+                                    int largo = BitConverter.ToInt32(largoDataDelServidor);
+
+                                    data = new byte[largo];
+                                    int recibidoData = socketClient.Receive(data);
+                                    if (recibidoData == 0)
+                                    {
+                                        connected = false;
+                                    }
+                                    else
+                                    {
+                                        string mensaje = Encoding.UTF8.GetString(data);
+                                        if (mensaje.Equals("end"))
+                                        {
+                                            escucharProductosAEliminar = false;
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("Producto: {0}", mensaje);
+                                            productNames.Add(mensaje);
+                                        }
+
+                                    }
+                                }
+                            }
+                            catch (SocketException e)
+                            {
+                                connected = false;
+                            }
+                        }
+
+                        Console.Write("Ingrese  nombre del producto a eliminar ");
+                        string eleccion = Console.ReadLine();
+
+                        SendData(manejoDataSocket, eleccion);
+
                         break;
                     case "6":
                         Println("Has seleccionado la opción Búsqueda de productos");
@@ -88,7 +139,194 @@ namespace Cliente
 
                         break;
                     case "7":
-                        Println("Has seleccionado la opción Consultar un producto específico");
+                        Console.WriteLine("Has seleccionado la opción Consultar un producto específico");
+
+                        List<string> productosAConsultar = new List<string>();
+                        bool escucharProductosAConsultar = true;
+                        while (escucharProductosAConsultar)
+                        {
+                            try
+                            {
+                                largoDataDelServidor = new byte[4];
+                                int cantRecibida = socketClient.Receive(largoDataDelServidor);
+
+                                if (cantRecibida == 0)
+                                {
+                                    escucharProductosAConsultar = false;
+                                }
+                                else
+                                {
+                                    int largo = BitConverter.ToInt32(largoDataDelServidor);
+
+                                    data = new byte[largo];
+                                    int recibidoData = socketClient.Receive(data);
+                                    if (recibidoData == 0)
+                                    {
+                                        connected = false;
+                                    }
+                                    else
+                                    {
+                                        string mensaje = Encoding.UTF8.GetString(data);
+                                        if (mensaje.Equals("end"))
+                                        {
+                                            escucharProductosAConsultar = false;
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("Producto: {0}", mensaje);
+                                            productosAConsultar.Add(mensaje);
+                                        }
+
+                                    }
+                                }
+                            }
+                            catch (SocketException e)
+                            {
+                                connected = false;
+                            }
+                        }
+
+                        Console.Write("Ingrese  nombre del producto que quiera consultar ");
+                        eleccion = Console.ReadLine();
+
+                        while (!productosAConsultar.Contains(eleccion))
+                        {
+                            Console.Write("Ingrese alguna de las opciones listadas ");
+                            eleccion = Console.ReadLine();
+                        }
+
+
+                        data = Encoding.UTF8.GetBytes(eleccion);
+                        largoDataDelServidor = BitConverter.GetBytes(data.Length);
+
+                        Console.WriteLine("Sobre el producto: " + eleccion);
+
+                        try
+                        {
+                            manejoDataSocket.Send(largoDataDelServidor);
+                            manejoDataSocket.Send(data);
+                        }
+                        catch (SocketException)
+                        {
+                            Console.WriteLine("Error de conexión");
+                        }
+
+                        try
+                        {
+                            largoDataDelServidor = new byte[4];
+                            int cantRecibida = socketClient.Receive(largoDataDelServidor);
+
+                            if (cantRecibida == 0)
+                            {
+                                escucharProductosAConsultar = false;
+                            }
+                            else
+                            {
+                                int largo = BitConverter.ToInt32(largoDataDelServidor);
+
+                                data = new byte[largo];
+                                int recibidoData = socketClient.Receive(data);
+                                if (recibidoData == 0)
+                                {
+                                    connected = false;
+                                }
+                                else
+                                {
+                                    string mensaje = Encoding.UTF8.GetString(data);
+                                    if (mensaje.Equals("end"))
+                                    {
+                                        escucharProductosAEliminar = false;
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("stock: {0}", mensaje);
+                                    }
+
+                                }
+                            }
+                        }
+                        catch (SocketException e)
+                        {
+                            connected = false;
+                        }
+
+                        try
+                        {
+                            largoDataDelServidor = new byte[4];
+                            int cantRecibida = socketClient.Receive(largoDataDelServidor);
+
+                            if (cantRecibida == 0)
+                            {
+                                escucharProductosAConsultar = false;
+                            }
+                            else
+                            {
+                                int largo = BitConverter.ToInt32(largoDataDelServidor);
+
+                                data = new byte[largo];
+                                int recibidoData = socketClient.Receive(data);
+                                if (recibidoData == 0)
+                                {
+                                    connected = false;
+                                }
+                                else
+                                {
+                                    string mensaje = Encoding.UTF8.GetString(data);
+                                    if (mensaje.Equals("end"))
+                                    {
+                                        escucharProductosAEliminar = false;
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("descripcion: {0}", mensaje);
+                                    }
+
+                                }
+                            }
+                        }
+                        catch (SocketException e)
+                        {
+                            connected = false;
+                        }
+
+                        try
+                        {
+                            largoDataDelServidor = new byte[4];
+                            int cantRecibida = socketClient.Receive(largoDataDelServidor);
+
+                            if (cantRecibida == 0)
+                            {
+                                escucharProductosAConsultar = false;
+                            }
+                            else
+                            {
+                                int largo = BitConverter.ToInt32(largoDataDelServidor);
+
+                                data = new byte[largo];
+                                int recibidoData = socketClient.Receive(data);
+                                if (recibidoData == 0)
+                                {
+                                    connected = false;
+                                }
+                                else
+                                {
+                                    string mensaje = Encoding.UTF8.GetString(data);
+                                    if (mensaje.Equals("end"))
+                                    {
+                                        escucharProductosAEliminar = false;
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("precio: {0}", mensaje);
+                                    }
+
+                                }
+                            }
+                        }
+                        catch (SocketException e)
+                        {
+                            connected = false;
+                        }
 
                         break;
                     case "8":
