@@ -89,6 +89,33 @@ namespace PrimerEjemploSocket
                         break;
                     case 4:
                         //Modificación de producto
+                        SendClientProducts(nroClient, products, manejoDataSocket);
+
+                        string productName = "";
+                        connected = ReceiveData(manejoDataSocket, ref productName);
+                        Producto productToModify = products.Find(p => p.Name == productName);
+
+                        string atributeOption = "";
+                        connected = ReceiveData(manejoDataSocket, ref atributeOption);
+
+                        string newValue = "";
+                        connected = ReceiveData(manejoDataSocket, ref newValue);
+
+                        switch (atributeOption)
+                        {
+                            case "1":
+                                productToModify.Description = newValue;
+                                break;
+                            case "2":
+                                productToModify.Stock = int.Parse(newValue);
+                                break;
+                            case "3":
+                                productToModify.Price = int.Parse(newValue);
+                                break;
+                            case "4":
+                                productToModify.Image = newValue;
+                                break;
+                        }
                         break;
                     case 5:
                         byte[] largoData;
@@ -280,6 +307,18 @@ namespace PrimerEjemploSocket
                 }
             }
             Console.WriteLine("Cliente {0} desconectado", nroClient);
+        }
+
+        private static void SendClientProducts(int nroClient, List<Producto> products, ManejoDataSocket manejoDataSocket)
+        {
+            List<Producto> productosDelCliente = products.Where(prod => prod.OwnerId == nroClient).ToList();
+
+            for (int i = 0; i < productosDelCliente.Count; i++)
+            {
+                string productoMostrado = productosDelCliente.ElementAt(i).Name;
+                SendData(manejoDataSocket, productoMostrado);
+            }
+            SendData(manejoDataSocket, "end");
         }
 
         private static void Print(string text)

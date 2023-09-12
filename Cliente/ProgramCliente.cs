@@ -2,6 +2,7 @@
 using System.Net;
 using System.Text;
 using Protocolo;
+using Microsoft.VisualBasic.FileIO;
 
 namespace Cliente
 {
@@ -65,14 +66,85 @@ namespace Cliente
                     case "3":
                         Println("Has seleccionado la opción Compra de productos");
 
+
                         break;
                     case "4":
                         Println("Has seleccionado la opción Modificación de producto");
+                        List<string> productNames = GetUserProducts(socketClient, ref connected);
+                        Console.Write("Ingrese nombre del producto a eliminar ");
+                        string product = Console.ReadLine();
+                        while (!productNames.Contains(product))
+                        {
+                            Console.Write("Producto no encontrado. Escriba un nombre de producto válido.");
+                            product = Console.ReadLine();
+                        }
+                        SendData(manejoDataSocket, product);
+                        
+                        bool modificado = false;
+                        while (!modificado)
+                        {
+                            PrintModifyProductOptions();
+                            string attributeOption = Console.ReadLine();
+                            while (attributeOption != "1" && attributeOption != "2" &&
+                                attributeOption != "3" && attributeOption != "4")
+                            {
+                                Console.WriteLine("Opcion Inválida.");
+                                PrintModifyProductOptions();
+                                attributeOption = Console.ReadLine();
+                            }
+                            Console.WriteLine("Opcion Inválida.");
+                            SendData(manejoDataSocket, attributeOption);
+
+                            Console.Write("Inserte nuevo valor:");
+                            string newValue = Console.ReadLine();
+                            if (attributeOption != "1" && attributeOption != "2" &&
+                                attributeOption != "3" && attributeOption != "4")
+                                Console.WriteLine("Opcion Inválida.");
+
+                            if (attributeOption == "2")
+                            {
+                                int value = -1;
+                                while(value == -1)
+                                {
+                                    try
+                                    {
+                                        value = Convert.ToInt32(newValue);
+                                    }
+                                    catch
+                                    {
+                                        Console.WriteLine("El stock debe ser un numero mayor o igual a 0. Inserte nuevamente:");
+                                        newValue = Console.ReadLine();
+                                    }
+                                }
+                            }
+
+                            if (attributeOption == "3")
+                            {
+                                int value = -1;
+                                while (value == -1)
+                                {
+                                    try
+                                    {
+                                        value = Convert.ToInt32(newValue);
+                                    }
+                                    catch
+                                    {
+                                        Console.WriteLine("El precio debe ser un numero positivo. Inserte nuevamente:");
+                                        newValue = Console.ReadLine();
+                                    }
+                                }
+
+                            }
+
+                            SendData(manejoDataSocket, newValue);
+                            modificado = true;
+                        }
 
                         break;
                     case "5":
                         Console.WriteLine("Has seleccionado la opción Baja de producto");
-                        List<string> productNames = new List<string>();
+                        productNames = GetUserProducts(socketClient,ref connected);
+                        /*List<string> productNames = new List<string>();
                         bool escucharProductosAEliminar = true;
                         byte[] data;
                         byte[] largoDataDelServidor;
@@ -117,7 +189,7 @@ namespace Cliente
                             {
                                 connected = false;
                             }
-                        }
+                        }*/
 
                         Console.Write("Ingrese  nombre del producto a eliminar ");
                         string eleccion = Console.ReadLine();
@@ -130,7 +202,7 @@ namespace Cliente
                         Print("Ingrese el nombre para filtrar: ");
                         string filterText = Console.ReadLine();
                         SendData(manejoDataSocket, filterText);
-                        string product = "";
+                        product = "";
                         while (product != "end")
                         {
                             Println(product);
@@ -140,9 +212,11 @@ namespace Cliente
                         break;
                     case "7":
                         Console.WriteLine("Has seleccionado la opción Consultar un producto específico");
-
+                        byte[] data;
+                        byte[] largoDataDelServidor;
                         List<string> productosAConsultar = new List<string>();
                         bool escucharProductosAConsultar = true;
+                        bool escucharProductosAEliminar = true;
                         while (escucharProductosAConsultar)
                         {
                             try
@@ -354,6 +428,15 @@ namespace Cliente
 
         }
 
+        private static void PrintModifyProductOptions()
+        {
+            Console.WriteLine("Que campo desea modificar: (Digite la opción)");
+            Console.WriteLine("1. Descripcion");
+            Console.WriteLine("2. Stock Disponible");
+            Console.WriteLine("3. Precio");
+            Console.WriteLine("4. Imagen");
+        }
+
         private static void ShowMenu()
         {
             Console.Clear();
@@ -468,7 +551,6 @@ namespace Cliente
             SendData(manejoDataSocket, image);
         }
 
-
         private static void RateAProduct(ManejoDataSocket manejoDataSocket)
         {
             Println("Has seleccionado la opción Calificar un producto");
@@ -484,6 +566,57 @@ namespace Cliente
             Println("Califique el producto");
             var rating = Console.ReadLine();
             SendData(manejoDataSocket, rating);
+        }
+
+        private static List<string> GetUserProducts(Socket socketClient, ref bool connected)
+        {
+            var products = new List<string>();
+            bool escucharProductosAEliminar = true;
+            byte[] data;
+            byte[] largoDataDelServidor;
+            while (escucharProductosAEliminar)
+            {
+                try
+                {
+                    largoDataDelServidor = new byte[4];
+                    int cantRecibida = socketClient.Receive(largoDataDelServidor);
+
+                    if (cantRecibida == 0)
+                    {
+                        escucharProductosAEliminar = false;
+                    }
+                    else
+                    {
+                        int largo = BitConverter.ToInt32(largoDataDelServidor);
+
+                        data = new byte[largo];
+                        int recibidoData = socketClient.Receive(data);
+                        if (recibidoData == 0)
+                        {
+                            connected = false;
+                        }
+                        else
+                        {
+                            string mensaje = Encoding.UTF8.GetString(data);
+                            if (mensaje.Equals("end"))
+                            {
+                                escucharProductosAEliminar = false;
+                            }
+                            else
+                            {
+                                Console.WriteLine("Producto: {0}", mensaje);
+                                products.Add(mensaje);
+                            }
+
+                        }
+                    }
+                }
+                catch (SocketException e)
+                {
+                    connected = false;
+                }
+            }
+            return products;
         }
     }
 }
