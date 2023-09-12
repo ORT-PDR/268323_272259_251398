@@ -64,21 +64,72 @@ namespace Cliente
 
                         break;
                     case "3":
-                        Println("Has seleccionado la opción Compra de productos");
 
-
+                        Println("Has seleccionado la opción Compra de productos"); 
+                        bool isBought = false;
+                        while (!isBought)
+                        {
+                            List<NameStock> products = GetProductsToBuy(socketClient, ref connected);
+                            Console.Write("Ingrese nombre del producto a comprar:   ");
+                            string productName = Console.ReadLine();
+                            NameStock productNameStock = products.Find(p => p.Name.Equals(productName));
+                            if (productNameStock != null)
+                            {
+                                int stock = int.Parse(productNameStock.Stock);
+                                if (stock > 0)
+                                {
+                                    Console.Write("Ingrese cantidad a comprar:   ");
+                                    int amountToBuy = -1;
+                                    while (amountToBuy < 1)
+                                    {
+                                        try
+                                        {
+                                            amountToBuy = int.Parse(Console.ReadLine());
+                                        }
+                                        catch
+                                        {
+                                            Console.Write("Ingrese un numero positivo de cantidad a comprar:   ");
+                                        }
+                                        if (amountToBuy > stock)
+                                        {
+                                            Console.WriteLine("Stock Insuficiente, inserte una cantidad que no exceda el stock:");
+                                            amountToBuy = -1;
+                                        }
+                                        else
+                                        {
+                                            string message = productNameStock.Name + "@" + amountToBuy.ToString();
+                                            SendData(manejoDataSocket, message);
+                                            connected = ReceiveData(manejoDataSocket, ref message);
+                                            if (connected)
+                                            {
+                                                if (message.Equals("ok")) isBought = true;
+                                                else Console.WriteLine("No hay stock disponible del producto seleccionado");
+                                            }
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    Console.WriteLine("No hay Stock del producto.");
+                                }
+                            }
+                            else
+                            {
+                                Console.WriteLine("Nombre de producto no valido!");
+                            }
+                        }
                         break;
+
                     case "4":
                         Println("Has seleccionado la opción Modificación de producto");
                         List<string> productNames = GetUserProducts(socketClient, ref connected);
-                        Console.Write("Ingrese nombre del producto a eliminar ");
+                        Console.Write("Ingrese nombre del producto a modificar ");
                         string product = Console.ReadLine();
                         while (!productNames.Contains(product))
                         {
                             Console.Write("Producto no encontrado. Escriba un nombre de producto válido.");
                             product = Console.ReadLine();
                         }
-                        SendData(manejoDataSocket, product);
                         
                         bool modificado = false;
                         while (!modificado)
@@ -92,19 +143,16 @@ namespace Cliente
                                 PrintModifyProductOptions();
                                 attributeOption = Console.ReadLine();
                             }
-                            Console.WriteLine("Opcion Inválida.");
+                            SendData(manejoDataSocket, product);
                             SendData(manejoDataSocket, attributeOption);
 
                             Console.Write("Inserte nuevo valor:");
                             string newValue = Console.ReadLine();
-                            if (attributeOption != "1" && attributeOption != "2" &&
-                                attributeOption != "3" && attributeOption != "4")
-                                Console.WriteLine("Opcion Inválida.");
 
                             if (attributeOption == "2")
                             {
                                 int value = -1;
-                                while(value == -1)
+                                while(value < 0)
                                 {
                                     try
                                     {
@@ -121,7 +169,7 @@ namespace Cliente
                             if (attributeOption == "3")
                             {
                                 int value = -1;
-                                while (value == -1)
+                                while (value <= 0)
                                 {
                                     try
                                     {
@@ -139,7 +187,6 @@ namespace Cliente
                             SendData(manejoDataSocket, newValue);
                             modificado = true;
                         }
-
                         break;
                     case "5":
                         Console.WriteLine("Has seleccionado la opción Baja de producto");
@@ -608,6 +655,61 @@ namespace Cliente
                                 products.Add(mensaje);
                             }
 
+                        }
+                    }
+                }
+                catch (SocketException e)
+                {
+                    connected = false;
+                }
+            }
+            return products;
+        }
+
+        private static List<NameStock> GetProductsToBuy(Socket socketClient, ref bool connected)
+        {
+            var products = new List<NameStock>();
+            bool escucharProductosAEliminar = true;
+            byte[] data;
+            byte[] largoDataDelServidor;
+            while (escucharProductosAEliminar)
+            {
+                try
+                {
+                    largoDataDelServidor = new byte[4];
+                    int cantRecibida = socketClient.Receive(largoDataDelServidor);
+
+                    if (cantRecibida == 0)
+                    {
+                        escucharProductosAEliminar = false;
+                    }
+                    else
+                    {
+                        int largo = BitConverter.ToInt32(largoDataDelServidor);
+
+                        data = new byte[largo];
+                        int recibidoData = socketClient.Receive(data);
+                        if (recibidoData == 0)
+                        {
+                            connected = false;
+                        }
+                        else
+                        {
+                            string mensaje = Encoding.UTF8.GetString(data);
+                            if (mensaje.Equals("end"))
+                            {
+                                escucharProductosAEliminar = false;
+                            }
+                            else
+                            {
+                                NameStock product = new NameStock()
+                                {
+                                    Name = mensaje.Split("@")[0],
+                                    Stock = mensaje.Split("@")[1]
+                                };
+                                products.Add(product);
+                                Console.WriteLine("Producto: {0}   |   Stock: {1}", product.Name, product.Stock);
+                            }
                         }
                     }
                 }

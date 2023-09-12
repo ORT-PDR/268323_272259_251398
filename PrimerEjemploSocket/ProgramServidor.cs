@@ -1,5 +1,6 @@
 ﻿using Protocolo;
 using Servidor;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -53,7 +54,8 @@ namespace PrimerEjemploSocket
             {
                 //Recibe la opción seleccionada por el usuario
                 string strOption = "";
-                ReceiveData(manejoDataSocket, ref strOption);
+                connected = ReceiveData(manejoDataSocket, ref strOption);
+                if (!connected) break;
                 option = int.Parse(strOption);
 
                 Println("Seleccionada la opción " + option);
@@ -78,15 +80,26 @@ namespace PrimerEjemploSocket
 
                     case 3:
                         //Compra de productos
-                        for(int i=0; i<products.Count; i++)
+                        SendProductsNameStock(manejoDataSocket, products);
+
+                        string message = "";
+                        connected = ReceiveData(manejoDataSocket, ref message);
+                        if (connected)
                         {
-                            string productoMostrado = products.ElementAt(i).Name;
-                            SendData(manejoDataSocket, productoMostrado);
+                            string nameProduct = message.Split('@')[0];
+                            string amountBought = message.Split('@')[1];
+                            Producto productBought = products.Find(p => p.Name == nameProduct);
+                            int stock = productBought.Stock - int.Parse(amountBought);
+                            if (stock < 0) SendData(manejoDataSocket, "error");
+                            else
+                            {
+                                productBought.Stock -= int.Parse(amountBought);
+                                SendData(manejoDataSocket, "ok");
+                            }
+                            
                         }
-
-                        SendData(manejoDataSocket, "end");
-
                         break;
+
                     case 4:
                         //Modificación de producto
                         SendClientProducts(nroClient, products, manejoDataSocket);
@@ -117,6 +130,7 @@ namespace PrimerEjemploSocket
                                 break;
                         }
                         break;
+
                     case 5:
                         byte[] largoData;
                         byte[] data;
@@ -160,8 +174,8 @@ namespace PrimerEjemploSocket
                         {
 
                         }
-
                         break;
+
                     case 6:
                         //Búsqueda de productos
                         string filterText = "";
@@ -321,6 +335,16 @@ namespace PrimerEjemploSocket
             SendData(manejoDataSocket, "end");
         }
 
+        private static void SendProductsNameStock(ManejoDataSocket manejoDataSocket, List<Producto> products)
+        {
+            foreach (Producto product in products)
+            {
+                string mensaje = product.Name + "@" + product.Stock.ToString();
+                SendData(manejoDataSocket, mensaje);
+            }
+            SendData(manejoDataSocket, "end");
+        }
+
         private static void Print(string text)
         {
             Console.Write(text);
@@ -383,15 +407,18 @@ namespace PrimerEjemploSocket
             string productImage = "";
             connected = ReceiveData(manejoDataSocket, ref productImage);
 
-            Producto product = new Producto();
-            product.Name = productName;
-            product.Description = productDescription;
-            product.Price = productPrice;
-            product.Stock = productStock;
-            product.Image = productImage;
-            product.OwnerId = userId;
-
-            return product;
+            if (connected)
+            {
+                Producto product = new Producto();
+                product.Name = productName;
+                product.Description = productDescription;
+                product.Price = productPrice;
+                product.Stock = productStock;
+                product.Image = productImage;
+                product.OwnerId = userId;
+                return product;
+            }
+            return null;
         }
     }
 }
