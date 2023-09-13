@@ -136,7 +136,7 @@ namespace PrimerEjemploSocket
                         byte[] largoData;
 
                         List<Producto> clientProducts = GetClientProducts(products, nroClient);
-                        SendUserProducts(manejoDataSocket, clientProducts);
+                        SendProducts(manejoDataSocket, clientProducts, true);
                         DeleteProduct(manejoDataSocket, ref connected, clientProducts, ref products);
 
                         break;
@@ -159,91 +159,15 @@ namespace PrimerEjemploSocket
                         break;
                     
                     case 7:
-                        for (int i = 0; i < products.Count; i++)
-                        {
-                            string productoMostrado = products.ElementAt(i).Name;
-                            data = Encoding.UTF8.GetBytes(productoMostrado);
-                            largoData = BitConverter.GetBytes(data.Length);
-                            try
-                            {
-                                manejoDataSocket.Send(largoData);
-                                manejoDataSocket.Send(data);
-                            }
-                            catch (SocketException)
-                            {
-                                Console.WriteLine("Error de conexión");
+                        //consultar un producto específico
+                        SendProducts(manejoDataSocket, products, false);
 
-                            }
-                        }
+                        string productToConsult = "";
+                        connected = ReceiveData(manejoDataSocket, ref productToConsult);
 
-                        data = Encoding.UTF8.GetBytes("end");
-                        largoData = BitConverter.GetBytes(data.Length);
-                        try
-                        {
-                            manejoDataSocket.Send(largoData);
-                            manejoDataSocket.Send(data);
-                        }
-                        catch (SocketException)
-                        {
-                            Console.WriteLine("Error de conexión");
+                        Producto consultedProduct = products.FirstOrDefault(prod => prod.Name == productToConsult);
 
-                        }
-
-                        try
-                        {
-                            largoData = manejoDataSocket.Receive(Constantes.LargoFijo);
-                            data = manejoDataSocket.Receive(BitConverter.ToInt32(largoData));
-
-                        }
-                        catch (Exception ex)
-                        {
-
-                        }
-
-                        string nombreProductoAConsultar = Encoding.UTF8.GetString(data);
-                        int stockProdctoConsutlado = products.FirstOrDefault(prod => prod.Name == nombreProductoAConsultar).Stock;
-
-                        data = Encoding.UTF8.GetBytes(stockProdctoConsutlado.ToString());
-                        largoData = BitConverter.GetBytes(data.Length);
-                        try
-                        {
-                            manejoDataSocket.Send(largoData);
-                            manejoDataSocket.Send(data);
-                        }
-                        catch (SocketException)
-                        {
-                            Console.WriteLine("Error de conexión");
-
-                        }
-
-                        string descripcionProdctoConsutlado = products.FirstOrDefault(prod => prod.Name == nombreProductoAConsultar).Description;
-
-                        data = Encoding.UTF8.GetBytes(descripcionProdctoConsutlado);
-                        largoData = BitConverter.GetBytes(data.Length);
-                        try
-                        {
-                            manejoDataSocket.Send(largoData);
-                            manejoDataSocket.Send(data);
-                        }
-                        catch (SocketException)
-                        {
-                            Console.WriteLine("Error de conexión");
-
-                        }
-
-                        int precioProdctoConsutlado = products.FirstOrDefault(prod => prod.Name == nombreProductoAConsultar).Price;
-                        data = Encoding.UTF8.GetBytes(precioProdctoConsutlado.ToString());
-                        largoData = BitConverter.GetBytes(data.Length);
-                        try
-                        {
-                            manejoDataSocket.Send(largoData);
-                            manejoDataSocket.Send(data);
-                        }
-                        catch (SocketException)
-                        {
-                            Console.WriteLine("Error de conexión");
-
-                        }
+                        SendData(manejoDataSocket, consultedProduct.ToString());
 
                         break;
 
@@ -291,6 +215,8 @@ namespace PrimerEjemploSocket
         private static void SendClientProducts(int nroClient, List<Producto> products, ManejoDataSocket manejoDataSocket)
         {
             List<Producto> productosDelCliente = products.Where(prod => prod.OwnerId == nroClient).ToList();
+
+            SendData(manejoDataSocket, productosDelCliente.Count.ToString());
 
             for (int i = 0; i < productosDelCliente.Count; i++)
             {
@@ -386,13 +312,20 @@ namespace PrimerEjemploSocket
             return null;
         }
 
-        private static void SendUserProducts(ManejoDataSocket manejoDataSocket, List<Producto> clientProducts)
+        private static void SendProducts(ManejoDataSocket manejoDataSocket, List<Producto> products, bool withStock)
         {
-            SendData(manejoDataSocket, clientProducts.Count.ToString());
+            SendData(manejoDataSocket, products.Count.ToString());
 
-            foreach (Producto prod in clientProducts)
+            foreach (Producto prod in products)
             {
-                SendData(manejoDataSocket, prod.Name + " | Stock: " + prod.Stock);
+                if (withStock)
+                {
+                    SendData(manejoDataSocket, prod.Name + " | Stock: " + prod.Stock);
+                }
+                else
+                {
+                    SendData(manejoDataSocket, prod.Name);
+                }
             }
         }
 
