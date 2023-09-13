@@ -1,4 +1,5 @@
-﻿using Protocolo;
+﻿using Common;
+using Protocolo;
 using Servidor;
 using System.Collections.Generic;
 using System.Net;
@@ -8,8 +9,9 @@ using System.Threading.Channels;
 
 namespace PrimerEjemploSocket
 {
-    internal class ProgramServidor
+    public class ProgramServidor
     {
+        static readonly SettingsManager settingMng = new SettingsManager();
         static void Main(string[] args)
         {
             List<Producto> products = new List<Producto>();
@@ -18,8 +20,12 @@ namespace PrimerEjemploSocket
 
             Println("Inciar Servidor...");
             var socketServer = new Socket(AddressFamily.InterNetwork,SocketType.Stream,ProtocolType.Tcp);
-            var endpointLocal = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
-            socketServer.Bind(endpointLocal);
+
+            string serverIp = settingMng.ReadSettings(ServerConfig.serverIPconfigKey);
+            int serverPort = int.Parse(settingMng.ReadSettings(ServerConfig.serverPortconfigKey));
+
+            var localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
+            socketServer.Bind(localEndPoint);
             socketServer.Listen(10);
             Println("Esperando por clientes....");
             int cantClients = 0;
@@ -58,9 +64,6 @@ namespace PrimerEjemploSocket
                 connected = ReceiveData(manejoDataSocket, ref strOption);
                 if (!connected) break;
                 option = int.Parse(strOption);
-
-                Println("Seleccionada la opción " + option);
-                
                 switch (option)
                 {
                     case 1:
@@ -72,10 +75,7 @@ namespace PrimerEjemploSocket
                             products.Add(product);
                             Println("Se agrego el producto");
                         }
-                        Print("esperando");
-
                         break;
-
                     case 2:
                         //Compra de productos
                         SendProductsNameStock(manejoDataSocket, products);
@@ -94,7 +94,6 @@ namespace PrimerEjemploSocket
                                 productBought.Stock -= int.Parse(amountBought);
                                 SendData(manejoDataSocket, "ok");
                             }
-                            
                         }
                         break;
 
@@ -128,17 +127,13 @@ namespace PrimerEjemploSocket
                                 break;
                         }
                         break;
-
                     case 4:
-                        byte[] data;
-                        byte[] largoData;
-
+                        //Baja de producto
                         List<Producto> clientProducts = GetClientProducts(products, nroClient);
                         SendProducts(manejoDataSocket, clientProducts, true);
                         DeleteProduct(manejoDataSocket, ref connected, clientProducts, ref products);
 
                         break;
-
                     case 5:
                         //Búsqueda de productos
                         string filterText = "";
@@ -155,7 +150,6 @@ namespace PrimerEjemploSocket
                         SendData(manejoDataSocket, "end");
 
                         break;
-                    
                     case 6:
                         //consultar un producto específico
                         SendProducts(manejoDataSocket, products, false);
@@ -170,31 +164,7 @@ namespace PrimerEjemploSocket
                         break;
 
                     case 7:
-                        //Calificar un producto
-                        string strIdProduct = "";
-                        connected = ReceiveData(manejoDataSocket, ref strIdProduct);
-                        int idProduct = int.Parse(strIdProduct);
-
-                        string opinion = "";
-                        connected = ReceiveData(manejoDataSocket, ref opinion);
-
-                        string strRating = "";
-                        connected = ReceiveData(manejoDataSocket, ref strRating);
-                        int rating = int.Parse(strRating);
-
-                        Reseña review = new Reseña();
-                        review.UserId = user.Id;
-                        review.Comment = opinion;
-                        review.Rating = rating;
-
-                        foreach (var prod in products)
-                        {
-                            if (prod.Id == idProduct)
-                            {
-                                prod.Reviews.Add(review);
-                                break;
-                            }
-                        }
+                        RateAProduct(manejoDataSocket, ref connected, ref products, user.Id);
 
                         break;
                     
@@ -364,6 +334,34 @@ namespace PrimerEjemploSocket
                 }
             }
             return 0;
+        }
+
+        private static void RateAProduct(ManejoDataSocket manejoDataSocket, ref bool connected, ref List<Producto> products, int userId)
+        {
+            string strIdProduct = "";
+            connected = ReceiveData(manejoDataSocket, ref strIdProduct);
+            int idProduct = int.Parse(strIdProduct);
+
+            string opinion = "";
+            connected = ReceiveData(manejoDataSocket, ref opinion);
+
+            string strRating = "";
+            connected = ReceiveData(manejoDataSocket, ref strRating);
+            int rating = int.Parse(strRating);
+
+            Reseña review = new Reseña();
+            review.UserId = userId;
+            review.Comment = opinion;
+            review.Rating = rating;
+
+            foreach (var prod in products)
+            {
+                if (prod.Id == idProduct)
+                {
+                    prod.Reviews.Add(review);
+                    break;
+                }
+            }
         }
 
         private static void LoadTestData(ref List<Usuario> users, ref List<Producto> products)

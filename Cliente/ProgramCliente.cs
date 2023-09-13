@@ -3,21 +3,29 @@ using System.Net;
 using System.Text;
 using Protocolo;
 using Microsoft.VisualBasic.FileIO;
+using Common;
 
 namespace Cliente
 {
     internal class ProgramCliente
     {
+        static readonly SettingsManager settingMng = new SettingsManager();
         static void Main(string[] args)
         {
             Println("Inciar Cliente...");
             
             //CONECTAR AL SERVIDOR
             var socketClient = new Socket(AddressFamily.InterNetwork,SocketType.Stream,ProtocolType.Tcp);
-            var endpointLocal = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
-            socketClient.Bind(endpointLocal);
-            var endpointServer = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
-            socketClient.Connect(endpointServer);
+
+            string clientIp = settingMng.ReadSettings(ClientConfig.clientIPconfigKey);
+            int clientPort = int.Parse(settingMng.ReadSettings(ClientConfig.clientPortconfigKey));
+            string serverIp = settingMng.ReadSettings(ClientConfig.serverIPconfigKey);
+            int serverPort = int.Parse(settingMng.ReadSettings(ClientConfig.serverPortconfigKey));
+
+            var localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
+            socketClient.Bind(localEndPoint);
+            var remoteEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
+            socketClient.Connect(remoteEndPoint);
             
             bool exitMenu = false;
             bool connected = true;
@@ -47,35 +55,34 @@ namespace Cliente
                         BuyAProduct(manejoDataSocket, socketClient, ref connected);
                         
                         break;
-
                     case "3":
                         Println("Has seleccionado la opción Modificación de producto");
                         List<string> productNames = GetUserProducts(manejoDataSocket, ref connected);
-                        Console.Write("Ingrese nombre del producto a modificar ");
-                        string product = Console.ReadLine();
+                        Print("Ingrese nombre del producto a modificar ");
+                        string product = Read();
                         while (!productNames.Contains(product))
                         {
-                            Console.Write("Producto no encontrado. Escriba un nombre de producto válido.");
-                            product = Console.ReadLine();
+                            Print("Producto no encontrado. Escriba un nombre de producto válido.");
+                            product = Read();
                         }
                         
                         bool modificado = false;
                         while (!modificado)
                         {
                             PrintModifyProductOptions();
-                            string attributeOption = Console.ReadLine();
+                            string attributeOption = Read();
                             while (attributeOption != "1" && attributeOption != "2" &&
                                 attributeOption != "3" && attributeOption != "4")
                             {
-                                Console.WriteLine("Opcion Inválida.");
+                                Println("Opcion Inválida.");
                                 PrintModifyProductOptions();
-                                attributeOption = Console.ReadLine();
+                                attributeOption = Read();
                             }
                             SendData(manejoDataSocket, product);
                             SendData(manejoDataSocket, attributeOption);
 
-                            Console.Write("Inserte nuevo valor:");
-                            string newValue = Console.ReadLine();
+                            Print("Inserte nuevo valor:");
+                            string newValue = Read();
 
                             if (attributeOption == "2")
                             {
@@ -89,12 +96,11 @@ namespace Cliente
                                     catch
                                     {
                                         Console.WriteLine("El stock debe ser un numero mayor o igual a 0. Inserte nuevamente:");
-                                        newValue = Console.ReadLine();
+                                        newValue = Read();
                                     }
                                 }
                             }
-
-                            if (attributeOption == "3")
+                            else if (attributeOption == "3")
                             {
                                 int value = -1;
                                 while (value <= 0)
@@ -106,15 +112,14 @@ namespace Cliente
                                     catch
                                     {
                                         Console.WriteLine("El precio debe ser un numero positivo. Inserte nuevamente:");
-                                        newValue = Console.ReadLine();
+                                        newValue = Read();
                                     }
                                 }
-
                             }
-
                             SendData(manejoDataSocket, newValue);
                             modificado = true;
                         }
+
                         break;
                     case "4":
                         Println("Has seleccionado la opción Baja de producto");
@@ -126,6 +131,7 @@ namespace Cliente
                         string response = "";
                         ReceiveData(manejoDataSocket, ref response);
                         Println(response);
+
                         break;
                     case "5":
                         Println("Has seleccionado la opción Búsqueda de productos");
