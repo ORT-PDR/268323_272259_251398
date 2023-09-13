@@ -122,7 +122,7 @@ namespace Cliente
 
                     case "4":
                         Println("Has seleccionado la opción Modificación de producto");
-                        List<string> productNames = GetUserProducts(socketClient, ref connected);
+                        List<string> productNames = GetUserProducts(manejoDataSocket, ref connected);
                         Console.Write("Ingrese nombre del producto a modificar ");
                         string product = Console.ReadLine();
                         while (!productNames.Contains(product))
@@ -189,60 +189,15 @@ namespace Cliente
                         }
                         break;
                     case "5":
-                        Console.WriteLine("Has seleccionado la opción Baja de producto");
-                        productNames = GetUserProducts(socketClient,ref connected);
-                        /*List<string> productNames = new List<string>();
-                        bool escucharProductosAEliminar = true;
-                        byte[] data;
-                        byte[] largoDataDelServidor;
-                        while (escucharProductosAEliminar)
-                        {
-                            try
-                            {
-                                largoDataDelServidor = new byte[4];
-                                int cantRecibida = socketClient.Receive(largoDataDelServidor);
-
-                                if (cantRecibida == 0)
-                                {
-                                    escucharProductosAEliminar = false;
-                                }
-                                else
-                                {
-                                    int largo = BitConverter.ToInt32(largoDataDelServidor);
-
-                                    data = new byte[largo];
-                                    int recibidoData = socketClient.Receive(data);
-                                    if (recibidoData == 0)
-                                    {
-                                        connected = false;
-                                    }
-                                    else
-                                    {
-                                        string mensaje = Encoding.UTF8.GetString(data);
-                                        if (mensaje.Equals("end"))
-                                        {
-                                            escucharProductosAEliminar = false;
-                                        }
-                                        else
-                                        {
-                                            Console.WriteLine("Producto: {0}", mensaje);
-                                            productNames.Add(mensaje);
-                                        }
-
-                                    }
-                                }
-                            }
-                            catch (SocketException e)
-                            {
-                                connected = false;
-                            }
-                        }*/
-
-                        Console.Write("Ingrese  nombre del producto a eliminar ");
-                        string eleccion = Console.ReadLine();
-
-                        SendData(manejoDataSocket, eleccion);
-
+                        Println("Has seleccionado la opción Baja de producto");
+                        List<string> userProducts = GetUserProducts(manejoDataSocket, ref connected);
+                        ShowProducts(userProducts);
+                        Console.Write("Ingrese el nombre del producto a eliminar ");
+                        string prodName = Read();
+                        SendData(manejoDataSocket, prodName);
+                        string response = "";
+                        ReceiveData(manejoDataSocket, ref response);
+                        Println(response);
                         break;
                     case "6":
                         Println("Has seleccionado la opción Búsqueda de productos");
@@ -308,19 +263,19 @@ namespace Cliente
                         }
 
                         Console.Write("Ingrese  nombre del producto que quiera consultar ");
-                        eleccion = Console.ReadLine();
+                        prodName = Console.ReadLine();
 
-                        while (!productosAConsultar.Contains(eleccion))
+                        while (!productosAConsultar.Contains(prodName))
                         {
                             Console.Write("Ingrese alguna de las opciones listadas ");
-                            eleccion = Console.ReadLine();
+                            prodName = Console.ReadLine();
                         }
 
 
-                        data = Encoding.UTF8.GetBytes(eleccion);
+                        data = Encoding.UTF8.GetBytes(prodName);
                         largoDataDelServidor = BitConverter.GetBytes(data.Length);
 
-                        Console.WriteLine("Sobre el producto: " + eleccion);
+                        Console.WriteLine("Sobre el producto: " + prodName);
 
                         try
                         {
@@ -510,6 +465,11 @@ namespace Cliente
             Console.WriteLine(text);
         }
 
+        private static string Read()
+        {
+            return Console.ReadLine();
+        }
+
         private static void SendData(ManejoDataSocket manejoDataSocket, string text)
         {
             byte[] data = Encoding.UTF8.GetBytes(text);
@@ -615,54 +575,31 @@ namespace Cliente
             SendData(manejoDataSocket, rating);
         }
 
-        private static List<string> GetUserProducts(Socket socketClient, ref bool connected)
+        private static void ShowProducts(List<string> products)
         {
-            var products = new List<string>();
-            bool escucharProductosAEliminar = true;
-            byte[] data;
-            byte[] largoDataDelServidor;
-            while (escucharProductosAEliminar)
+            Println("");
+            foreach (string product in products)
             {
-                try
-                {
-                    largoDataDelServidor = new byte[4];
-                    int cantRecibida = socketClient.Receive(largoDataDelServidor);
-
-                    if (cantRecibida == 0)
-                    {
-                        escucharProductosAEliminar = false;
-                    }
-                    else
-                    {
-                        int largo = BitConverter.ToInt32(largoDataDelServidor);
-
-                        data = new byte[largo];
-                        int recibidoData = socketClient.Receive(data);
-                        if (recibidoData == 0)
-                        {
-                            connected = false;
-                        }
-                        else
-                        {
-                            string mensaje = Encoding.UTF8.GetString(data);
-                            if (mensaje.Equals("end"))
-                            {
-                                escucharProductosAEliminar = false;
-                            }
-                            else
-                            {
-                                Console.WriteLine("Producto: {0}", mensaje);
-                                products.Add(mensaje);
-                            }
-
-                        }
-                    }
-                }
-                catch (SocketException e)
-                {
-                    connected = false;
-                }
+                Println(product);
             }
+            Println("");
+        }
+
+        private static List<string> GetUserProducts(ManejoDataSocket manejoDataSocket, ref bool connected)
+        {
+            string strQuantProducts = "";
+            connected = ReceiveData(manejoDataSocket, ref strQuantProducts);
+            int quantProducts = int.Parse(strQuantProducts);
+
+            List<string> products = new List<string>();
+
+            for (int i=0; i<quantProducts; i++)
+            {
+                string prod = "";
+                connected = ReceiveData(manejoDataSocket, ref prod);
+                products.Add(prod);
+            }
+
             return products;
         }
 

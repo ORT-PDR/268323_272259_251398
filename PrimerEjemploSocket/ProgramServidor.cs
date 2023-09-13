@@ -132,48 +132,13 @@ namespace PrimerEjemploSocket
                         break;
 
                     case 5:
-                        byte[] largoData;
                         byte[] data;
-                        List<Producto> productosDelCliente = products.Where(prod => prod.OwnerId == nroClient).ToList();
+                        byte[] largoData;
 
-                        for (int i = 0; i < productosDelCliente.Count; i++)
-                        {
-                            string productoMostrado = productosDelCliente.ElementAt(i).Name;
-                            SendData(manejoDataSocket, productoMostrado);
-                        }
-                        SendData(manejoDataSocket, "end");
+                        List<Producto> clientProducts = GetClientProducts(products, nroClient);
+                        SendUserProducts(manejoDataSocket, clientProducts);
+                        DeleteProduct(manejoDataSocket, ref connected, clientProducts, ref products);
 
-                        try
-                        {
-                            largoData = manejoDataSocket.Receive(Constantes.LargoFijo);
-                            data = manejoDataSocket.Receive(BitConverter.ToInt32(largoData));
-                            string nombreProductoAEliminar = Encoding.UTF8.GetString(data);
-                            int stockProdcto = 0;
-                            try
-                            {
-                                stockProdcto = productosDelCliente.FirstOrDefault(prod => prod.Name == nombreProductoAEliminar).Stock;
-                            }
-                            catch (Exception ex)
-                            {
-
-                            }
-
-                            Console.WriteLine("stock de " + nombreProductoAEliminar + " es " + stockProdcto);
-                            if (stockProdcto == 1)
-                            {
-                                products = products.Where(prod => !(prod.Name.Equals(nombreProductoAEliminar) && prod.OwnerId == nroClient)).ToList();
-                            }
-                            else
-                            {
-                                Producto productoAModificar = products.FirstOrDefault(prod => prod.Name == nombreProductoAEliminar && prod.OwnerId == nroClient);
-                                productoAModificar.Stock--;
-                            }
-
-                        }
-                        catch (Exception ex)
-                        {
-
-                        }
                         break;
 
                     case 6:
@@ -419,6 +384,55 @@ namespace PrimerEjemploSocket
                 return product;
             }
             return null;
+        }
+
+        private static void SendUserProducts(ManejoDataSocket manejoDataSocket, List<Producto> clientProducts)
+        {
+            SendData(manejoDataSocket, clientProducts.Count.ToString());
+
+            foreach (Producto prod in clientProducts)
+            {
+                SendData(manejoDataSocket, prod.Name + " | Stock: " + prod.Stock);
+            }
+        }
+
+        private static List<Producto> GetClientProducts(List<Producto> products, int nroClient)
+        {
+            return products.Where(prod => prod.OwnerId == nroClient).ToList();
+        }
+
+        private static void DeleteProduct(ManejoDataSocket manejoDataSocket, ref bool connected, List<Producto> clientProducts, ref List<Producto> products)
+        {
+            string prodToDelete = "";
+            connected = ReceiveData(manejoDataSocket, ref prodToDelete);
+
+
+            int productStock = GetProductStock(clientProducts, prodToDelete);
+            if (productStock <= 0)
+            {
+                SendData(manejoDataSocket, "El producto seleccionado no existe");
+            }
+            else if (productStock == 1){
+                products = clientProducts.Where(prod => !(prod.Name.Equals(prodToDelete))).ToList();
+                SendData(manejoDataSocket, "Se ha eliminado el producto correctamente");
+            }
+            else
+            {
+                products.Find(prod => prod.Name == prodToDelete).Stock--;
+                SendData(manejoDataSocket, "Se ha eliminado el producto correctamente");
+            }
+        }
+
+        private static int GetProductStock(List<Producto> clientProducts, string productName)
+        {
+            foreach (Producto prod in clientProducts)
+            {
+                if (prod.Name == productName)
+                {
+                    return prod.Stock;
+                }
+            }
+            return 0;
         }
     }
 }
