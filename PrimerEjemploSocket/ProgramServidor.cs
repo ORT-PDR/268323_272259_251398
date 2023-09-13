@@ -14,6 +14,7 @@ namespace PrimerEjemploSocket
         {
             List<Producto> products = new List<Producto>();
             List<Usuario> users = new List<Usuario>();
+            LoadTestData(ref users, ref products);
 
             Println("Inciar Servidor...");
             var socketServer = new Socket(AddressFamily.InterNetwork,SocketType.Stream,ProtocolType.Tcp);
@@ -63,9 +64,6 @@ namespace PrimerEjemploSocket
                 switch (option)
                 {
                     case 1:
-                        //DESCONECTARSE
-                        break;
-                    case 2:
                         //Publicación de producto
                         Producto product = CreateProduct(manejoDataSocket, ref connected, user.Id);
 
@@ -78,7 +76,7 @@ namespace PrimerEjemploSocket
 
                         break;
 
-                    case 3:
+                    case 2:
                         //Compra de productos
                         SendProductsNameStock(manejoDataSocket, products);
 
@@ -100,7 +98,7 @@ namespace PrimerEjemploSocket
                         }
                         break;
 
-                    case 4:
+                    case 3:
                         //Modificación de producto
                         SendClientProducts(nroClient, products, manejoDataSocket);
 
@@ -131,7 +129,7 @@ namespace PrimerEjemploSocket
                         }
                         break;
 
-                    case 5:
+                    case 4:
                         byte[] data;
                         byte[] largoData;
 
@@ -141,7 +139,7 @@ namespace PrimerEjemploSocket
 
                         break;
 
-                    case 6:
+                    case 5:
                         //Búsqueda de productos
                         string filterText = "";
                         connected = ReceiveData(manejoDataSocket, ref filterText);
@@ -158,7 +156,7 @@ namespace PrimerEjemploSocket
 
                         break;
                     
-                    case 7:
+                    case 6:
                         //consultar un producto específico
                         SendProducts(manejoDataSocket, products, false);
 
@@ -171,7 +169,7 @@ namespace PrimerEjemploSocket
 
                         break;
 
-                    case 8:
+                    case 7:
                         //Calificar un producto
                         string strIdProduct = "";
                         connected = ReceiveData(manejoDataSocket, ref strIdProduct);
@@ -200,7 +198,7 @@ namespace PrimerEjemploSocket
 
                         break;
                     
-                    case 9:
+                    case 8:
                         
                         break;
 
@@ -366,6 +364,76 @@ namespace PrimerEjemploSocket
                 }
             }
             return 0;
+        }
+
+        private static void LoadTestData(ref List<Usuario> users, ref List<Producto> products)
+        {
+            Usuario user1 = new Usuario()
+            {
+                Id = 100001,
+                Username = "Nahuel",
+                Password = "Nah123"
+            };
+            users.Add(user1);
+            Usuario user2 = new Usuario()
+            {
+                Id = 100002,
+                Username = "Alan",
+                Password = "Alan123"
+            };
+            users.Add(user2);
+            Usuario user3 = new Usuario()
+            {
+                Id = 100003,
+                Username = "Lucas",
+                Password = "Luc123"
+            };
+            users.Add(user3);
+
+            Producto prod1 = new Producto()
+            {
+                Id = 1001,
+                OwnerId = user1.Id,
+                Name = "Mesa",
+                Description = "Primera mesa de Nahuel",
+                Stock = 4,
+                Price = 252,
+                Image = "image"
+            };
+            products.Add(prod1);
+            Producto prod2 = new Producto()
+            {
+                Id = 1002,
+                OwnerId = user1.Id,
+                Name = "Silla",
+                Description = "Primera silla de Nahuel",
+                Stock = 3,
+                Price = 134,
+                Image = "image"
+            };
+            products.Add(prod2);
+            Producto prod3 = new Producto()
+            {
+                Id = 1003,
+                OwnerId = user2.Id,
+                Name = "Cama",
+                Description = "Primera cama de Alan",
+                Stock = 7,
+                Price = 300,
+                Image = "image"
+            };
+            products.Add(prod3);
+            Producto prod4 = new Producto()
+            {
+                Id = 1004,
+                OwnerId = user3.Id,
+                Name = "Escritorio",
+                Description = "Primer escritorio de Lucas",
+                Stock = 1,
+                Price = 450,
+                Image = "image"
+            };
+            products.Add(prod4);
         }
     }
 }

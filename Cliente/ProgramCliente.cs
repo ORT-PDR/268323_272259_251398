@@ -40,18 +40,15 @@ namespace Cliente
                 switch (option)
                 {
                     case "1":
-
-                        break;
-                    case "2":
                         PublishProduct(manejoDataSocket);
 
                         break;
-                    case "3":
+                    case "2":
                         BuyAProduct(manejoDataSocket, socketClient, ref connected);
                         
                         break;
 
-                    case "4":
+                    case "3":
                         Println("Has seleccionado la opción Modificación de producto");
                         List<string> productNames = GetUserProducts(manejoDataSocket, ref connected);
                         Console.Write("Ingrese nombre del producto a modificar ");
@@ -119,7 +116,7 @@ namespace Cliente
                             modificado = true;
                         }
                         break;
-                    case "5":
+                    case "4":
                         Println("Has seleccionado la opción Baja de producto");
                         List<string> userProducts = GetUserProducts(manejoDataSocket, ref connected);
                         ShowProducts(userProducts);
@@ -130,7 +127,7 @@ namespace Cliente
                         ReceiveData(manejoDataSocket, ref response);
                         Println(response);
                         break;
-                    case "6":
+                    case "5":
                         Println("Has seleccionado la opción Búsqueda de productos");
                         Print("Ingrese el nombre para filtrar: ");
                         string filterText = Console.ReadLine();
@@ -143,15 +140,15 @@ namespace Cliente
                         }
 
                         break;
-                    case "7":
+                    case "6":
                         ConsultAProduct(manejoDataSocket, ref connected);
 
                         break;
-                    case "8":
+                    case "7":
                         RateAProduct(manejoDataSocket);
 
                         break;
-                    case "9":
+                    case "8":
                         Println("Saliendo del programa...");
                         exitMenu = true;
 
@@ -184,15 +181,15 @@ namespace Cliente
         {
             Console.Clear();
             Println("Menú Principal");
-            Println("1. Desconectarse");
-            Println("2. Publicación de producto");
-            Println("3. Compra de productos");
-            Println("4. Modificación de producto");
-            Println("5. Baja de producto");
-            Println("6. Búsqueda de productos");
-            Println("7. Consultar un producto específico.");
-            Println("8. Calificar un producto");
-            Println("9. Salir");
+            Println("1. Publicación de producto");
+            Println("2. Compra de productos");
+            Println("3. Modificación de producto");
+            Println("4. Baja de producto");
+            Println("5. Búsqueda de productos");
+            Println("6. Consultar un producto específico.");
+            Println("7. Calificar un producto");
+            Println("8. Salir");
+            Println("");
             Print("Seleccione una opción:");
         }
 
