@@ -32,16 +32,11 @@ namespace Cliente
 
             ManejoDataSocket manejoDataSocket = new ManejoDataSocket(socketClient);
 
-            Print("Ingrese su nombre de usuario: ");
-            string user = Read();
-            SendData(manejoDataSocket, user);
-
-            Print("Ingrese su contraseña: ");
-            string pswd = Read();
-            SendData(manejoDataSocket, pswd);
+            
 
             while (!exitMenu)
             {
+                LogIn(manejoDataSocket);
                 ShowMenu();
                 string option = Read();
                 SendData(manejoDataSocket, option);
@@ -475,6 +470,33 @@ namespace Cliente
                 else
                 {
                     Println("Nombre de producto no valido");
+                }
+            }
+        }
+
+        private static void LogIn(ManejoDataSocket manejoDataSocket)
+        {
+            bool correctUser = false;
+            while (!correctUser)
+            {
+                Print("Ingrese su nombre de usuario: ");
+                string userName = Read();
+                Print("Ingrese su contraseña: ");
+                string userPass = Read();
+                string user = userName + "#" + userPass;
+                SendData(manejoDataSocket, user);
+
+                string response = "";
+                ReceiveData(manejoDataSocket, ref response);
+
+                if (response == "ok")
+                {
+                    Println("Bienvenido al sistema " + userName);
+                    correctUser = true;
+                }
+                else
+                {
+                    Println(response);
                 }
             }
         }

@@ -15,12 +15,22 @@ namespace Servidor
 
         public override bool Equals(object? obj)
         {
-            if (obj is Usuario otherUsuario)
+            if (obj is Usuario otherUser)
             {
-                return this.Id == otherUsuario.Id;
+                return this.Username == otherUser.Username && this.Password == otherUser.Password;
             }
             return false;
         }
 
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                int hash = 17;
+                hash = hash * 23 + (this.Username?.GetHashCode() ?? 0);
+                hash = hash * 23 + (this.Password?.GetHashCode() ?? 0);
+                return hash;
+            }
+        }
     }
 }

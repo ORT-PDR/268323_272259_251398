@@ -44,23 +44,13 @@ namespace PrimerEjemploSocket
             bool connected = true;
             ManejoDataSocket manejoDataSocket = new ManejoDataSocket(socketClient);
 
-            Usuario user = new Usuario();
-            user.Id = nroClient;
-            string userName = "";
-            connected = ReceiveData(manejoDataSocket, ref userName);
-
-
-            string pswd = "";
-            connected = ReceiveData(manejoDataSocket, ref pswd);
-
-            Println(userName + " Conectado ");
+            int userId = 0;
+            LogIn(manejoDataSocket, ref connected, users, ref userId);
 
             int option = 0;
-
+            string strOption = "";
             while (connected)
             {
-                //Recibe la opción seleccionada por el usuario
-                string strOption = "";
                 connected = ReceiveData(manejoDataSocket, ref strOption);
                 if (!connected) break;
                 option = int.Parse(strOption);
@@ -68,7 +58,7 @@ namespace PrimerEjemploSocket
                 {
                     case 1:
                         //Publicación de producto
-                        Producto product = CreateProduct(manejoDataSocket, ref connected, user.Id);
+                        Producto product = CreateProduct(manejoDataSocket, ref connected, userId);
 
                         if (!products.Contains(product))
                         {
@@ -164,7 +154,7 @@ namespace PrimerEjemploSocket
                         break;
 
                     case 7:
-                        RateAProduct(manejoDataSocket, ref connected, ref products, user.Id);
+                        RateAProduct(manejoDataSocket, ref connected, ref products, userId);
 
                         break;
                     
@@ -245,6 +235,44 @@ namespace PrimerEjemploSocket
             {
                 return false;
             }
+        }
+
+        private static void LogIn(ManejoDataSocket manejoDataSocket, ref bool connected, List<Usuario> users, ref int userId)
+        {
+            bool correctUser = false;
+            string user = "";
+            while (!correctUser)
+            {
+                connected = ReceiveData(manejoDataSocket, ref user);
+                correctUser = UserIsCorrect(user, users, ref userId);
+
+                if (correctUser)
+                {
+                    SendData(manejoDataSocket, "ok");
+                    Println(user + " conectado");
+                    correctUser = true;
+                }
+                else
+                {
+                    SendData(manejoDataSocket, "Nombre de usuario y/o contraseña incorrecto/s. Vuelva a intentarlo.");
+                }
+            }
+        }
+
+        private static bool UserIsCorrect(string user, List<Usuario> users, ref int userId)
+        {
+            string userName = user.Split('#')[0];
+            string userPass = user.Split('#')[1];
+            
+            foreach (Usuario usr in users)
+            {
+                if (usr.Username == userName && usr.Password == userPass)
+                {
+                    userId = usr.Id;
+                    return true;
+                }
+            }
+            return false;
         }
 
         private static Producto CreateProduct(ManejoDataSocket manejoDataSocket, ref bool connected, int userId)
