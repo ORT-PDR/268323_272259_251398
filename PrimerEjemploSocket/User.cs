@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Servidor
 {
-    public class Usuario
+    public class User
     {
         public int Id { get; set; }
         public string Username { get; set; }
@@ -15,7 +15,7 @@ namespace Servidor
 
         public override bool Equals(object? obj)
         {
-            if (obj is Usuario otherUser)
+            if (obj is User otherUser)
             {
                 return this.Username == otherUser.Username && this.Password == otherUser.Password;
             }

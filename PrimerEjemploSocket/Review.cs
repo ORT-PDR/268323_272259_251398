@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Servidor
 {
-    internal class Reseña
+    internal class Review
     {
         public int UserId { get; set; }
 

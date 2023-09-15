@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Servidor
 {
-    internal class Producto
+    internal class Product
     {
         public int Id { get; set; }
         public int OwnerId { get; set; }
@@ -15,10 +15,10 @@ namespace Servidor
         public int Stock { get; set; }
         public int Price { get; set; }
         public string Image { get; set; }
-        public List<Reseña> Reviews { get; set; }
+        public List<Review> Reviews { get; set; }
 
-        public Producto() {
-            this.Reviews = new List<Reseña>();
+        public Product() {
+            this.Reviews = new List<Review>();
         }
 
         public override string ToString()
@@ -33,7 +33,7 @@ namespace Servidor
 
         public override bool Equals(object? obj)
         {
-            if (obj is Producto otherProducto)
+            if (obj is Product otherProducto)
             {
                 return this.Name == otherProducto.Name;
             }
