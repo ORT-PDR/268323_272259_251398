@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace Protocolo
 {
-    public class ManejoDataSocket
+    public class SocketHelper
     {
         private readonly Socket _socket;
 
-        public ManejoDataSocket(Socket socket)
+        public SocketHelper(Socket socket)
         {
             _socket = socket;
         }
@@ -24,7 +24,9 @@ namespace Protocolo
             {
                 int cantEnviada = _socket.Send(data, offset, size - offset, SocketFlags.None);
                 if (cantEnviada == 0)
-                { throw new SocketException(); }
+                { 
+                    throw new SocketException();
+                }
                 offset += cantEnviada;
             }
         }
@@ -37,7 +39,9 @@ namespace Protocolo
             { 
                 int cantRecibido = _socket.Receive(data, offset, size - offset, SocketFlags.None);
                 if (cantRecibido == 0)
-                { throw new SocketException(); }
+                { 
+                    throw new SocketException(); 
+                }
                 offset += cantRecibido;
             }
             return data;
