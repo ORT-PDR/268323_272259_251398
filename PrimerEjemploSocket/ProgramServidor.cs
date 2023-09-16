@@ -170,28 +170,28 @@ namespace PrimerEjemploSocket
             Console.WriteLine("Cliente {0} desconectado", nroClient);
         }
 
-        private static void SendClientProducts(int nroClient, List<Product> products, SocketHelper manejoDataSocket)
+        private static void SendClientProducts(int nroClient, List<Product> products, SocketHelper socketHelper)
         {
             List<Product> productosDelCliente = products.Where(prod => prod.OwnerId == nroClient).ToList();
 
-            SendData(manejoDataSocket, productosDelCliente.Count.ToString());
+            SendData(socketHelper, productosDelCliente.Count.ToString());
 
             for (int i = 0; i < productosDelCliente.Count; i++)
             {
                 string productoMostrado = productosDelCliente.ElementAt(i).Name;
-                SendData(manejoDataSocket, productoMostrado);
+                SendData(socketHelper, productoMostrado);
             }
-            SendData(manejoDataSocket, "end");
+            SendData(socketHelper, "end");
         }
 
-        private static void SendProductsNameStock(SocketHelper manejoDataSocket, List<Product> products)
+        private static void SendProductsNameStock(SocketHelper socketHelper, List<Product> products)
         {
             foreach (Product product in products)
             {
                 string mensaje = product.Name + "@" + product.Stock.ToString();
-                SendData(manejoDataSocket, mensaje);
+                SendData(socketHelper, mensaje);
             }
-            SendData(manejoDataSocket, "end");
+            SendData(socketHelper, "end");
         }
 
         private static void Print(string text)
@@ -204,15 +204,15 @@ namespace PrimerEjemploSocket
             Console.WriteLine(text);
         }
 
-        private static void SendData(SocketHelper manejoDataSocket, string text)
+        private static void SendData(SocketHelper socketHelper, string text)
         {
             byte[] data = Encoding.UTF8.GetBytes(text);
             byte[] dataLength = BitConverter.GetBytes(data.Length);
 
             try
             {
-                manejoDataSocket.Send(dataLength);
-                manejoDataSocket.Send(data);
+                socketHelper.Send(dataLength);
+                socketHelper.Send(data);
             }
             catch (SocketException)
             {
@@ -220,12 +220,12 @@ namespace PrimerEjemploSocket
             }
         }
 
-        private static bool ReceiveData(SocketHelper manejoDataSocket, ref string text)
+        private static bool ReceiveData(SocketHelper socketHelper, ref string text)
         {
             try
             {
-                byte[] largoData = manejoDataSocket.Receive(Protocol.DataSize);
-                byte[] data = manejoDataSocket.Receive(BitConverter.ToInt32(largoData));
+                byte[] largoData = socketHelper.Receive(Protocol.DataSize);
+                byte[] data = socketHelper.Receive(BitConverter.ToInt32(largoData));
 
                 text = Encoding.UTF8.GetString(data);
                 Console.WriteLine("Se recibio: " + text);
@@ -237,24 +237,24 @@ namespace PrimerEjemploSocket
             }
         }
 
-        private static void LogIn(SocketHelper manejoDataSocket, ref bool connected, List<User> users, ref int userId)
+        private static void LogIn(SocketHelper socketHelper, ref bool connected, List<User> users, ref int userId)
         {
             bool correctUser = false;
             string user = "";
             while (!correctUser)
             {
-                connected = ReceiveData(manejoDataSocket, ref user);
+                connected = ReceiveData(socketHelper, ref user);
                 correctUser = UserIsCorrect(user, users, ref userId);
 
                 if (correctUser)
                 {
-                    SendData(manejoDataSocket, "ok");
+                    SendData(socketHelper, "ok");
                     Println(user + " conectado");
                     correctUser = true;
                 }
                 else
                 {
-                    SendData(manejoDataSocket, "Nombre de usuario y/o contraseña incorrecto/s. Vuelva a intentarlo.");
+                    SendData(socketHelper, "Nombre de usuario y/o contraseña incorrecto/s. Vuelva a intentarlo.");
                 }
             }
         }
@@ -275,24 +275,24 @@ namespace PrimerEjemploSocket
             return false;
         }
 
-        private static Product CreateProduct(SocketHelper manejoDataSocket, ref bool connected, int userId)
+        private static Product CreateProduct(SocketHelper socketHelper, ref bool connected, int userId)
         {
             string productName = "";
-            connected = ReceiveData(manejoDataSocket, ref productName);
+            connected = ReceiveData(socketHelper, ref productName);
 
             string productDescription = "";
-            connected = ReceiveData(manejoDataSocket, ref productDescription);
+            connected = ReceiveData(socketHelper, ref productDescription);
 
             string strProductStock = "";
-            connected = ReceiveData(manejoDataSocket, ref strProductStock);
+            connected = ReceiveData(socketHelper, ref strProductStock);
             int productStock = int.Parse(strProductStock);
 
             string strProductPrice = "";
-            connected = ReceiveData(manejoDataSocket, ref strProductPrice);
+            connected = ReceiveData(socketHelper, ref strProductPrice);
             int productPrice = int.Parse(strProductPrice);
 
             string productImage = "";
-            connected = ReceiveData(manejoDataSocket, ref productImage);
+            connected = ReceiveData(socketHelper, ref productImage);
 
             if (connected)
             {
@@ -308,19 +308,19 @@ namespace PrimerEjemploSocket
             return null;
         }
 
-        private static void SendProducts(SocketHelper manejoDataSocket, List<Product> products, bool withStock)
+        private static void SendProducts(SocketHelper socketHelper, List<Product> products, bool withStock)
         {
-            SendData(manejoDataSocket, products.Count.ToString());
+            SendData(socketHelper, products.Count.ToString());
 
             foreach (Product prod in products)
             {
                 if (withStock)
                 {
-                    SendData(manejoDataSocket, prod.Name + " | Stock: " + prod.Stock);
+                    SendData(socketHelper, prod.Name + " | Stock: " + prod.Stock);
                 }
                 else
                 {
-                    SendData(manejoDataSocket, prod.Name);
+                    SendData(socketHelper, prod.Name);
                 }
             }
         }
@@ -330,32 +330,17 @@ namespace PrimerEjemploSocket
             return products.Where(prod => prod.OwnerId == nroClient).ToList();
         }
 
-        private static void DeleteProduct(SocketHelper manejoDataSocket, ref bool connected, ref List<Product> products)
+        private static void DeleteProduct(SocketHelper socketHelper, ref bool connected, ref List<Product> products)
         {
             string prodToDelete = "";
-            connected = ReceiveData(manejoDataSocket, ref prodToDelete);
+            connected = ReceiveData(socketHelper, ref prodToDelete);
 
             if (connected)
             {
                 products = products.Where(prod => !(prod.Name.Equals(prodToDelete))).ToList();
-                SendData(manejoDataSocket, "Se ha eliminado el producto correctamente");
+                SendData(socketHelper, "Se ha eliminado el producto correctamente");
                 FileStreamHandler.Delete(prodToDelete);
             }
-
-            /*int productStock = GetProductStock(clientProducts, prodToDelete);
-            if (productStock <= 0)
-            {
-                SendData(manejoDataSocket, "El producto seleccionado no existe");
-            }
-            else if (productStock == 1){
-                products = clientProducts.Where(prod => !(prod.Name.Equals(prodToDelete))).ToList();
-                SendData(manejoDataSocket, "Se ha eliminado el producto correctamente");
-            }
-            else
-            {
-                products.Find(prod => prod.Name == prodToDelete).Stock--;
-                SendData(manejoDataSocket, "Se ha eliminado el producto correctamente");
-            }*/
         }
 
         private static int GetProductStock(List<Product> clientProducts, string productName)
@@ -370,17 +355,17 @@ namespace PrimerEjemploSocket
             return 0;
         }
 
-        private static void RateAProduct(SocketHelper manejoDataSocket, ref bool connected, ref List<Product> products, int userId)
+        private static void RateAProduct(SocketHelper socketHelper, ref bool connected, ref List<Product> products, int userId)
         {
             string strIdProduct = "";
-            connected = ReceiveData(manejoDataSocket, ref strIdProduct);
+            connected = ReceiveData(socketHelper, ref strIdProduct);
             int idProduct = int.Parse(strIdProduct);
 
             string opinion = "";
-            connected = ReceiveData(manejoDataSocket, ref opinion);
+            connected = ReceiveData(socketHelper, ref opinion);
 
             string strRating = "";
-            connected = ReceiveData(manejoDataSocket, ref strRating);
+            connected = ReceiveData(socketHelper, ref strRating);
             int rating = int.Parse(strRating);
 
             Review review = new Review();

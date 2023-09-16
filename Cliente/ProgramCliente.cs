@@ -89,38 +89,38 @@ namespace Cliente
 
         }
 
-        private static void DeleteProduct(ref bool connected, SocketHelper manejoDataSocket)
+        private static void DeleteProduct(ref bool connected, SocketHelper socketHelper)
         {
             Println("Has seleccionado la opción Baja de producto");
-            List<string> userProducts = GetUserProducts(manejoDataSocket, ref connected);
+            List<string> userProducts = GetUserProducts(socketHelper, ref connected);
             ShowProducts(userProducts);
             Console.Write("Ingrese el nombre del producto a eliminar");
             string prodName = Read();
-            SendData(manejoDataSocket, prodName);
+            SendData(socketHelper, prodName);
             string response = "";
-            ReceiveData(manejoDataSocket, ref response);
+            ReceiveData(socketHelper, ref response);
             Println(response);
         }
 
-        private static void SearchProductByFilter(ref bool connected, SocketHelper manejoDataSocket)
+        private static void SearchProductByFilter(ref bool connected, SocketHelper socketHelper)
         {
             Println("Has seleccionado la opción Búsqueda de productos");
             Print("Ingrese el nombre para filtrar: ");
             string filterText = Console.ReadLine();
-            SendData(manejoDataSocket, filterText);
+            SendData(socketHelper, filterText);
             string product = "";
             while (product != "end")
             {
                 Println(product);
-                connected = ReceiveData(manejoDataSocket, ref product);
+                connected = ReceiveData(socketHelper, ref product);
                 if (!connected) Println("No se pudo realizar la busqueda.");
             }
         }
 
-        private static void ModifyAProduct(ref bool connected, SocketHelper manejoDataSocket)
+        private static void ModifyAProduct(ref bool connected, SocketHelper socketHelper)
         {
             Println("Has seleccionado la opción Modificación de producto");
-            List<string> productNames = GetUserProducts(manejoDataSocket, ref connected);
+            List<string> productNames = GetUserProducts(socketHelper, ref connected);
             Print("Ingrese nombre del producto a modificar ");
             string product = Read();
             while (!productNames.Contains(product))
@@ -141,8 +141,8 @@ namespace Cliente
                     PrintModifyProductOptions();
                     attributeOption = Read();
                 }
-                SendData(manejoDataSocket, product);
-                SendData(manejoDataSocket, attributeOption);
+                SendData(socketHelper, product);
+                SendData(socketHelper, attributeOption);
 
                 Print("Inserte nuevo valor:");
                 string newValue = Read();
@@ -179,7 +179,7 @@ namespace Cliente
                         }
                     }
                 }
-                SendData(manejoDataSocket, newValue);
+                SendData(socketHelper, newValue);
                 modificado = true;
             }
         }
@@ -224,15 +224,15 @@ namespace Cliente
             return Console.ReadLine();
         }
 
-        private static void SendData(SocketHelper manejoDataSocket, string text)
+        private static void SendData(SocketHelper socketHelper, string text)
         {
             byte[] data = Encoding.UTF8.GetBytes(text);
             byte[] dataLength = BitConverter.GetBytes(data.Length);
 
             try
             {
-                manejoDataSocket.Send(dataLength);
-                manejoDataSocket.Send(data);
+                socketHelper.Send(dataLength);
+                socketHelper.Send(data);
             }
             catch (SocketException)
             {
@@ -240,12 +240,12 @@ namespace Cliente
             }
         }
 
-        private static bool ReceiveData(SocketHelper manejoDataSocket, ref string text)
+        private static bool ReceiveData(SocketHelper socketHelper, ref string text)
         {
             try
             {
-                byte[] largoData = manejoDataSocket.Receive(Protocol.DataSize);
-                byte[] data = manejoDataSocket.Receive(BitConverter.ToInt32(largoData));
+                byte[] largoData = socketHelper.Receive(Protocol.DataSize);
+                byte[] data = socketHelper.Receive(BitConverter.ToInt32(largoData));
 
                 text = Encoding.UTF8.GetString(data);
                 return true;
@@ -256,17 +256,17 @@ namespace Cliente
             }
         }
 
-        private static void PublishProduct(SocketHelper manejoDataSocket)
+        private static void PublishProduct(SocketHelper socketHelper)
         {
             Println("Has seleccionado la opción Publicación de producto");
 
             Print("Nombre del producto: ");
             string productName = Console.ReadLine();
-            SendData(manejoDataSocket, productName);
+            SendData(socketHelper, productName);
 
             Print("Descripción del producto: ");
             string productDescription = Console.ReadLine();
-            SendData(manejoDataSocket, productDescription);
+            SendData(socketHelper, productDescription);
 
             int stock;
 
@@ -285,7 +285,7 @@ namespace Cliente
                 }
             }
             string aux = "" + stock;
-            SendData(manejoDataSocket, aux);
+            SendData(socketHelper, aux);
 
             int precioProducto;
             while (true)
@@ -304,29 +304,29 @@ namespace Cliente
             }
 
             aux = "" + precioProducto;
-            SendData(manejoDataSocket, aux);
+            SendData(socketHelper, aux);
 
             Print("Ruta de la imagen del producto: ");
             string image = Console.ReadLine();
 
-            SendData(manejoDataSocket, image);
+            SendData(socketHelper, image);
         }
 
-        private static void RateAProduct(SocketHelper manejoDataSocket)
+        private static void RateAProduct(SocketHelper socketHelper)
         {
             Println("Has seleccionado la opción Calificar un producto");
 
             Println("Ingrese el id del producto que desea calificar");
             var id = Console.ReadLine();
-            SendData(manejoDataSocket, id);
+            SendData(socketHelper, id);
 
             Println("¿Cuál es su opinión del producto?");
             var opinion = Console.ReadLine();
-            SendData(manejoDataSocket, opinion);
+            SendData(socketHelper, opinion);
 
             Println("Califique el producto");
             var rating = Console.ReadLine();
-            SendData(manejoDataSocket, rating);
+            SendData(socketHelper, rating);
         }
 
         private static void ShowProducts(List<string> products)
@@ -339,10 +339,10 @@ namespace Cliente
             Println("");
         }
 
-        private static List<string> GetUserProducts(SocketHelper manejoDataSocket, ref bool connected)
+        private static List<string> GetUserProducts(SocketHelper socketHelper, ref bool connected)
         {
             string strQuantProducts = "";
-            connected = ReceiveData(manejoDataSocket, ref strQuantProducts);
+            connected = ReceiveData(socketHelper, ref strQuantProducts);
             int quantProducts = int.Parse(strQuantProducts);
 
             List<string> products = new List<string>();
@@ -350,7 +350,7 @@ namespace Cliente
             for (int i=0; i<quantProducts; i++)
             {
                 string prod = "";
-                connected = ReceiveData(manejoDataSocket, ref prod);
+                connected = ReceiveData(socketHelper, ref prod);
                 products.Add(prod);
             }
 
@@ -412,11 +412,11 @@ namespace Cliente
             return products;
         }
 
-        private static void ConsultAProduct(ref bool connected, SocketHelper manejoDataSocket)
+        private static void ConsultAProduct(ref bool connected, SocketHelper socketHelper)
         {
             Println("Has seleccionado la opción Consultar un producto específico");
             Println("Productos disponibles:");
-            List<string> productsToConsult = GetUserProducts(manejoDataSocket, ref connected);
+            List<string> productsToConsult = GetUserProducts(socketHelper, ref connected);
             ShowProducts(productsToConsult);
             Print("Ingrese el nombre del producto que quiera consultar ");
             string prodName = Read();
@@ -426,13 +426,13 @@ namespace Cliente
                 prodName = Read();
             }
             Println("Información sobre el producto: " + prodName);
-            SendData(manejoDataSocket, prodName);
+            SendData(socketHelper, prodName);
             string consultedProduct = "";
-            ReceiveData(manejoDataSocket, ref consultedProduct);
+            ReceiveData(socketHelper, ref consultedProduct);
             Println(consultedProduct);
         }
 
-        private static void BuyAProduct(SocketHelper manejoDataSocket, Socket socketClient, ref bool connected)
+        private static void BuyAProduct(SocketHelper socketHelper, Socket socketClient, ref bool connected)
         {
             Println("Has seleccionado la opción Compra de productos");
             bool isBought = false;
@@ -467,8 +467,8 @@ namespace Cliente
                             else
                             {
                                 string message = productNameStock.Name + "@" + amountToBuy.ToString();
-                                SendData(manejoDataSocket, message);
-                                connected = ReceiveData(manejoDataSocket, ref message);
+                                SendData(socketHelper, message);
+                                connected = ReceiveData(socketHelper, ref message);
                                 if (connected)
                                 {
                                     if (message.Equals("ok")) isBought = true;
@@ -489,7 +489,7 @@ namespace Cliente
             }
         }
 
-        private static void LogIn(SocketHelper manejoDataSocket)
+        private static void LogIn(SocketHelper socketHelper)
         {
             bool correctUser = false;
             while (!correctUser)
@@ -499,10 +499,10 @@ namespace Cliente
                 Print("Ingrese su contraseña: ");
                 string userPass = Read();
                 string user = userName + "#" + userPass;
-                SendData(manejoDataSocket, user);
+                SendData(socketHelper, user);
 
                 string response = "";
-                ReceiveData(manejoDataSocket, ref response);
+                ReceiveData(socketHelper, ref response);
 
                 if (response == "ok")
                 {
