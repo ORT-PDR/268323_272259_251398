@@ -12,6 +12,7 @@ namespace PrimerEjemploSocket
     public class ProgramServidor
     {
         static readonly SettingsManager settingMng = new SettingsManager();
+        private static object locker = new object();
         static void Main(string[] args)
         {
             List<Product> products = new List<Product>();
@@ -59,10 +60,18 @@ namespace PrimerEjemploSocket
                     case 1:
                         //Publicación de producto
                         Product product = CreateProduct(socketHandler, ref connected, userId);
-
-                        if (!products.Contains(product))
+                        bool productAlreadyExists = false;
+                        lock (locker)
                         {
-                            products.Add(product);
+                            productAlreadyExists = !products.Contains(product);
+                        }
+
+                        if (productAlreadyExists)
+                        {
+                            lock (locker)
+                            {
+                                products.Add(product);
+                            }
                             Println("Se agrego el producto");
                         }
                         break;
@@ -76,7 +85,11 @@ namespace PrimerEjemploSocket
                         {
                             string nameProduct = message.Split('@')[0];
                             string amountBought = message.Split('@')[1];
-                            Product productBought = products.Find(p => p.Name == nameProduct);
+                            Product productBought;
+                            lock (locker)
+                            {
+                                productBought = products.Find(p => p.Name == nameProduct);
+                            }
                             int stock = productBought.Stock - int.Parse(amountBought);
                             if (stock < 0) SendData(socketHandler, "error");
                             else
@@ -93,7 +106,11 @@ namespace PrimerEjemploSocket
 
                         string productName = "";
                         connected = ReceiveData(socketHandler, ref productName);
-                        Product productToModify = products.Find(p => p.Name == productName);
+                        Product productToModify;
+                        lock (locker)
+                        {
+                            productToModify = products.Find(p => p.Name == productName);
+                        }
 
                         string atributeOption = "";
                         connected = ReceiveData(socketHandler, ref atributeOption);
@@ -129,14 +146,18 @@ namespace PrimerEjemploSocket
                         string filterText = "";
                         connected = ReceiveData(socketHandler, ref filterText);
 
-                        foreach (var prod in products)
+                        lock (locker)
                         {
-                            if (prod.Name.Contains(filterText))
+                            foreach (var prod in products)
                             {
-                                SendData(socketHandler, prod.ToString());
-                                Println(prod.Name);
+                                if (prod.Name.Contains(filterText))
+                                {
+                                    SendData(socketHandler, prod.ToString());
+                                    Println(prod.Name);
+                                }
                             }
                         }
+                        
                         SendData(socketHandler, "end");
 
                         break;
@@ -147,7 +168,11 @@ namespace PrimerEjemploSocket
                         string productToConsult = "";
                         connected = ReceiveData(socketHandler, ref productToConsult);
 
-                        Product consultedProduct = products.FirstOrDefault(prod => prod.Name == productToConsult);
+                        Product consultedProduct;
+                        lock (locker)
+                        {
+                            consultedProduct = products.FirstOrDefault(prod => prod.Name == productToConsult);
+                        }
 
                         SendData(socketHandler, consultedProduct.ToString());
 
@@ -172,8 +197,11 @@ namespace PrimerEjemploSocket
 
         private static void SendClientProducts(int nroClient, List<Product> products, SocketHelper socketHelper)
         {
-            List<Product> productosDelCliente = products.Where(prod => prod.OwnerId == nroClient).ToList();
-
+            List<Product> productosDelCliente;
+            lock (locker)
+            {
+                productosDelCliente = products.Where(prod => prod.OwnerId == nroClient).ToList();
+            }
             SendData(socketHelper, productosDelCliente.Count.ToString());
 
             for (int i = 0; i < productosDelCliente.Count; i++)
@@ -186,11 +214,15 @@ namespace PrimerEjemploSocket
 
         private static void SendProductsNameStock(SocketHelper socketHelper, List<Product> products)
         {
-            foreach (Product product in products)
+            lock (locker)
             {
-                string mensaje = product.Name + "@" + product.Stock.ToString();
-                SendData(socketHelper, mensaje);
+                foreach (Product product in products)
+                {
+                    string mensaje = product.Name + "@" + product.Stock.ToString();
+                    SendData(socketHelper, mensaje);
+                }
             }
+            
             SendData(socketHelper, "end");
         }
 
@@ -310,24 +342,37 @@ namespace PrimerEjemploSocket
 
         private static void SendProducts(SocketHelper socketHelper, List<Product> products, bool withStock)
         {
-            SendData(socketHelper, products.Count.ToString());
-
-            foreach (Product prod in products)
+            string quantProducts;
+            lock (locker)
             {
-                if (withStock)
+                quantProducts = products.Count.ToString();
+            }
+            SendData(socketHelper, quantProducts);
+
+            lock (locker)
+            {
+                foreach (Product prod in products)
                 {
-                    SendData(socketHelper, prod.Name + " | Stock: " + prod.Stock);
-                }
-                else
-                {
-                    SendData(socketHelper, prod.Name);
+                    if (withStock)
+                    {
+                        SendData(socketHelper, prod.Name + " | Stock: " + prod.Stock);
+                    }
+                    else
+                    {
+                        SendData(socketHelper, prod.Name);
+                    }
                 }
             }
         }
 
         private static List<Product> GetClientProducts(List<Product> products, int nroClient)
         {
-            return products.Where(prod => prod.OwnerId == nroClient).ToList();
+            List<Product> clientProducts;
+            lock (locker)
+            {
+                clientProducts = products.Where(prod => prod.OwnerId == nroClient).ToList();
+            }
+            return clientProducts;
         }
 
         private static void DeleteProduct(SocketHelper socketHelper, ref bool connected, ref List<Product> products)
@@ -337,7 +382,10 @@ namespace PrimerEjemploSocket
 
             if (connected)
             {
-                products = products.Where(prod => !(prod.Name.Equals(prodToDelete))).ToList();
+                lock (locker)
+                {
+                    products = products.Where(prod => !(prod.Name.Equals(prodToDelete))).ToList();
+                }
                 SendData(socketHelper, "Se ha eliminado el producto correctamente");
                 FileStreamHandler.Delete(prodToDelete);
             }
@@ -373,12 +421,15 @@ namespace PrimerEjemploSocket
             review.Comment = opinion;
             review.Rating = rating;
 
-            foreach (var prod in products)
+            lock (locker)
             {
-                if (prod.Id == idProduct)
+                foreach (var prod in products)
                 {
-                    prod.Reviews.Add(review);
-                    break;
+                    if (prod.Id == idProduct)
+                    {
+                        prod.Reviews.Add(review);
+                        break;
+                    }
                 }
             }
         }
