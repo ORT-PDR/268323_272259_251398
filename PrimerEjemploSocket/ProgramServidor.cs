@@ -59,7 +59,7 @@ namespace PrimerEjemploSocket
                 {
                     case 1:
                         //Publicación de producto
-                        Product product = CreateProduct(socketHandler, ref connected, userId);
+                        Product product = CreateProduct(socketHandler, ref connected, userId, socketClient);
                         bool productAlreadyExists = false;
                         lock (locker)
                         {
@@ -307,7 +307,7 @@ namespace PrimerEjemploSocket
             return false;
         }
 
-        private static Product CreateProduct(SocketHelper socketHelper, ref bool connected, int userId)
+        private static Product CreateProduct(SocketHelper socketHelper, ref bool connected, int userId, Socket socketClient)
         {
             string productName = "";
             connected = ReceiveData(socketHelper, ref productName);
@@ -323,8 +323,16 @@ namespace PrimerEjemploSocket
             connected = ReceiveData(socketHelper, ref strProductPrice);
             int productPrice = int.Parse(strProductPrice);
 
-            string productImage = "";
+            //recibir la imagen del cliente
+            Console.WriteLine("Antes de recibir el archivo");
+            var fileCommonHandler = new FileCommsHandler(socketClient);
+            fileCommonHandler.ReceiveFile();
+            string productImage = productName + ".png";
+            string imageName = productImage;
             connected = ReceiveData(socketHelper, ref productImage);
+
+
+            Console.WriteLine("Archivo recibido!!");
 
             if (connected)
             {
@@ -333,7 +341,7 @@ namespace PrimerEjemploSocket
                 product.Description = productDescription;
                 product.Price = productPrice;
                 product.Stock = productStock;
-                product.Image = productImage;
+                product.Image = imageName;
                 product.OwnerId = userId;
                 return product;
             }

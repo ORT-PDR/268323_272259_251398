@@ -42,7 +42,7 @@ namespace Cliente
                 switch (option)
                 {
                     case "1":
-                        PublishProduct(socketHandler);
+                        PublishProduct(socketHandler, socketClient);
 
                         break;
                     case "2":
@@ -256,7 +256,7 @@ namespace Cliente
             }
         }
 
-        private static void PublishProduct(SocketHelper socketHelper)
+        private static void PublishProduct(SocketHelper socketHelper, Socket socketClient)
         {
             Println("Has seleccionado la opción Publicación de producto");
 
@@ -305,11 +305,23 @@ namespace Cliente
 
             aux = "" + precioProducto;
             SendData(socketHelper, aux);
-
+            //pasar la imagen al servidor
             Print("Ruta de la imagen del producto: ");
             string image = Console.ReadLine();
 
-            SendData(socketHelper, image);
+            var fileCommonHandler = new FileCommsHandler(socketClient);
+            try
+            {
+                fileCommonHandler.SendFile(image);
+                SendData(socketHelper, image);
+                Console.WriteLine("Se envio el archivo al Servidor");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                SendData(socketHelper, "");
+            }
+
         }
 
         private static void RateAProduct(SocketHelper socketHelper)

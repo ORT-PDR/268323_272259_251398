@@ -28,7 +28,8 @@ namespace Servidor
                 "\nNombre: " + this.Name +
                 "\nDescripción: " + this.Description +
                 "\nStock: " + this.Stock +
-                "\nPrecio: $" + this.Price;
+                "\nPrecio: $" + this.Price +
+                "\nImagen: " + this.Image;
         }
 
         public override bool Equals(object? obj)

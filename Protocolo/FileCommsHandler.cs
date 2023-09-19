@@ -15,6 +15,7 @@ namespace Protocolo
         public FileCommsHandler(Socket socket)
         {
             _conversionHandler = new ConversionHandler();
+            //_socketHelper = socketHelper;
             _socketHelper = new SocketHelper(socket);
         }
 
