@@ -2,6 +2,7 @@
 using Protocolo;
 using Servidor;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -33,6 +34,8 @@ namespace PrimerEjemploSocket
             while (true) 
             {
                 Socket socketClient = socketServer.Accept();
+                
+                
                 Println("Se conecto un cliente..");
                 cantClients++;
                 new Thread(() => HandleClient(socketClient, cantClients, users, products)).Start();
@@ -44,8 +47,7 @@ namespace PrimerEjemploSocket
             bool connected = true;
             SocketHelper socketHandler = new SocketHelper(socketClient);
 
-            int userId = 0;
-            LogIn(socketHandler, ref connected, users, ref userId);
+            LogIn(socketHandler, ref connected, users);
 
             int option = 0;
             string strOption = "";
@@ -58,13 +60,11 @@ namespace PrimerEjemploSocket
                 {
                     case 1:
                         //Publicación de producto
-                        Product product = CreateProduct(socketHandler, ref connected, userId);
+                        Product product = CreateProduct(socketHandler, ref connected, products);
+                        products.Add(product);
+                        SendData(socketHandler, "OK");
+                        Println(socketHandler.UserName + " agregó un nuevo producto.");
 
-                        if (!products.Contains(product))
-                        {
-                            products.Add(product);
-                            Println("Se agrego el producto");
-                        }
                         break;
                     case 2:
                         //Compra de productos
@@ -82,6 +82,7 @@ namespace PrimerEjemploSocket
                             else
                             {
                                 productBought.Stock -= int.Parse(amountBought);
+                                Println(socketHandler.UserName + " compró " + amountBought + "unidades de " + nameProduct);
                                 SendData(socketHandler, "ok");
                             }
                         }
@@ -89,7 +90,7 @@ namespace PrimerEjemploSocket
 
                     case 3:
                         //Modificación de producto
-                        SendClientProducts(nroClient, products, socketHandler);
+                        SendClientProducts(products, socketHandler);
 
                         string productName = "";
                         connected = ReceiveData(socketHandler, ref productName);
@@ -116,10 +117,12 @@ namespace PrimerEjemploSocket
                                 productToModify.Image = newValue;
                                 break;
                         }
+                        Println(socketHandler.UserName + " modificó el producto " + productName);
+
                         break;
                     case 4:
                         //Baja de producto
-                        List<Product> clientProducts = GetClientProducts(products, nroClient);
+                        List<Product> clientProducts = GetClientProducts(products, socketHandler.UserName);
                         SendProducts(socketHandler, clientProducts, true);
                         DeleteProduct(socketHandler, ref connected, ref products);
 
@@ -154,7 +157,7 @@ namespace PrimerEjemploSocket
                         break;
 
                     case 7:
-                        RateAProduct(socketHandler, ref connected, ref products, userId);
+                        RateAProduct(socketHandler, ref connected, ref products, socketHandler.UserName);
 
                         break;
                     
@@ -170,9 +173,9 @@ namespace PrimerEjemploSocket
             Console.WriteLine("Cliente {0} desconectado", nroClient);
         }
 
-        private static void SendClientProducts(int nroClient, List<Product> products, SocketHelper socketHelper)
+        private static void SendClientProducts(List<Product> products, SocketHelper socketHelper)
         {
-            List<Product> productosDelCliente = products.Where(prod => prod.OwnerId == nroClient).ToList();
+            List<Product> productosDelCliente = products.Where(prod => prod.OwnerUserName == socketHelper.UserName).ToList();
 
             SendData(socketHelper, productosDelCliente.Count.ToString());
 
@@ -228,7 +231,7 @@ namespace PrimerEjemploSocket
                 byte[] data = socketHelper.Receive(BitConverter.ToInt32(largoData));
 
                 text = Encoding.UTF8.GetString(data);
-                Console.WriteLine("Se recibio: " + text);
+                //Console.WriteLine("Se recibio: " + text);
                 return true;
             }
             catch (SocketException e)
@@ -237,19 +240,21 @@ namespace PrimerEjemploSocket
             }
         }
 
-        private static void LogIn(SocketHelper socketHelper, ref bool connected, List<User> users, ref int userId)
+        private static void LogIn(SocketHelper socketHelper, ref bool connected, List<User> users)
         {
             bool correctUser = false;
             string user = "";
+            string userName = "";
             while (!correctUser)
             {
                 connected = ReceiveData(socketHelper, ref user);
-                correctUser = UserIsCorrect(user, users, ref userId);
+                correctUser = UserIsCorrect(user, users, ref userName);
 
                 if (correctUser)
                 {
                     SendData(socketHelper, "ok");
-                    Println(user + " conectado");
+                    socketHelper.UserName = userName;
+                    Println(socketHelper.UserName + " conectado");
                     correctUser = true;
                 }
                 else
@@ -259,26 +264,35 @@ namespace PrimerEjemploSocket
             }
         }
 
-        private static bool UserIsCorrect(string user, List<User> users, ref int userId)
+        private static bool UserIsCorrect(string user, List<User> users, ref string userName)
         {
-            string userName = user.Split('#')[0];
+            string userNameReceived = user.Split('#')[0];
             string userPass = user.Split('#')[1];
             
             foreach (User usr in users)
             {
-                if (usr.Username == userName && usr.Password == userPass)
+                if (usr.Username == userNameReceived && usr.Password == userPass)
                 {
-                    userId = usr.Id;
+                    userName = usr.Username;
                     return true;
                 }
             }
             return false;
         }
 
-        private static Product CreateProduct(SocketHelper socketHelper, ref bool connected, int userId)
+        private static Product CreateProduct(SocketHelper socketHelper, ref bool connected, List<Product> products)
         {
             string productName = "";
             connected = ReceiveData(socketHelper, ref productName);
+            bool isInProducts = products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
+            while (connected && isInProducts)
+            {
+                SendData(socketHelper,"Error: Producto ya ingresado al sistema.");
+                connected = ReceiveData(socketHelper, ref productName);
+                isInProducts = products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
+
+            }
+            SendData(socketHelper, "OK");
 
             string productDescription = "";
             connected = ReceiveData(socketHelper, ref productDescription);
@@ -302,7 +316,7 @@ namespace PrimerEjemploSocket
                 product.Price = productPrice;
                 product.Stock = productStock;
                 product.Image = productImage;
-                product.OwnerId = userId;
+                product.OwnerUserName = socketHelper.UserName;
                 return product;
             }
             return null;
@@ -325,9 +339,9 @@ namespace PrimerEjemploSocket
             }
         }
 
-        private static List<Product> GetClientProducts(List<Product> products, int nroClient)
+        private static List<Product> GetClientProducts(List<Product> products, string clientUserName)
         {
-            return products.Where(prod => prod.OwnerId == nroClient).ToList();
+            return products.Where(prod => prod.OwnerUserName == clientUserName).ToList();
         }
 
         private static void DeleteProduct(SocketHelper socketHelper, ref bool connected, ref List<Product> products)
@@ -340,6 +354,7 @@ namespace PrimerEjemploSocket
                 products = products.Where(prod => !(prod.Name.Equals(prodToDelete))).ToList();
                 SendData(socketHelper, "Se ha eliminado el producto correctamente");
                 FileStreamHandler.Delete(prodToDelete);
+                Println(socketHelper.UserName + " eliminó el producto " + prodToDelete);
             }
         }
 
@@ -355,7 +370,7 @@ namespace PrimerEjemploSocket
             return 0;
         }
 
-        private static void RateAProduct(SocketHelper socketHelper, ref bool connected, ref List<Product> products, int userId)
+        private static void RateAProduct(SocketHelper socketHelper, ref bool connected, ref List<Product> products, string userName)
         {
             string strIdProduct = "";
             connected = ReceiveData(socketHelper, ref strIdProduct);
@@ -369,7 +384,7 @@ namespace PrimerEjemploSocket
             int rating = int.Parse(strRating);
 
             Review review = new Review();
-            review.UserId = userId;
+            review.UserName = userName;
             review.Comment = opinion;
             review.Rating = rating;
 
@@ -381,6 +396,7 @@ namespace PrimerEjemploSocket
                     break;
                 }
             }
+            Println(socketHelper.UserName + "calificó un producto.");
         }
 
         private static void LoadTestData(ref List<User> users, ref List<Product> products)
@@ -410,7 +426,7 @@ namespace PrimerEjemploSocket
             Product prod1 = new Product()
             {
                 Id = 1001,
-                OwnerId = user1.Id,
+                OwnerUserName = user1.Username,
                 Name = "Mesa",
                 Description = "Primera mesa de Nahuel",
                 Stock = 4,
@@ -421,7 +437,7 @@ namespace PrimerEjemploSocket
             Product prod2 = new Product()
             {
                 Id = 1002,
-                OwnerId = user1.Id,
+                OwnerUserName = user1.Username,
                 Name = "Silla",
                 Description = "Primera silla de Nahuel",
                 Stock = 3,
@@ -432,7 +448,7 @@ namespace PrimerEjemploSocket
             Product prod3 = new Product()
             {
                 Id = 1003,
-                OwnerId = user2.Id,
+                OwnerUserName = user2.Username,
                 Name = "Cama",
                 Description = "Primera cama de Alan",
                 Stock = 7,
@@ -443,7 +459,7 @@ namespace PrimerEjemploSocket
             Product prod4 = new Product()
             {
                 Id = 1004,
-                OwnerId = user3.Id,
+                OwnerUserName = user3.Username,
                 Name = "Escritorio",
                 Description = "Primer escritorio de Lucas",
                 Stock = 1,
@@ -452,5 +468,6 @@ namespace PrimerEjemploSocket
             };
             products.Add(prod4);
         }
+
     }
 }

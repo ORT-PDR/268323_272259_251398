@@ -30,43 +30,43 @@ namespace Cliente
             bool exitMenu = false;
             bool connected = true;
 
-            SocketHelper socketHandler = new SocketHelper(socketClient);
-            LogIn(socketHandler);
+            SocketHelper socketHelper = new SocketHelper(socketClient);
+            LogIn(socketHelper);
 
 
             while (!exitMenu)
             {
                 ShowMenu();
                 string option = Read();
-                SendData(socketHandler, option);
+                SendData(socketHelper, option);
                 switch (option)
                 {
                     case "1":
-                        PublishProduct(socketHandler);
+                        PublishProduct(socketHelper);
 
                         break;
                     case "2":
-                        BuyAProduct(socketHandler, socketClient, ref connected);
+                        BuyAProduct(socketHelper, socketClient, ref connected);
                         
                         break;
                     case "3":
-                        ModifyAProduct(ref connected, socketHandler);
+                        ModifyAProduct(ref connected, socketHelper);
 
                         break;
                     case "4":
-                        DeleteProduct(ref connected, socketHandler);
+                        DeleteProduct(ref connected, socketHelper);
 
                         break;
                     case "5":
-                        SearchProductByFilter(ref connected, socketHandler);
+                        SearchProductByFilter(ref connected, socketHelper);
 
                         break;
                     case "6":
-                        ConsultAProduct(ref connected, socketHandler);
+                        ConsultAProduct(ref connected, socketHelper);
 
                         break;
                     case "7":
-                        RateAProduct(socketHandler);
+                        RateAProduct(socketHelper);
 
                         break;
                     case "8":
@@ -263,6 +263,15 @@ namespace Cliente
             Print("Nombre del producto: ");
             string productName = Console.ReadLine();
             SendData(socketHelper, productName);
+            string isOK = "";
+            ReceiveData(socketHelper, ref isOK);
+            while (isOK != "OK")
+            {
+                Print("El producto ya se encuentra en el sistema. Inserte un nombre de producto no publicado:  ");
+                productName = Console.ReadLine();
+                SendData(socketHelper, productName);
+                ReceiveData(socketHelper, ref isOK);
+            }
 
             Print("Descripción del producto: ");
             string productDescription = Console.ReadLine();
@@ -310,6 +319,9 @@ namespace Cliente
             string image = Console.ReadLine();
 
             SendData(socketHelper, image);
+
+            ReceiveData(socketHelper, ref isOK);
+            if (isOK == "OK") Println("Se agregó el producto correctamente.");
         }
 
         private static void RateAProduct(SocketHelper socketHelper)
@@ -508,6 +520,7 @@ namespace Cliente
                 {
                     Println("Bienvenido al sistema " + userName);
                     correctUser = true;
+                    socketHelper.UserName = userName;
                 }
                 else
                 {

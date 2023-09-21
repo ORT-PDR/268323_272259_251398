@@ -11,6 +11,10 @@ namespace Protocolo
     {
         private readonly Socket _socket;
 
+        private string _userName;
+
+        public string UserName { get => _userName; set => _userName = value; }
+
         public SocketHelper(Socket socket)
         {
             _socket = socket;
