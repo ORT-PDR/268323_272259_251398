@@ -12,5 +12,7 @@ namespace Cliente
         public static string clientPortconfigKey = "ClientPort";
         public static string serverIPconfigKey = "ServerIpAddress";
         public static string serverPortconfigKey = "ServerPort";
+
+        public static string clientImageRoute = "ImageClientRoute";
     }
 }
