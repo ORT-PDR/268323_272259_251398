@@ -19,15 +19,15 @@ namespace Protocolo
             _socketHelper = new SocketHelper(socket);
         }
 
-        public void SendFile(string path)
+        public void SendFile(string path,string destinationName)
         {
             if (FileHandler.FileExists(path))
             {
                 var fileName = FileHandler.GetFileName(path);
                 // ---> Enviar el largo del nombre del archivo
-                _socketHelper.Send(_conversionHandler.ConvertIntToBytes(fileName.Length));
+                _socketHelper.Send(_conversionHandler.ConvertIntToBytes(destinationName.Length));
                 // ---> Enviar el nombre del archivo
-                _socketHelper.Send(_conversionHandler.ConvertStringToBytes(fileName));
+                _socketHelper.Send(_conversionHandler.ConvertStringToBytes(destinationName));
 
                 // ---> Obtener el tamaño del archivo
                 long fileSize = FileHandler.GetFileSize(path);

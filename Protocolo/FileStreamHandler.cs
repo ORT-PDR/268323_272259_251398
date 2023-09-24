@@ -33,8 +33,15 @@ namespace Protocolo
         public static void Write(string fileName, byte[] data)
         {
             var fileMode = FileHandler.FileExists(fileName) ? FileMode.Append : FileMode.Create;
-            using var fs = new FileStream(fileName, fileMode);
-            fs.Write(data, 0, data.Length);
+            try
+            {
+                using var fs = new FileStream(fileName, fileMode);
+                fs.Write(data, 0, data.Length);
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine("Ingrese direccion valida");
+            }
         }
 
         public static void Delete(string fileName)

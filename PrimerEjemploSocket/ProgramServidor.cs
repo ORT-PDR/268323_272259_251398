@@ -173,7 +173,26 @@ namespace PrimerEjemploSocket
                         {
                             consultedProduct = products.FirstOrDefault(prod => prod.Name == productToConsult);
                         }
+           
+                        string image = consultedProduct.Name + "InServer.png";
+                        string searchDirectory = @"C:\Users\Alan\Desktop\ProgRedes\oblProg\268323_272259_251398\PrimerEjemploSocket\bin\Debug\net6.0";  // Replace with your image folder path
+                        // Search for image files with the specified name
+                        string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
 
+                        string path = imageFiles[0];
+
+                        var fileCommonHandler = new FileCommsHandler(socketClient);
+                        try
+                        {
+                            fileCommonHandler.SendFile(path, consultedProduct.Name+"InClient.png");
+                            SendData(socketHandler, image);
+                            Console.WriteLine("Se envio el archivo al Cliente");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine(ex.Message);
+                            SendData(socketHandler, "");
+                        }
                         SendData(socketHandler, consultedProduct.ToString());
 
                         break;
@@ -187,8 +206,8 @@ namespace PrimerEjemploSocket
                         
                         break;
 
-                    default: 
-                        
+                    default:
+                        Println("Opción no válida.");
                         break;
                 }
             }
@@ -293,9 +312,19 @@ namespace PrimerEjemploSocket
 
         private static bool UserIsCorrect(string user, List<User> users, ref int userId)
         {
-            string userName = user.Split('#')[0];
-            string userPass = user.Split('#')[1];
-            
+            string userName = "";
+            string userPass = "";
+            try
+            {
+                userName = user.Split('#')[0];
+                userPass = user.Split('#')[1];
+
+            }catch(Exception e)
+            {
+                return false;
+            }
+
+
             foreach (User usr in users)
             {
                 if (usr.Username == userName && usr.Password == userPass)
@@ -453,14 +482,14 @@ namespace PrimerEjemploSocket
             users.Add(user1);
             User user2 = new User()
             {
-                Id = 100002,
+                Id = 2,
                 Username = "Alan",
                 Password = "Alan123"
             };
             users.Add(user2);
             User user3 = new User()
             {
-                Id = 100003,
+                Id = 3,
                 Username = "Lucas",
                 Password = "Luc123"
             };
@@ -468,18 +497,18 @@ namespace PrimerEjemploSocket
 
             Product prod1 = new Product()
             {
-                Id = 1001,
+                Id = 1,
                 OwnerId = user1.Id,
                 Name = "Mesa",
                 Description = "Primera mesa de Nahuel",
                 Stock = 4,
                 Price = 252,
-                Image = "image"
+                Image = "logo-og.png"
             };
             products.Add(prod1);
             Product prod2 = new Product()
             {
-                Id = 1002,
+                Id = 2,
                 OwnerId = user1.Id,
                 Name = "Silla",
                 Description = "Primera silla de Nahuel",
@@ -490,7 +519,7 @@ namespace PrimerEjemploSocket
             products.Add(prod2);
             Product prod3 = new Product()
             {
-                Id = 1003,
+                Id = 3,
                 OwnerId = user2.Id,
                 Name = "Cama",
                 Description = "Primera cama de Alan",
@@ -501,7 +530,7 @@ namespace PrimerEjemploSocket
             products.Add(prod3);
             Product prod4 = new Product()
             {
-                Id = 1004,
+                Id = 4,
                 OwnerId = user3.Id,
                 Name = "Escritorio",
                 Description = "Primer escritorio de Lucas",
@@ -511,5 +540,6 @@ namespace PrimerEjemploSocket
             };
             products.Add(prod4);
         }
+
     }
 }

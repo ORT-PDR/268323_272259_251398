@@ -33,11 +33,17 @@ namespace Protocolo
             throw new Exception("File does not exist");
         }
 
-        public static void DeleteFile(string path)
+        public static void DeleteFile(string fileName)
         {
             try
             {
-                File.Delete(path);
+                 fileName += "InServer.png";
+                 string searchDirectory = @"C:\Users\Alan\Desktop\ProgRedes\oblProg\268323_272259_251398\PrimerEjemploSocket\bin\Debug\net6.0";  // Replace with your image folder path
+                 // Search for image files with the specified name
+                 string[] imageFiles = Directory.GetFiles(searchDirectory, $"{fileName}.*");
+
+                 string path = imageFiles[0];
+                 File.Delete(path);
             }
             catch { }
             

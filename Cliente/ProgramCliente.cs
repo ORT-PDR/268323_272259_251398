@@ -38,7 +38,15 @@ namespace Cliente
             {
                 ShowMenu();
                 string option = Read();
-                SendData(socketHandler, option);
+                try
+                {
+                    int checkOption = int.Parse(option);
+                    SendData(socketHandler, option);
+                }catch (Exception ex)
+                {
+
+                }
+              
                 switch (option)
                 {
                     case "1":
@@ -62,7 +70,7 @@ namespace Cliente
 
                         break;
                     case "6":
-                        ConsultAProduct(ref connected, socketHandler);
+                        ConsultAProduct(ref connected, socketHandler, socketClient);
 
                         break;
                     case "7":
@@ -121,11 +129,15 @@ namespace Cliente
         {
             Println("Has seleccionado la opción Modificación de producto");
             List<string> productNames = GetUserProducts(socketHelper, ref connected);
-            Print("Ingrese nombre del producto a modificar ");
+            for(int i =0; i< productNames.Count; i++)
+            {
+                Println($"{productNames[i]}");
+            }
+            Println("Ingrese nombre del producto a modificar ");
             string product = Read();
             while (!productNames.Contains(product))
             {
-                Print("Producto no encontrado. Escriba un nombre de producto válido.");
+                Println("Producto no encontrado. Escriba un nombre de producto válido.");
                 product = Read();
             }
 
@@ -307,13 +319,14 @@ namespace Cliente
             SendData(socketHelper, aux);
             //pasar la imagen al servidor
             Print("Ruta de la imagen del producto: ");
-            string image = Console.ReadLine();
+            string path = Console.ReadLine();
+            string imageName = productName + "InServer.png";
 
             var fileCommonHandler = new FileCommsHandler(socketClient);
             try
             {
-                fileCommonHandler.SendFile(image);
-                SendData(socketHelper, image);
+                fileCommonHandler.SendFile(path, imageName);
+                SendData(socketHelper, path);
                 Console.WriteLine("Se envio el archivo al Servidor");
             }
             catch (Exception ex)
@@ -424,7 +437,7 @@ namespace Cliente
             return products;
         }
 
-        private static void ConsultAProduct(ref bool connected, SocketHelper socketHelper)
+        private static void ConsultAProduct(ref bool connected, SocketHelper socketHelper, Socket socketClient)
         {
             Println("Has seleccionado la opción Consultar un producto específico");
             Println("Productos disponibles:");
@@ -440,6 +453,17 @@ namespace Cliente
             Println("Información sobre el producto: " + prodName);
             SendData(socketHelper, prodName);
             string consultedProduct = "";
+
+            
+            Console.WriteLine("Antes de recibir el archivo");
+            var fileCommonHandler = new FileCommsHandler(socketClient);
+            fileCommonHandler.ReceiveFile();
+            string productImage = prodName ;
+            string imageName = productImage;
+            connected = ReceiveData(socketHelper, ref productImage);
+            Console.WriteLine("Archivo recibido!!");
+
+
             ReceiveData(socketHelper, ref consultedProduct);
             Println(consultedProduct);
         }
