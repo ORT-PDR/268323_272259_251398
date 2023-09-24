@@ -11,7 +11,7 @@ namespace Protocolo
     {
         private readonly ConversionHandler _conversionHandler;
         private readonly SocketHelper _socketHelper;
-
+        private static object locker = new object();
         public FileCommsHandler(Socket socket)
         {
             _conversionHandler = new ConversionHandler();
@@ -114,7 +114,11 @@ namespace Protocolo
                     offset += Protocol.MaxPacketSize;
                 }
                 //3- Escribo esa parte del archivo a disco
-                FileStreamHandler.Write(fileName, data);
+                lock (locker)
+                {
+                    FileStreamHandler.Write(fileName, data);
+                }
+               
                 currentPart++;
             }
         }
