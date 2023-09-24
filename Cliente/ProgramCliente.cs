@@ -4,6 +4,7 @@ using System.Text;
 using Protocolo;
 using Microsoft.VisualBasic.FileIO;
 using Common;
+using System.IO;
 
 namespace Cliente
 {
@@ -58,7 +59,7 @@ namespace Cliente
                         
                         break;
                     case "3":
-                        ModifyAProduct(ref connected, socketHandler);
+                        ModifyAProduct(ref connected, socketHandler,socketClient);
 
                         break;
                     case "4":
@@ -125,7 +126,7 @@ namespace Cliente
             }
         }
 
-        private static void ModifyAProduct(ref bool connected, SocketHelper socketHelper)
+        private static void ModifyAProduct(ref bool connected, SocketHelper socketHelper, Socket socketClient)
         {
             Println("Has seleccionado la opción Modificación de producto");
             List<string> productNames = GetUserProducts(socketHelper, ref connected);
@@ -190,6 +191,21 @@ namespace Cliente
                             newValue = Read();
                         }
                     }
+                }else if(attributeOption == "4") {
+                    string imageName = product + "InServer.png";
+                    var fileCommonHandler = new FileCommsHandler(socketClient);
+                    try
+                    {
+                        fileCommonHandler.SendFile(newValue, imageName);
+                        SendData(socketHelper, newValue);
+                        Console.WriteLine("Se envio el archivo nuevo al Servidor");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                        SendData(socketHelper, "");
+                    }
+
                 }
                 SendData(socketHelper, newValue);
                 modificado = true;

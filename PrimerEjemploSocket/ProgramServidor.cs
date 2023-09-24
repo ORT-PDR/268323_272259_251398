@@ -13,10 +13,14 @@ namespace PrimerEjemploSocket
     {
         static readonly SettingsManager settingMng = new SettingsManager();
         private static object locker = new object();
+        static bool servidorEncendido = true;
+        
         static void Main(string[] args)
         {
             List<Product> products = new List<Product>();
             List<User> users = new List<User>();
+            List<Socket> clientesActivos = new List<Socket>();
+
             LoadTestData(ref users, ref products);
 
             Println("Inciar Servidor...");
@@ -28,16 +32,28 @@ namespace PrimerEjemploSocket
             var localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
             socketServer.Bind(localEndPoint);
             socketServer.Listen(10);
+            new Thread(() => HandleServer()).Start();
             Println("Esperando por clientes....");
-            int cantClients = 0;
-
-            while (true) 
+            int cantClients = 1;
+            
+            while (servidorEncendido) 
             {
+                
                 Socket socketClient = socketServer.Accept();
+                clientesActivos.Add(socketClient);
                 Println("Se conecto un cliente..");
                 cantClients++;
                 new Thread(() => HandleClient(socketClient, cantClients, users, products)).Start();
             }
+
+            for(int i = 0; i< clientesActivos.Count; i++)
+            {
+                clientesActivos[i].Shutdown(SocketShutdown.Both);
+                clientesActivos[i].Close();
+            }
+
+            socketServer.Shutdown(SocketShutdown.Both);
+            socketServer.Close();
         }
 
         static void HandleClient(Socket socketClient, int nroClient, List<User> users, List<Product> products) 
@@ -130,7 +146,22 @@ namespace PrimerEjemploSocket
                                 productToModify.Price = int.Parse(newValue);
                                 break;
                             case "4":
-                                productToModify.Image = newValue;
+                                lock (locker)
+                                {
+                                    FileStreamHandler.Delete(productToModify.Name);
+                                }
+
+                                
+                                Console.WriteLine("Antes de recibir el archivo nuevo");
+                                var fileCommonHandler2 = new FileCommsHandler(socketClient);
+                                fileCommonHandler2.ReceiveFile();
+                                string productImage = productName + ".png";
+                                string imageName = productImage;
+                                connected = ReceiveData(socketHandler, ref productImage);
+                                productToModify.Image = productImage;
+
+                                Console.WriteLine("Archivo nuevo recibido!!");
+
                                 break;
                         }
                         break;
@@ -174,17 +205,18 @@ namespace PrimerEjemploSocket
                             consultedProduct = products.FirstOrDefault(prod => prod.Name == productToConsult);
                         }
            
-                        string image = consultedProduct.Name + "InServer.png";
-                        string searchDirectory = @"C:\Users\Alan\Desktop\ProgRedes\oblProg\268323_272259_251398\PrimerEjemploSocket\bin\Debug\net6.0";  // Replace with your image folder path
-                        // Search for image files with the specified name
-                        string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
-
-                        string path = imageFiles[0];
+                        
 
                         var fileCommonHandler = new FileCommsHandler(socketClient);
                         try
                         {
+                            string image = consultedProduct.Name + "InServer.png";
+                            string searchDirectory = @"C:\Users\Alan\Desktop\ProgRedes\oblProg\268323_272259_251398\PrimerEjemploSocket\bin\Debug\net6.0";  // Replace with your image folder path                                                                                                                                      // Search for image files with the specified name
+                            string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
+                            string path = imageFiles[0];
+
                             fileCommonHandler.SendFile(path, consultedProduct.Name+"InClient.png");
+                            
                             SendData(socketHandler, image);
                             Console.WriteLine("Se envio el archivo al Cliente");
                         }
@@ -213,7 +245,44 @@ namespace PrimerEjemploSocket
             }
             Console.WriteLine("Cliente {0} desconectado", nroClient);
         }
+        
+        static void HandleServer()
+        {
+           
+            while (servidorEncendido)
+            {
+                Console.WriteLine("Desea apagar el servidor?");
+                Console.WriteLine("1. Si");
+                Console.WriteLine("2. No");
+                
+                string input = Console.ReadLine();
+                int option = 0;
+                try
+                {
+                    int checkOption = int.Parse(input);
+                    option = checkOption;
+                }
+                catch (Exception ex)
+                {
 
+                }
+                
+                switch (option)
+                {
+                    case 1:
+                        servidorEncendido = false;
+                       
+                        break;
+                    case 2:
+                        break;
+                    default:
+                        Println("Opción no válida.");
+                        break;
+                }
+            }
+           
+        }
+        
         private static void SendClientProducts(int nroClient, List<Product> products, SocketHelper socketHelper)
         {
             List<Product> productosDelCliente;
@@ -475,7 +544,7 @@ namespace PrimerEjemploSocket
         {
             User user1 = new User()
             {
-                Id = 100001,
+                Id = 1,
                 Username = "Nahuel",
                 Password = "Nah123"
             };
