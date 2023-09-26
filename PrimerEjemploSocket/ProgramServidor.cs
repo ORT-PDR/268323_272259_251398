@@ -13,26 +13,29 @@ namespace PrimerEjemploSocket
     {
         static readonly SettingsManager settingMng = new SettingsManager();
         private static object locker = new object();
-        static bool servidorEncendido = true;
-        
+        public static bool servidorEncendido = true;
+
+
         static void Main(string[] args)
         {
             List<Product> products = new List<Product>();
             List<User> users = new List<User>();
             List<Socket> clientesActivos = new List<Socket>();
-
+            
             LoadTestData(ref users, ref products);
 
             Println("Inciar Servidor...");
+
             var socketServer = new Socket(AddressFamily.InterNetwork,SocketType.Stream,ProtocolType.Tcp);
 
             string serverIp = settingMng.ReadSettings(ServerConfig.serverIPconfigKey);
             int serverPort = int.Parse(settingMng.ReadSettings(ServerConfig.serverPortconfigKey));
 
+            new Thread(() => HandleServer()).Start();
             var localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
             socketServer.Bind(localEndPoint);
             socketServer.Listen(10);
-            new Thread(() => HandleServer()).Start();
+            
             Println("Esperando por clientes....");
             int cantClients = 1;
             
@@ -54,6 +57,7 @@ namespace PrimerEjemploSocket
 
             socketServer.Shutdown(SocketShutdown.Both);
             socketServer.Close();
+            Console.WriteLine("Servidor apagado");
         }
 
         static void HandleClient(Socket socketClient, int nroClient, List<User> users, List<Product> products) 
@@ -248,39 +252,17 @@ namespace PrimerEjemploSocket
         
         static void HandleServer()
         {
-           
-            while (servidorEncendido)
-            {
-                Console.WriteLine("Desea apagar el servidor?");
-                Console.WriteLine("1. Si");
-                Console.WriteLine("2. No");
-                
-                string input = Console.ReadLine();
-                int option = 0;
-                try
-                {
-                    int checkOption = int.Parse(input);
-                    option = checkOption;
-                }
-                catch (Exception ex)
-                {
 
-                }
-                
-                switch (option)
-                {
-                    case 1:
-                        servidorEncendido = false;
-                       
-                        break;
-                    case 2:
-                        break;
-                    default:
-                        Println("Opción no válida.");
-                        break;
-                }
+
+            Console.WriteLine("Ingrese exit para cerrar el Server");
+            string entrada = Console.ReadLine();
+            if (entrada.Equals("exit"))
+            {
+
+                ApagarServidor();
             }
-           
+
+
         }
         
         private static void SendClientProducts(int nroClient, List<Product> products, SocketHelper socketHelper)
@@ -608,6 +590,12 @@ namespace PrimerEjemploSocket
                 Image = "image"
             };
             products.Add(prod4);
+        }
+
+        static void ApagarServidor()
+        {
+            servidorEncendido = false;
+
         }
 
     }
