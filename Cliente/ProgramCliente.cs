@@ -11,7 +11,7 @@ namespace Cliente
     internal class ProgramCliente
     {
         static readonly SettingsManager settingMng = new SettingsManager();
-        static bool errorDeConexion = false;
+        static bool errorDeConexion = true;
         static void Main(string[] args)
         {
             Println("Inciar Cliente...");
@@ -35,7 +35,11 @@ namespace Cliente
             
 
             SocketHelper socketHandler = new SocketHelper(socketClient);
-            LogIn(socketHandler, socketClient,remoteEndPoint);
+            while(errorDeConexion)
+            {
+                LogIn(socketHandler, socketClient, remoteEndPoint);
+            }
+            
 
 
             while (!exitMenu)
@@ -54,14 +58,16 @@ namespace Cliente
                 switch (option)
                 {
                     case "1":
-                        PublishProduct(socketHandler, socketClient);
-
+                        if(!errorDeConexion)
+                        {
+                            PublishProduct(socketHandler, socketClient);
+                        }
                         break;
                     case "2":
-                        //if (!errorDeConexion)
-                       // {
+                        if (!errorDeConexion)
+                        {
                             BuyAProduct(socketHandler, socketClient, ref connected);
-                        //}                                             
+                        }                                             
                         break;
                     case "3":
                         if(!errorDeConexion)
@@ -76,22 +82,22 @@ namespace Cliente
                         }
                         break;
                     case "5":
-                        //if (!errorDeConexion)
-                        //{
+                        if (!errorDeConexion)
+                        {
                             SearchProductByFilter(ref connected, socketHandler);
-                        //}
+                        }
                         break;
                     case "6":
-                        //if (!errorDeConexion)
-                        //{
+                        if (!errorDeConexion)
+                        {
                             ConsultAProduct(ref connected, socketHandler, socketClient);
-                        //}
+                        }
                         break;
                     case "7":
-                        //if (!errorDeConexion)
-                        //{
+                        if (!errorDeConexion)
+                        {
                             RateAProduct(socketHandler);
-                        //}
+                        }
                         break;
                     case "8":
                         Println("Saliendo del programa...");
@@ -624,7 +630,7 @@ namespace Cliente
         {
             try
             {
-                socketClient.Connect(remoteEndPoint);
+                
                 bool correctUser = false;
                 while (!correctUser)
                 {
@@ -633,6 +639,7 @@ namespace Cliente
                     Print("Ingrese su contraseña: ");
                     string userPass = Read();
                     string user = userName + "#" + userPass;
+                    socketClient.Connect(remoteEndPoint);
                     SendData(socketHelper, user);
 
                     string response = "";
@@ -642,6 +649,7 @@ namespace Cliente
                     {
                         Println("Bienvenido al sistema " + userName);
                         correctUser = true;
+                        errorDeConexion = false;
                     }
                     else
                     {
@@ -652,6 +660,7 @@ namespace Cliente
             catch (Exception ex)
             {
                 Console.WriteLine("No fue posible acceder al servidor");
+                errorDeConexion = true;
             }
             
         }

@@ -162,10 +162,10 @@ namespace PrimerEjemploSocket
                                 productToModify.Price = int.Parse(newValue);
                                 break;
                             case "4":
-                                lock (locker)
-                                {
-                                    FileStreamHandler.Delete(productToModify.Name);
-                                }
+                                //lock (locker)
+                                //{
+                                 //   FileStreamHandler.Delete(productToModify.Name);
+                                //}
 
                                 
                                 Console.WriteLine("Antes de recibir el archivo nuevo");
@@ -236,13 +236,14 @@ namespace PrimerEjemploSocket
                             
                             SendData(socketHandler, image);
                             Console.WriteLine("Se envio el archivo al Cliente");
+                            SendData(socketHandler, consultedProduct.ToString());
                         }
                         catch (Exception ex)
                         {
                             Console.WriteLine(ex.Message);
                             SendData(socketHandler, "");
                         }
-                        SendData(socketHandler, consultedProduct.ToString());
+                        
 
                         break;
 
@@ -415,43 +416,53 @@ namespace PrimerEjemploSocket
 
         private static Product CreateProduct(SocketHelper socketHelper, ref bool connected, int userId, Socket socketClient)
         {
-            string productName = "";
-            connected = ReceiveData(socketHelper, ref productName);
-
-            string productDescription = "";
-            connected = ReceiveData(socketHelper, ref productDescription);
-
-            string strProductStock = "";
-            connected = ReceiveData(socketHelper, ref strProductStock);
-            int productStock = int.Parse(strProductStock);
-
-            string strProductPrice = "";
-            connected = ReceiveData(socketHelper, ref strProductPrice);
-            int productPrice = int.Parse(strProductPrice);
-
-            //recibir la imagen del cliente
-            Console.WriteLine("Antes de recibir el archivo");
-            var fileCommonHandler = new FileCommsHandler(socketClient);
-            fileCommonHandler.ReceiveFile();
-            string productImage = productName + ".png";
-            string imageName = productImage;
-            connected = ReceiveData(socketHelper, ref productImage);
-
-
-            Console.WriteLine("Archivo recibido!!");
-
-            if (connected)
+            try
             {
-                Product product = new Product();
-                product.Name = productName;
-                product.Description = productDescription;
-                product.Price = productPrice;
-                product.Stock = productStock;
-                product.Image = imageName;
-                product.OwnerId = userId;
-                return product;
+                string sincronizacion = "";
+                ReceiveData(socketHelper, ref sincronizacion);
+
+                string productName = "";
+                connected = ReceiveData(socketHelper, ref productName);
+
+                string productDescription = "";
+                connected = ReceiveData(socketHelper, ref productDescription);
+
+                string strProductStock = "";
+                connected = ReceiveData(socketHelper, ref strProductStock);
+                int productStock = int.Parse(strProductStock);
+
+                string strProductPrice = "";
+                connected = ReceiveData(socketHelper, ref strProductPrice);
+                int productPrice = int.Parse(strProductPrice);
+
+                //recibir la imagen del cliente
+                Console.WriteLine("Antes de recibir el archivo");
+                var fileCommonHandler = new FileCommsHandler(socketClient);
+                fileCommonHandler.ReceiveFile();
+                string productImage = productName + ".png";
+                string imageName = productImage;
+                connected = ReceiveData(socketHelper, ref productImage);
+
+
+                Console.WriteLine("Archivo recibido!!");
+
+                if (connected)
+                {
+                    Product product = new Product();
+                    product.Name = productName;
+                    product.Description = productDescription;
+                    product.Price = productPrice;
+                    product.Stock = productStock;
+                    product.Image = imageName;
+                    product.OwnerId = userId;
+                    return product;
+                }
+                return null;
+            }catch(Exception ex)
+            {
+                return null;
             }
-            return null;
+            
         }
 
         private static void SendProducts(SocketHelper socketHelper, List<Product> products, bool withStock)
