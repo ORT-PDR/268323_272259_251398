@@ -37,7 +37,7 @@ namespace PrimerEjemploSocket
             socketServer.Listen(10);
             new Thread(() => HandleServer(socketServer)).Start();
             Println("Esperando por clientes....");
-            int cantClients = 1;
+            int cantClients = 0;
             
             while (servidorEncendido) 
             {
@@ -290,30 +290,44 @@ namespace PrimerEjemploSocket
         
         private static void SendClientProducts(int nroClient, List<Product> products, SocketHelper socketHelper)
         {
-            List<Product> productosDelCliente;
-            lock (locker)
+            try
             {
-                productosDelCliente = products.Where(prod => prod.OwnerId == nroClient).ToList();
-            }
-            SendData(socketHelper, productosDelCliente.Count.ToString());
+                List<Product> productosDelCliente;
+                lock (locker)
+                {
+                    productosDelCliente = products.Where(prod => prod.OwnerId == nroClient).ToList();
+                }
+                SendData(socketHelper, productosDelCliente.Count.ToString());
 
-            for (int i = 0; i < productosDelCliente.Count; i++)
+                for (int i = 0; i < productosDelCliente.Count; i++)
+                {
+                    string productoMostrado = productosDelCliente.ElementAt(i).Name;
+                    SendData(socketHelper, productoMostrado);
+                }
+                SendData(socketHelper, "end");
+
+            }catch(Exception ex)
             {
-                string productoMostrado = productosDelCliente.ElementAt(i).Name;
-                SendData(socketHelper, productoMostrado);
+                return;
             }
-            SendData(socketHelper, "end");
+            
         }
 
         private static void SendProductsNameStock(SocketHelper socketHelper, List<Product> products)
         {
             lock (locker)
             {
-                foreach (Product product in products)
+                try
                 {
-                    string mensaje = product.Name + "@" + product.Stock.ToString();
-                    SendData(socketHelper, mensaje);
+                    foreach (Product product in products)
+                    {
+                        string mensaje = product.Name + "@" + product.Stock.ToString();
+                        SendData(socketHelper, mensaje);
+                    }
+                }catch (Exception ex) {
+                    return;
                 }
+                
             }
             
             SendData(socketHelper, "end");
@@ -435,16 +449,32 @@ namespace PrimerEjemploSocket
                 connected = ReceiveData(socketHelper, ref strProductPrice);
                 int productPrice = int.Parse(strProductPrice);
 
+                string strHasImage = "";
+                connected = ReceiveData(socketHelper, ref strHasImage);
+                int hasImage = int.Parse(strHasImage);
+                string productImage = "";
+                string imageName = "";
                 //recibir la imagen del cliente
-                Console.WriteLine("Antes de recibir el archivo");
-                var fileCommonHandler = new FileCommsHandler(socketClient);
-                fileCommonHandler.ReceiveFile();
-                string productImage = productName + ".png";
-                string imageName = productImage;
-                connected = ReceiveData(socketHelper, ref productImage);
+                if (hasImage == 1)
+                {
+                    Console.WriteLine("Antes de recibir el archivo");
+                    var fileCommonHandler = new FileCommsHandler(socketClient);
+                    fileCommonHandler.ReceiveFile();
+                    productImage = productName + ".png";
+                    imageName = productImage;
+                    connected = ReceiveData(socketHelper, ref productImage);
 
 
-                Console.WriteLine("Archivo recibido!!");
+                    Console.WriteLine("Archivo recibido!!");
+                }
+                else
+                {
+                    productImage = "sin imágen";
+                    imageName = productImage;
+                    connected = ReceiveData(socketHelper, ref productImage);
+                    Console.WriteLine();
+                }
+                
 
                 if (connected)
                 {
@@ -530,33 +560,40 @@ namespace PrimerEjemploSocket
 
         private static void RateAProduct(SocketHelper socketHelper, ref bool connected, ref List<Product> products, int userId)
         {
-            string strIdProduct = "";
-            connected = ReceiveData(socketHelper, ref strIdProduct);
-            int idProduct = int.Parse(strIdProduct);
-
-            string opinion = "";
-            connected = ReceiveData(socketHelper, ref opinion);
-
-            string strRating = "";
-            connected = ReceiveData(socketHelper, ref strRating);
-            int rating = int.Parse(strRating);
-
-            Review review = new Review();
-            review.UserId = userId;
-            review.Comment = opinion;
-            review.Rating = rating;
-
-            lock (locker)
+            try
             {
-                foreach (var prod in products)
+                string strIdProduct = "";
+                connected = ReceiveData(socketHelper, ref strIdProduct);
+                int idProduct = int.Parse(strIdProduct);
+
+                string opinion = "";
+                connected = ReceiveData(socketHelper, ref opinion);
+
+                string strRating = "";
+                connected = ReceiveData(socketHelper, ref strRating);
+                int rating = int.Parse(strRating);
+
+                Review review = new Review();
+                review.UserId = userId;
+                review.Comment = opinion;
+                review.Rating = rating;
+
+                lock (locker)
                 {
-                    if (prod.Id == idProduct)
+                    foreach (var prod in products)
                     {
-                        prod.Reviews.Add(review);
-                        break;
+                        if (prod.Id == idProduct)
+                        {
+                            prod.Reviews.Add(review);
+                            break;
+                        }
                     }
                 }
+            }catch (Exception ex)
+            {
+                return;
             }
+            
         }
 
         private static void LoadTestData(ref List<User> users, ref List<Product> products)

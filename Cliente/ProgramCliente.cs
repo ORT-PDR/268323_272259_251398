@@ -35,10 +35,10 @@ namespace Cliente
             
 
             SocketHelper socketHandler = new SocketHelper(socketClient);
-            while(errorDeConexion)
-            {
+          //  while(errorDeConexion)
+            //{
                 LogIn(socketHandler, socketClient, remoteEndPoint);
-            }
+           // }
             
 
 
@@ -386,22 +386,49 @@ namespace Cliente
                 aux = "" + precioProducto;
                 SendData(socketHelper, aux);
                 //pasar la imagen al servidor
-                Print("Ruta de la imagen del producto: ");
-                string path = Console.ReadLine();
-                string imageName = productName + "InServer.png";
+                Println("Desea agregar imagen?");
+                Println("1-Si");
+                Println("2-No");
+                bool eleccionValida = false;
+                int eleccion = 0;
+                while (!eleccionValida)
+                {                   
+                    try
+                    {
+                        eleccion = int.Parse(Read());
+                        eleccionValida = true;
+                    }catch (Exception e)
+                    {
+                        Println("Ingrese 1 o 2 según su eleccón ");
+                    }
+                }
 
-                var fileCommonHandler = new FileCommsHandler(socketClient);
-                try
+                if (eleccion == 1)
                 {
-                    fileCommonHandler.SendFile(path, imageName);
-                    SendData(socketHelper, path);
-                    Console.WriteLine("Se envio el archivo al Servidor");
+                    SendData(socketHelper, eleccion+"");
+                    Print("Ruta de la imagen del producto: ");
+                    string path = Console.ReadLine();
+                    string imageName = productName + "InServer.png";
+
+                    var fileCommonHandler = new FileCommsHandler(socketClient);
+                    try
+                    {
+                        fileCommonHandler.SendFile(path, imageName);
+                        SendData(socketHelper, path);
+                        Console.WriteLine("Se envio el archivo al Servidor");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                        SendData(socketHelper, "");
+                    }
                 }
-                catch (Exception ex)
+                else
                 {
-                    Console.WriteLine(ex.Message);
-                    SendData(socketHelper, "");
+                    SendData(socketHelper, eleccion + "");
+                    SendData(socketHelper, "sin imagen");
                 }
+               
                 
 
             }
