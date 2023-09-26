@@ -50,6 +50,7 @@ namespace Protocolo
                 _socketHelper.Receive(Protocol.DataSize));
             // ---> Recibir el nombre del archivo
             string fileName = _conversionHandler.ConvertBytesToString(_socketHelper.Receive(fileNameSize));
+            Console.WriteLine(fileName);
             // ---> Recibir el largo del archivo
             long fileSize = _conversionHandler.ConvertBytesToLong(
                 _socketHelper.Receive(Protocol.FileSize));

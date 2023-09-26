@@ -239,6 +239,7 @@ namespace Cliente
                         var fileCommonHandler = new FileCommsHandler(socketClient);
                         try
                         {
+                           
                             fileCommonHandler.SendFile(newValue, imageName);
                             SendData(socketHelper, newValue);
                             Console.WriteLine("Se envio el archivo nuevo al Servidor");

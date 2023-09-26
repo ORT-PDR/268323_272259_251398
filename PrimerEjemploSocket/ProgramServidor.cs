@@ -163,14 +163,15 @@ namespace PrimerEjemploSocket
                                 productToModify.Price = int.Parse(newValue);
                                 break;
                             case "4":
-                                //lock (locker)
-                                //{
-                                 //   FileStreamHandler.Delete(productToModify.Name);
-                                //}
+                                lock (locker)
+                                {
+                                   FileStreamHandler.Delete(productToModify.Name);
+                                }
 
                                 
                                 Console.WriteLine("Antes de recibir el archivo nuevo");
                                 var fileCommonHandler2 = new FileCommsHandler(socketClient);
+                                Console.WriteLine("Reza pa que lo reciba");
                                 fileCommonHandler2.ReceiveFile();
                                 Console.WriteLine("llego el archivo");
                                 string productImage = productName + ".png";
