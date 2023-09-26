@@ -47,7 +47,15 @@ namespace PrimerEjemploSocket
             bool connected = true;
             SocketHelper socketHandler = new SocketHelper(socketClient);
 
-            LogIn(socketHandler, ref connected, users);
+            string initOption = "";
+            connected = ReceiveData(socketHandler, ref initOption);
+            if (connected)
+            {
+                if (initOption == "1") LogIn(socketHandler, ref connected, users);
+                else RegisterUser(socketHandler, ref connected, ref users);
+            }
+
+            
 
             int option = 0;
             string strOption = "";
@@ -171,6 +179,22 @@ namespace PrimerEjemploSocket
                 }
             }
             Console.WriteLine("Cliente {0} desconectado", nroClient);
+        }
+
+        private static void RegisterUser(SocketHelper socketHandler, ref bool connected, ref List<User> users)
+        {
+            string user = "";
+            connected = ReceiveData(socketHandler, ref user);
+            User newUser = new User()
+            {
+                Id = users.Count + 1,
+                Username = user.Split("@")[0],
+                Password = user.Split("@")[1]
+            };
+            users.Add(newUser);
+            socketHandler.UserName = newUser.Username;
+            Println(socketHandler.UserName + " se ha registrado e iniciado sesion.");
+
         }
 
         private static void SendClientProducts(List<Product> products, SocketHelper socketHelper)

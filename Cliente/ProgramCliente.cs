@@ -31,8 +31,19 @@ namespace Cliente
             bool connected = true;
 
             SocketHelper socketHelper = new SocketHelper(socketClient);
-            LogIn(socketHelper);
 
+            Println("Ingrese la opción:");
+            Println("1. Iniciar Sesión");
+            Println("2. Registrarse");
+            string initOption = Console.ReadLine();
+            while (initOption != "1" && initOption != "2")
+            {
+                Println("Ingrese una opcion valida.");
+                initOption = Console.ReadLine();
+            }
+            SendData(socketHelper, initOption);
+            if (initOption == "1") LogIn(socketHelper);
+            else RegisterUser(socketHelper);
 
             while (!exitMenu)
             {
@@ -87,6 +98,22 @@ namespace Cliente
             socketClient.Shutdown(SocketShutdown.Both);
             socketClient.Close();
 
+        }
+
+        private static void RegisterUser(SocketHelper socketHelper)
+        {
+            Print("Ingrese nombre de usuario:   ");
+            string username = Console.ReadLine();
+            Print("Ingrse constraseña:   ");
+            string password = Console.ReadLine();
+            while (password == "")
+            {
+                Print("La contraseña no puede ser vacía. Ingrese una contraseña nuevamente:  ");
+                password = Console.ReadLine();
+            }
+            string user = username + "@" + password;
+            SendData(socketHelper, user);
+            Println("Bienvenido al sistema " + username);
         }
 
         private static void DeleteProduct(ref bool connected, SocketHelper socketHelper)
