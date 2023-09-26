@@ -31,22 +31,30 @@ namespace PrimerEjemploSocket
             string serverIp = settingMng.ReadSettings(ServerConfig.serverIPconfigKey);
             int serverPort = int.Parse(settingMng.ReadSettings(ServerConfig.serverPortconfigKey));
 
-            new Thread(() => HandleServer()).Start();
+            
             var localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
             socketServer.Bind(localEndPoint);
             socketServer.Listen(10);
-            
+            new Thread(() => HandleServer(socketServer)).Start();
             Println("Esperando por clientes....");
             int cantClients = 1;
             
             while (servidorEncendido) 
             {
+                try
+                {
+                    Socket socketClient = socketServer.Accept();
+                    clientesActivos.Add(socketClient);
+                    Println("Se conecto un cliente..");
+                    cantClients++;
+                    new Thread(() => HandleClient(socketClient, cantClients, users, products)).Start();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Cerrando Servidor");
+                }
                 
-                Socket socketClient = socketServer.Accept();
-                clientesActivos.Add(socketClient);
-                Println("Se conecto un cliente..");
-                cantClients++;
-                new Thread(() => HandleClient(socketClient, cantClients, users, products)).Start();
+                
             }
 
             for(int i = 0; i< clientesActivos.Count; i++)
@@ -55,9 +63,13 @@ namespace PrimerEjemploSocket
                 clientesActivos[i].Close();
             }
 
-            socketServer.Shutdown(SocketShutdown.Both);
-            socketServer.Close();
-            Console.WriteLine("Servidor apagado");
+            if (servidorEncendido)
+            {
+                socketServer.Shutdown(SocketShutdown.Both);
+                socketServer.Close();
+                Console.WriteLine("Servidor apagado");
+            }
+            
         }
 
         static void HandleClient(Socket socketClient, int nroClient, List<User> users, List<Product> products) 
@@ -159,6 +171,7 @@ namespace PrimerEjemploSocket
                                 Console.WriteLine("Antes de recibir el archivo nuevo");
                                 var fileCommonHandler2 = new FileCommsHandler(socketClient);
                                 fileCommonHandler2.ReceiveFile();
+                                Console.WriteLine("llego el archivo");
                                 string productImage = productName + ".png";
                                 string imageName = productImage;
                                 connected = ReceiveData(socketHandler, ref productImage);
@@ -250,7 +263,7 @@ namespace PrimerEjemploSocket
             Console.WriteLine("Cliente {0} desconectado", nroClient);
         }
         
-        static void HandleServer()
+        static void HandleServer(Socket socketServer)
         {
 
 
@@ -260,6 +273,15 @@ namespace PrimerEjemploSocket
             {
 
                 ApagarServidor();
+                try
+                {
+                    socketServer.Shutdown(SocketShutdown.Both);
+                }catch (Exception ex)
+                {
+                    Console.WriteLine("Apagando srvidor");
+                }
+                
+                socketServer.Close();
             }
 
 
@@ -311,15 +333,19 @@ namespace PrimerEjemploSocket
             byte[] data = Encoding.UTF8.GetBytes(text);
             byte[] dataLength = BitConverter.GetBytes(data.Length);
 
-            try
+            if (servidorEncendido)
             {
-                socketHelper.Send(dataLength);
-                socketHelper.Send(data);
+                try
+                {
+                    socketHelper.Send(dataLength);
+                    socketHelper.Send(data);
+                }
+                catch (SocketException)
+                {
+                    Println("Error de conexión");
+                }
             }
-            catch (SocketException)
-            {
-                Println("Error de conexión");
-            }
+            
         }
 
         private static bool ReceiveData(SocketHelper socketHelper, ref string text)
@@ -343,7 +369,7 @@ namespace PrimerEjemploSocket
         {
             bool correctUser = false;
             string user = "";
-            while (!correctUser)
+            while (!correctUser && servidorEncendido)
             {
                 connected = ReceiveData(socketHelper, ref user);
                 correctUser = UserIsCorrect(user, users, ref userId);
