@@ -17,5 +17,14 @@ namespace Servidor
         public int minRating { get; set; }
 
         public int maxRating { get; set; }
-    }
+        //public int TotalRatingSum { get; internal set; }
+        //public int AmountOfRatings { get; internal set; }
+
+        public override string ToString()
+        {
+            return  "\n     Rating: " + this.Rating +
+                    "\n     Comentario: " + this.Comment +
+                    "\n     Usuario: " + this.UserId;
+        }
+    } 
 }

@@ -96,7 +96,7 @@ namespace Cliente
                     case "7":
                         if (!errorDeConexion)
                         {
-                            RateAProduct(socketHandler);
+                            RateAProduct(socketHandler, ref  connected);
                         }
                         break;
                     case "8":
@@ -214,6 +214,7 @@ namespace Cliente
                                 newValue = Read();
                             }
                         }
+                        SendData(socketHelper, newValue);
                     }
                     else if (attributeOption == "3")
                     {
@@ -230,6 +231,7 @@ namespace Cliente
                                 newValue = Read();
                             }
                         }
+                        SendData(socketHelper, newValue);
                     }
                     else if (attributeOption == "4")
                     {
@@ -246,9 +248,8 @@ namespace Cliente
                             Console.WriteLine(ex.Message);
                             SendData(socketHelper, "");
                         }
-
                     }
-                    SendData(socketHelper, newValue);
+                    //SendData(socketHelper, newValue);
                     modificado = true;
                 }
             }
@@ -439,23 +440,63 @@ namespace Cliente
 
         }
 
-        private static void RateAProduct(SocketHelper socketHelper)
+        private static void RateAProduct(SocketHelper socketHelper, ref bool connected)
         {
             try
             {
                 Println("Has seleccionado la opción Calificar un producto");
 
-                Println("Ingrese el id del producto que desea calificar");
-                var id = Console.ReadLine();
-                SendData(socketHelper, id);
+                List<string> productsToRate = GetUserProducts(socketHelper, ref connected);
+                ShowProducts(productsToRate);
+
+                Console.Write("Ingrese el nombre del producto a calificar: ");
+                string prodName = Read();
+                while (!productsToRate.Contains(prodName))
+                {
+                    Print("Ingrese alguna de las opciones listadas: ");
+                    prodName = Read();
+                }
+                SendData(socketHelper, prodName);
 
                 Println("¿Cuál es su opinión del producto?");
                 var opinion = Console.ReadLine();
                 SendData(socketHelper, opinion);
 
-                Println("Califique el producto");
-                var rating = Console.ReadLine();
-                SendData(socketHelper, rating);
+                string input = "";
+                while (true)
+                {
+                    /*
+                    Println("Califique el producto con numero del 1 al 10");
+                    input = Console.ReadLine();
+
+                    if (int.Parse(input) >=1 && int.Parse(input)<=10)
+                    {
+                        break;
+                    }
+                    else
+                    {
+                        Println("Ingrese un número entero válido.");
+                    }
+                    */
+                    Println("Califique el producto con numero del 1 al 10");
+                    input = Read();
+                    try
+                    {
+                        int checkOption = int.Parse(input);
+                        if(checkOption >= 1 && checkOption <= 10)
+                        {
+                            SendData(socketHelper, input);
+                            break;
+                        }
+                        
+                    }
+                    catch (Exception ex)
+                    {
+                        Println("Ingrese un número entero válido.");
+                    }
+                }
+
+                
             }
             catch (Exception ex)
             {
@@ -568,6 +609,8 @@ namespace Cliente
                 SendData(socketHelper, prodName);
                 string consultedProduct = "";
 
+                ReceiveData(socketHelper, ref consultedProduct);
+                Println(consultedProduct);
 
                 Console.WriteLine("Antes de recibir el archivo");
                 var fileCommonHandler = new FileCommsHandler(socketClient);
@@ -578,8 +621,7 @@ namespace Cliente
                 Console.WriteLine("Archivo recibido!!");
 
 
-                ReceiveData(socketHelper, ref consultedProduct);
-                Println(consultedProduct);
+               
             }
             catch (Exception ex)
             {

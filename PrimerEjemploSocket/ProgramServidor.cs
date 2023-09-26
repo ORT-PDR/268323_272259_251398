@@ -2,6 +2,7 @@
 using Protocolo;
 using Servidor;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -227,20 +228,26 @@ namespace PrimerEjemploSocket
                         var fileCommonHandler = new FileCommsHandler(socketClient);
                         try
                         {
+                            SendData(socketHandler, consultedProduct.ToString());
                             string image = consultedProduct.Name + "InServer.png";
                             string searchDirectory = @"C:\Users\Alan\Desktop\ProgRedes\oblProg\268323_272259_251398\PrimerEjemploSocket\bin\Debug\net6.0";  // Replace with your image folder path                                                                                                                                      // Search for image files with the specified name
                             string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
                             string path = imageFiles[0];
-
+                            SendData(socketHandler, image);
                             fileCommonHandler.SendFile(path, consultedProduct.Name+"InClient.png");
                             
-                            SendData(socketHandler, image);
+                            
                             Console.WriteLine("Se envio el archivo al Cliente");
-                            SendData(socketHandler, consultedProduct.ToString());
+                            
                         }
-                        catch (Exception ex)
+                        catch (System.IndexOutOfRangeException ex)
                         {
-                            Console.WriteLine(ex.Message);
+                            Console.WriteLine("Image Not Found in Server");
+                            string image = "error-404";
+                            string searchDirectory = @"C:\Users\Alan\Desktop\ProgRedes\oblProg\268323_272259_251398\PrimerEjemploSocket\bin\Debug\net6.0";  // Replace with your image folder path                                                                                                                                      // Search for image files with the specified name
+                            string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
+                            string path = imageFiles[0];
+                            fileCommonHandler.SendFile(path, "error");
                             SendData(socketHandler, "");
                         }
                         
@@ -248,6 +255,7 @@ namespace PrimerEjemploSocket
                         break;
 
                     case 7:
+                        SendProducts(socketHandler, products, false);
                         RateAProduct(socketHandler, ref connected, ref products, userId);
 
                         break;
@@ -562,9 +570,9 @@ namespace PrimerEjemploSocket
         {
             try
             {
-                string strIdProduct = "";
-                connected = ReceiveData(socketHelper, ref strIdProduct);
-                int idProduct = int.Parse(strIdProduct);
+                string strProductName = "";
+                connected = ReceiveData(socketHelper, ref strProductName);
+               // int idProduct = int.Parse(strIdProduct);
 
                 string opinion = "";
                 connected = ReceiveData(socketHelper, ref opinion);
@@ -576,13 +584,18 @@ namespace PrimerEjemploSocket
                 Review review = new Review();
                 review.UserId = userId;
                 review.Comment = opinion;
+                //review.AmountOfRatings++;
+                //review.TotalRatingSum += rating;
+                //review.Rating = review.TotalRatingSum/review.AmountOfRatings;
                 review.Rating = rating;
+
+
 
                 lock (locker)
                 {
                     foreach (var prod in products)
                     {
-                        if (prod.Id == idProduct)
+                        if (prod.Name == strProductName)
                         {
                             prod.Reviews.Add(review);
                             break;
@@ -600,14 +613,14 @@ namespace PrimerEjemploSocket
         {
             User user1 = new User()
             {
-                Id = 1,
+                Id = 2,
                 Username = "Nahuel",
                 Password = "Nah123"
             };
             users.Add(user1);
             User user2 = new User()
             {
-                Id = 2,
+                Id = 1,
                 Username = "Alan",
                 Password = "Alan123"
             };
