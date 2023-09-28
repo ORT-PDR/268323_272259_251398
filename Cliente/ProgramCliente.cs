@@ -75,7 +75,7 @@ namespace Cliente
                     case "3":
                         if(!errorDeConexion)
                         {
-                            ModifyAProduct(ref connected, socketHandler, socketClient);
+                            ModifyAProduct(ref connected, socketHandler);
                         }                       
                         break;
                     case "4":
@@ -93,7 +93,7 @@ namespace Cliente
                     case "6":
                         if (!errorDeConexion)
                         {
-                            ConsultAProduct(ref connected, socketHandler, socketClient);
+                            ConsultAProduct(ref connected, socketHandler);
                         }
                         break;
                     case "7":
@@ -158,7 +158,7 @@ namespace Cliente
                 Println("Has seleccionado la opción Baja de producto");
                 List<string> userProducts = GetUserProducts(socketHelper, ref connected);
                 ShowProducts(userProducts);
-                Console.Write("Ingrese el nombre del producto a eliminar");
+                Console.Write("Ingrese el nombre del producto a eliminar: ");
                 string prodName = Read();
                 SendData(socketHelper, prodName);
                 string response = "";
@@ -169,7 +169,6 @@ namespace Cliente
             {
                 Console.WriteLine(ex.Message);
             }
-           
         }
 
         private static void SearchProductByFilter(ref bool connected, SocketHelper socketHelper)
@@ -178,7 +177,7 @@ namespace Cliente
             {
                 Println("Has seleccionado la opción Búsqueda de productos");
                 Print("Ingrese el nombre para filtrar: ");
-                string filterText = Console.ReadLine();
+                string filterText = Read();
                 SendData(socketHelper, filterText);
                 string product = "";
                 while (product != "end")
@@ -190,12 +189,12 @@ namespace Cliente
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error de conexion");
+                Println("Error de conexion");
             }
           
         }
 
-        private static void ModifyAProduct(ref bool connected, SocketHelper socketHelper, Socket socketClient)
+        private static void ModifyAProduct(ref bool connected, SocketHelper socketHelper)
         {
             try
             {
@@ -245,7 +244,11 @@ namespace Cliente
                             }
                             catch
                             {
-                                Console.WriteLine("El stock debe ser un numero mayor o igual a 0. Inserte nuevamente:");
+                                
+                            }
+                            if (value < 0)
+                            {
+                                Console.WriteLine("El precio debe ser un numero positivo. Inserte nuevamente:");
                                 newValue = Read();
                             }
                         }
@@ -261,6 +264,10 @@ namespace Cliente
                                 value = Convert.ToInt32(newValue);
                             }
                             catch
+                            {
+                                
+                            }
+                            if (value < 0)
                             {
                                 Console.WriteLine("El precio debe ser un numero positivo. Inserte nuevamente:");
                                 newValue = Read();
@@ -680,7 +687,7 @@ namespace Cliente
             return products;
         }
 
-        private static void ConsultAProduct(ref bool connected, SocketHelper socketHelper, Socket socketClient)
+        private static void ConsultAProduct(ref bool connected, SocketHelper socketHelper)
         {
             try
             {
@@ -697,7 +704,7 @@ namespace Cliente
                 {
                     Print("Ingrese alguna de las opciones listadas: ");
                     prodName = Read();
-                    if(productsToConsult.Contains(prodName))
+                    if (productsToConsult.Contains(prodName))
                     {
                         productExists = true;
                     }
@@ -716,15 +723,11 @@ namespace Cliente
                 string imageName = productImage;
                 connected = ReceiveData(socketHelper, ref productImage);
                 Console.WriteLine("Archivo recibido!!");
-
-
-               
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Error de conexion");
             }
-            
         }
 
         private static void BuyAProduct(SocketHelper socketHelper, ref bool connected)

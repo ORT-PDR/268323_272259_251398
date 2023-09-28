@@ -2,10 +2,12 @@
 using Protocolo;
 using Servidor;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Channels;
 
 namespace PrimerEjemploSocket
@@ -180,7 +182,6 @@ namespace PrimerEjemploSocket
                                 {
                                    FileStreamHandler.Delete(productToModify.Name);
                                 }
-
                                 
                                 Console.WriteLine("Antes de recibir el archivo nuevo");
                                 var fileCommonHandler2 = new FileCommsHandler(socketClient);
@@ -188,18 +189,18 @@ namespace PrimerEjemploSocket
                                 Console.WriteLine("llego el archivo");
                                 string productImage = productName + ".png";
                                 string imageName = productImage;
-                                //connected = ReceiveData(socketHandler, ref productImage);
                                 productToModify.Image = productImage;
 
                                 Console.WriteLine("Archivo nuevo recibido!!");
 
                                 break;
                         }
+                        Println(socketHandler.UserName + " modificó el producto " + productName);
                         break;
                     case 4:
                         //Baja de producto
                         List<Product> clientProducts = GetClientProducts(products, socketHandler.UserName);
-                        SendProducts(socketHandler, clientProducts, true);
+                        SendProducts(socketHandler, clientProducts);
                         DeleteProduct(socketHandler, ref connected, ref products);
 
                         break;
@@ -225,7 +226,7 @@ namespace PrimerEjemploSocket
                         break;
                     case 6:
                         //consultar un producto específico
-                        SendProducts(socketHandler, products, false);
+                        SendProducts(socketHandler, products);
 
                         string productToConsult = "";
                         connected = ReceiveData(socketHandler, ref productToConsult);
@@ -235,40 +236,38 @@ namespace PrimerEjemploSocket
                         {
                             consultedProduct = products.FirstOrDefault(prod => prod.Name == productToConsult);
                         }
-           
-                        
 
                         var fileCommonHandler = new FileCommsHandler(socketClient);
                         try
                         {
                             SendData(socketHandler, consultedProduct.ToString());
                             string image = consultedProduct.Name + "InServer.png";
-                            string searchDirectory = @"C:\Users\Alan\Desktop\ProgRedes\oblProg\268323_272259_251398\PrimerEjemploSocket\bin\Debug\net6.0";  // Replace with your image folder path                                                                                                                                      // Search for image files with the specified name
+                            string searchDirectory = @"C:\Obligatorios\Redes\268323_272259_251398\PrimerEjemploSocket\bin\Debug\net6.0";
                             string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
                             string path = imageFiles[0];
-                            
-                            fileCommonHandler.SendFile(path, consultedProduct.Name+"InClient.png");
+
+                            fileCommonHandler.SendFile(path, consultedProduct.Name + "InClient.png");
                             SendData(socketHandler, image);
 
                             Console.WriteLine("Se envio el archivo al Cliente");
-                            
+
                         }
                         catch (System.IndexOutOfRangeException ex)
                         {
                             Console.WriteLine("Image Not Found in Server");
                             string image = "error-404";
-                            string searchDirectory = @"C:\Users\Alan\Desktop\ProgRedes\oblProg\268323_272259_251398\PrimerEjemploSocket\bin\Debug\net6.0";  // Replace with your image folder path                                                                                                                                      // Search for image files with the specified name
+                            string searchDirectory = @"C:\Obligatorios\Redes\268323_272259_251398\PrimerEjemploSocket\bin\Debug\net6.0";
                             string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
                             string path = imageFiles[0];
                             fileCommonHandler.SendFile(path, "error");
                             SendData(socketHandler, "");
                         }
-                        
+
 
                         break;
 
                     case 7:
-                        SendProducts(socketHandler, products, false);
+                        SendProducts(socketHandler, products);
                         RateAProduct(socketHandler, ref connected, ref products);
 
                         break;
@@ -324,7 +323,6 @@ namespace PrimerEjemploSocket
                     string productoMostrado = productosDelCliente.ElementAt(i).Name;
                     SendData(socketHelper, productoMostrado);
                 }
-        //        SendData(socketHelper, "end");
 
             }catch(Exception ex)
             {
@@ -551,7 +549,7 @@ namespace PrimerEjemploSocket
             }
         }
 
-        private static void SendProducts(SocketHelper socketHelper, List<Product> products, bool withStock)
+        private static void SendProducts(SocketHelper socketHelper, List<Product> products)
         {
             string quantProducts;
             lock (locker)
@@ -599,19 +597,8 @@ namespace PrimerEjemploSocket
                 }
                 SendData(socketHelper, "Se ha eliminado el producto correctamente");
                 FileStreamHandler.Delete(prodToDelete);
+                Println(socketHelper.UserName + " eliminó el producto " + prodToDelete);
             }
-        }
-
-        private static int GetProductStock(List<Product> clientProducts, string productName)
-        {
-            foreach (Product prod in clientProducts)
-            {
-                if (prod.Name == productName)
-                {
-                    return prod.Stock;
-                }
-            }
-            return 0;
         }
 
         private static void RateAProduct(SocketHelper socketHelper, ref bool connected, ref List<Product> products)

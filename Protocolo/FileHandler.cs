@@ -38,9 +38,9 @@ namespace Protocolo
             try
             {
                  fileName += "InServer.png";
-                 string searchDirectory = @"C:\Users\Alan\Desktop\ProgRedes\oblProg\268323_272259_251398\PrimerEjemploSocket\bin\Debug\net6.0";  // Replace with your image folder path
-                 // Search for image files with the specified name
-                 string[] imageFiles = Directory.GetFiles(searchDirectory, $"{fileName}.*");
+                string searchDirectory = @"C:\Obligatorios\Redes\268323_272259_251398\PrimerEjemploSocket\bin\Debug\net6.0";
+                // Search for image files with the specified name
+                string[] imageFiles = Directory.GetFiles(searchDirectory, $"{fileName}.*");
 
                  string path = imageFiles[0];
                  File.Delete(path);
