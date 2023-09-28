@@ -180,7 +180,7 @@ namespace PrimerEjemploSocket
                             case "4":
                                 lock (locker)
                                 {
-                                   FileStreamHandler.Delete(productToModify.Name);
+                                   FileStreamHandler.Delete(productToModify.Name, ServerConfig.serverImageRouteKey);
                                 }
                                 
                                 Console.WriteLine("Antes de recibir el archivo nuevo");
@@ -242,7 +242,7 @@ namespace PrimerEjemploSocket
                         {
                             SendData(socketHandler, consultedProduct.ToString());
                             string image = consultedProduct.Name + "InServer.png";
-                            string searchDirectory = @"C:\Obligatorios\Redes\268323_272259_251398\PrimerEjemploSocket\bin\Debug\net6.0";
+                            string searchDirectory = @settingMng.ReadSettings(ServerConfig.serverImageRouteKey);
                             string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
                             string path = imageFiles[0];
 
@@ -256,13 +256,12 @@ namespace PrimerEjemploSocket
                         {
                             Console.WriteLine("Image Not Found in Server");
                             string image = "error-404";
-                            string searchDirectory = @"C:\Obligatorios\Redes\268323_272259_251398\PrimerEjemploSocket\bin\Debug\net6.0";
+                            string searchDirectory = @settingMng.ReadSettings(ServerConfig.serverImageRouteKey);
                             string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
                             string path = imageFiles[0];
                             fileCommonHandler.SendFile(path, "error");
                             SendData(socketHandler, "");
                         }
-
 
                         break;
 
@@ -596,7 +595,7 @@ namespace PrimerEjemploSocket
                     products = products.Where(prod => !(prod.Name.Equals(prodToDelete))).ToList();
                 }
                 SendData(socketHelper, "Se ha eliminado el producto correctamente");
-                FileStreamHandler.Delete(prodToDelete);
+                FileStreamHandler.Delete(prodToDelete, ServerConfig.serverImageRouteKey);
                 Println(socketHelper.UserName + " eliminó el producto " + prodToDelete);
             }
         }

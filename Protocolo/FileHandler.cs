@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Common;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -8,6 +9,8 @@ namespace Protocolo
 {
     public static class FileHandler
     {
+        static readonly SettingsManager settingMng = new SettingsManager();
+
         public static bool FileExists(string path)
         {
             return File.Exists(path);
@@ -33,12 +36,12 @@ namespace Protocolo
             throw new Exception("File does not exist");
         }
 
-        public static void DeleteFile(string fileName)
+        public static void DeleteFile(string fileName, string pathDir)
         {
             try
             {
                  fileName += "InServer.png";
-                string searchDirectory = @"C:\Obligatorios\Redes\268323_272259_251398\PrimerEjemploSocket\bin\Debug\net6.0";
+                string searchDirectory = @pathDir;
                 // Search for image files with the specified name
                 string[] imageFiles = Directory.GetFiles(searchDirectory, $"{fileName}.*");
 

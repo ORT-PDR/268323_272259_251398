@@ -44,9 +44,9 @@ namespace Protocolo
             }
         }
 
-        public static void Delete(string fileName)
+        public static void Delete(string fileName, string path)
         {
-            FileHandler.DeleteFile(fileName);
+            FileHandler.DeleteFile(fileName, path);
         }
     }
 }

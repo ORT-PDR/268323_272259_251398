@@ -11,6 +11,6 @@ namespace Servidor
         public static string serverIPconfigKey = "ServerIpAddress";
         public static string serverPortconfigKey = "ServerPort";
 
-        public static string serverImageRoute = "ImageServerRoute";
+        public static string serverImageRouteKey = "ImageServerRoute";
     }
 }
