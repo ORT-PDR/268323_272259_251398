@@ -26,22 +26,7 @@ namespace Cliente
 
         static void Main(string[] args)
         {
-            Println("Iniciar Cliente...");
-
-            socketClient.Bind(localEndPoint);
-            Println("Estableciendo conexión con el servidor...");
-            bool connectionEstablished = false;
-            while (!connectionEstablished)
-            {
-                try
-                {
-                    socketClient.Connect(remoteEndPoint);
-                    connectionEstablished = true;
-                }
-                catch { }
-            }
-
-            Println("Se estableció conexión con el servidor");
+            
 
             //SocketHelper socketHandler = new SocketHelper(socketClient);
 
@@ -49,15 +34,43 @@ namespace Cliente
                 while (intentoConcetarme)
                 {
                     socketClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
                     clientIp = settingMng.ReadSettings(ClientConfig.clientIPconfigKey);
                     clientPort = int.Parse(settingMng.ReadSettings(ClientConfig.clientPortconfigKey));
                     serverIp = settingMng.ReadSettings(ClientConfig.serverIPconfigKey);
                     serverPort = int.Parse(settingMng.ReadSettings(ClientConfig.serverPortconfigKey));
 
-                    localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
+                   localEndPoint = new IPEndPoint(IPAddress.Parse(clientIp), clientPort);
+
+                    Println("Iniciar Cliente...");
+
                     socketClient.Bind(localEndPoint);
-                    remoteEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
+                    Println("Estableciendo conexión con el servidor...");
+                    bool connectionEstablished = false;
+                    while (!connectionEstablished)
+                    {
+                        try
+                        {
+                            socketClient.Connect(remoteEndPoint);
+                            connectionEstablished = true;
+                        }
+                        catch { }
+                    }
+                    // int meConecteCantVeces = 0;
+                    Println("Se estableció conexión con el servidor");
+                    
+                    /*     
+                     if (meConecteCantVeces == 1)
+                     {
+                         try
+                     {
+                             socketClient.Bind(localEndPoint);
+                             socketClient.Connect(remoteEndPoint);
+                             connectionEstablished = true;
+                         }
+                     catch { }
+                     }
+                     */
+                    remoteEndPoint = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
                     errorDeConexion = false;
                     SocketHelper socketHandler = new SocketHelper(socketClient);
                     EnterSystem(socketHandler);
@@ -154,11 +167,17 @@ namespace Cliente
                         }
                         if (eleccion == 1)
                         {
-                            ReconectarAlServidor();
-                            LogIn(socketHandler, ref connected);
-                            //ClientCode(socketHandler);
+                           
+                            //meConecteCantVeces = 1;
                         }
-                        socketClient.Shutdown(SocketShutdown.Both);
+                        else
+                        {
+                            intentoConcetarme = false;
+                            socketClient.Shutdown(SocketShutdown.Both);
+                            socketClient.Close();
+                            
+                        }
+                        
                     }
                     catch { }
                 }
@@ -520,12 +539,20 @@ namespace Cliente
                 initOption = Console.ReadLine();
 
             }
+            try
+            {
+                SendData(socketHandler, initOption);
 
-            SendData(socketHandler, initOption);
+                if (initOption == "1") LogIn(socketHandler, ref connected);
 
-            if (initOption == "1") LogIn(socketHandler, ref connected);
+                else RegisterUser(socketHandler, ref connected);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("No fue posible acceder al servidor");
+                errorDeConexion = true;
+            }
 
-            else RegisterUser(socketHandler, ref connected);
         }
 
         private static void RegisterUser(SocketHelper socketHelper, ref bool connected)
@@ -565,7 +592,7 @@ namespace Cliente
                 Println("Conexión con el servidor perdida.");
             }
         }
-
+/*
         private static void ReconectarAlServidor()
         {
             socketClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -581,7 +608,7 @@ namespace Cliente
             errorDeConexion = false;
 
 
-        }
+        }*/
         private static void RateAProduct(SocketHelper socketHelper, ref bool connected)
         {
             try
@@ -846,82 +873,5 @@ namespace Cliente
         }
     }
 
-    /*
-        private static void ClientCode(SocketHelper socketHandler)
-        {
-            while (!exitMenu && !errorDeConexion)
-            {
-                ShowMenu();
-                string option = Read();
-                try
-                {
-                    int checkOption = int.Parse(option);
-                    SendData(socketHandler, option);
-                }
-                catch (Exception ex)
-                {
-
-                }
-
-                switch (option)
-                {
-                    case "1":
-                        if (!errorDeConexion)
-                        {
-                            PublishProduct(socketHandler, socketClient);
-                        }
-                        break;
-                    case "2":
-                        if (!errorDeConexion)
-                        {
-                            BuyAProduct(socketHandler, socketClient, ref connected);
-                        }
-                        break;
-                    case "3":
-                        if (!errorDeConexion)
-                        {
-                            ModifyAProduct(ref connected, socketHandler, socketClient);
-                        }
-                        break;
-                    case "4":
-                        if (!errorDeConexion)
-                        {
-                            DeleteProduct(ref connected, socketHandler);
-                        }
-                        break;
-                    case "5":
-                        if (!errorDeConexion)
-                        {
-                            SearchProductByFilter(ref connected, socketHandler);
-                        }
-                        break;
-                    case "6":
-                        if (!errorDeConexion)
-                        {
-                            ConsultAProduct(ref connected, socketHandler, socketClient);
-                        }
-                        break;
-                    case "7":
-                        if (!errorDeConexion)
-                        {
-                            RateAProduct(socketHandler, ref connected);
-                        }
-                        break;
-                    case "8":
-                        Println("Saliendo del programa...");
-                        exitMenu = true;
-
-                        break;
-                    default:
-                        Println("Opción no válida. Por favor, seleccione una opción válida.");
-
-                        break;
-                }
-
-                Println("\nPresiona cualquier tecla para continuar...");
-                Console.ReadKey();
-            }
-        }
-        */
 }
 
