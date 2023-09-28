@@ -33,7 +33,11 @@ namespace PrimerEjemploSocket
             int serverPort = int.Parse(settingMng.ReadSettings(ServerConfig.serverPortconfigKey));
 
             
-            var localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
+            //var localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
+
+            var localEndPoint = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
+
+
             socketServer.Bind(localEndPoint);
             socketServer.Listen(10);
             new Thread(() => HandleServer(socketServer)).Start();

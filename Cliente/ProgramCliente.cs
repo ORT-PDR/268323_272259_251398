@@ -19,25 +19,17 @@ namespace Cliente
         static string serverIp = settingMng.ReadSettings(ClientConfig.serverIPconfigKey);
         static int serverPort = int.Parse(settingMng.ReadSettings(ClientConfig.serverPortconfigKey));
 
-        static IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
-        //socketClient.Bind(localEndPoint);
-        static IPEndPoint remoteEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
+        //static IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
+        //static IPEndPoint remoteEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
+
+        static IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Parse(clientIp), clientPort);
+        static IPEndPoint remoteEndPoint = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
 
         static void Main(string[] args)
         {
             Println("Inciar Cliente...");
-            
-            //CONECTAR AL SERVIDOR
-            //var socketClient = new Socket(AddressFamily.InterNetwork,SocketType.Stream,ProtocolType.Tcp);
 
-            //string clientIp = settingMng.ReadSettings(ClientConfig.clientIPconfigKey);
-            //int clientPort = int.Parse(settingMng.ReadSettings(ClientConfig.clientPortconfigKey));
-            //string serverIp = settingMng.ReadSettings(ClientConfig.serverIPconfigKey);
-            //int serverPort = int.Parse(settingMng.ReadSettings(ClientConfig.serverPortconfigKey));
-
-            //var localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
             socketClient.Bind(localEndPoint);
-            //var remoteEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
             
             
             
