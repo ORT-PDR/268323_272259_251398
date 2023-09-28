@@ -176,7 +176,6 @@ namespace PrimerEjemploSocket
                                 Console.WriteLine("llego el archivo");
                                 string productImage = productName + ".png";
                                 string imageName = productImage;
-                                //connected = ReceiveData(socketHandler, ref productImage);
                                 productToModify.Image = productImage;
 
                                 Console.WriteLine("Archivo nuevo recibido!!");
@@ -276,22 +275,29 @@ namespace PrimerEjemploSocket
         static void HandleServer(Socket socketServer)
         {
 
-            Console.WriteLine("Ingrese exit para cerrar el Server");
-            string entrada = Console.ReadLine();
-            if (entrada.Equals("exit"))
-            {
+            
+            while( servidorEncendido ) {
 
-                ApagarServidor();
-                try
+                Console.WriteLine("Ingrese exit para cerrar el Server");
+                string entrada = Console.ReadLine();
+                if (entrada.Equals("exit"))
                 {
-                    socketServer.Shutdown(SocketShutdown.Both);
-                }catch (Exception ex)
-                {
-                    Console.WriteLine("Apagando srvidor");
+
+                    ApagarServidor();
+                    try
+                    {
+                        socketServer.Shutdown(SocketShutdown.Both);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Apagando srvidor");
+                    }
+
+                    socketServer.Close();
                 }
-                
-                socketServer.Close();
+
             }
+           
 
 
         }
@@ -471,8 +477,6 @@ namespace PrimerEjemploSocket
                     productImage = productName + ".png";
                     imageName = productImage;
                     connected = ReceiveData(socketHelper, ref productImage);
-
-
                     Console.WriteLine("Archivo recibido!!");
                 }
                 else
