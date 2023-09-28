@@ -140,6 +140,7 @@ namespace PrimerEjemploSocket
                             else
                             {
                                 productBought.Stock -= int.Parse(amountBought);
+                                Println(socketHandler.UserName + " compró " + amountBought + " unidades de " + nameProduct);
                                 SendData(socketHandler, "ok");
                             }
                         }
@@ -340,15 +341,16 @@ namespace PrimerEjemploSocket
                 {
                     foreach (Product product in products)
                     {
-                        string mensaje = product.Name + "@" + product.Stock.ToString();
-                        SendData(socketHelper, mensaje);
+                        if (product.Stock > 0)
+                        {
+                            string mensaje = product.Name + "@" + product.Stock.ToString();
+                            SendData(socketHelper, mensaje);
+                        }
                     }
-                }catch (Exception ex) {
+                } catch {
                     return;
-                }
-                
+                }   
             }
-            
             SendData(socketHelper, "end");
         }
 
@@ -390,7 +392,6 @@ namespace PrimerEjemploSocket
                 byte[] data = socketHelper.Receive(BitConverter.ToInt32(largoData));
 
                 text = Encoding.UTF8.GetString(data);
-                Console.WriteLine("Se recibio: " + text);
                 return true;
             }
             catch (SocketException e)

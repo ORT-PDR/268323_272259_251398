@@ -21,9 +21,6 @@ namespace Cliente
         static bool exitMenu = false;
         static bool connected = true;
 
-        //static IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
-        //static IPEndPoint remoteEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
-
         static IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Parse(clientIp), clientPort);
         static IPEndPoint remoteEndPoint = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
 
@@ -72,7 +69,7 @@ namespace Cliente
                     case "2":
                         if (!errorDeConexion)
                         {
-                            BuyAProduct(socketHandler, socketClient, ref connected);
+                            BuyAProduct(socketHandler, ref connected);
                         }                                             
                         break;
                     case "3":
@@ -664,59 +661,21 @@ namespace Cliente
             return products;
         }
 
-        private static List<NameStock> GetProductsToBuy(Socket socketClient, ref bool connected)
+        private static List<NameStock> GetProductsToBuy(SocketHelper socketHelper, ref bool connected)
         {
             var products = new List<NameStock>();
-            bool escucharProductosAEliminar = true;
-            byte[] data;
-            byte[] largoDataDelServidor;
-            while (escucharProductosAEliminar)
+            string reception = "";
+            connected = ReceiveData(socketHelper, ref reception);
+            while (connected && reception != "end")
             {
-                //try
-                //{
-                    largoDataDelServidor = new byte[4];
-                    int cantRecibida = socketClient.Receive(largoDataDelServidor);
-
-                    if (cantRecibida == 0)
-                    {
-                        escucharProductosAEliminar = false;
-                    }
-                    else
-                    {
-                        int largo = BitConverter.ToInt32(largoDataDelServidor);
-
-                        data = new byte[largo];
-                        int recibidoData = socketClient.Receive(data);
-                        if (recibidoData == 0)
-                        {
-                            connected = false;
-                        }
-                        else
-                        {
-                            string mensaje = Encoding.UTF8.GetString(data);
-                            if (mensaje.Equals("end"))
-                            {
-                                escucharProductosAEliminar = false;
-                            }
-                            else
-                            {
-                                NameStock product = new NameStock()
-                                {
-                                    Name = mensaje.Split("@")[0],
-                                    Stock = mensaje.Split("@")[1]
-                                };
-                                products.Add(product);
-                                Console.WriteLine("Producto: {0}   |   Stock: {1}", product.Name, product.Stock);
-                            }
-                        }
-                    }
-                //}
-                /*catch (SocketException e)
+                NameStock product = new NameStock()
                 {
-                    connected = false;
-                    escucharProductosAEliminar = false;
-
-                }*/
+                    Name = reception.Split("@")[0],
+                    Stock = reception.Split("@")[1]
+                };
+                products.Add(product);
+                Console.WriteLine("Producto: {0}   |   Stock: {1}", product.Name, product.Stock);
+                connected = ReceiveData(socketHelper, ref reception);
             }
             return products;
         }
@@ -768,15 +727,15 @@ namespace Cliente
             
         }
 
-        private static void BuyAProduct(SocketHelper socketHelper, Socket socketClient, ref bool connected)
+        private static void BuyAProduct(SocketHelper socketHelper, ref bool connected)
         {
             try
             {
                 Println("Has seleccionado la opción Compra de productos");
                 bool isBought = false;
+                List<NameStock> products = GetProductsToBuy(socketHelper, ref connected);
                 while (!isBought)
                 {
-                    List<NameStock> products = GetProductsToBuy(socketClient, ref connected);
                     Print("Ingrese nombre del producto a comprar: ");
                     string productToBuyName = Read();
                     NameStock productNameStock = products.Find(p => p.Name.Equals(productToBuyName));
@@ -830,7 +789,6 @@ namespace Cliente
             {
                 Console.WriteLine("Error de conexion");
             }
-            
         }
 
         private static void LogIn(SocketHelper socketHelper, ref bool connected)
