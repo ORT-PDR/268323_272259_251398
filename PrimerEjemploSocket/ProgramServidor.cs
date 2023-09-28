@@ -38,11 +38,11 @@ namespace PrimerEjemploSocket
                 
                 Println("Se conecto un cliente..");
                 cantClients++;
-                new Thread(() => HandleClient(socketClient, cantClients, users, products)).Start();
+                new Thread(() => HandleClient(socketClient, cantClients, ref users, ref products)).Start();
             }
         }
 
-        static void HandleClient(Socket socketClient, int nroClient, List<User> users, List<Product> products) 
+        static void HandleClient(Socket socketClient, int nroClient, ref List<User> users, ref List<Product> products) 
         {
             bool connected = true;
             SocketHelper socketHandler = new SocketHelper(socketClient);
@@ -185,16 +185,28 @@ namespace PrimerEjemploSocket
         {
             string user = "";
             connected = ReceiveData(socketHandler, ref user);
-            User newUser = new User()
+            
+            if (connected)
             {
-                Id = users.Count + 1,
-                Username = user.Split("@")[0],
-                Password = user.Split("@")[1]
-            };
-            users.Add(newUser);
-            socketHandler.UserName = newUser.Username;
-            Println(socketHandler.UserName + " se ha registrado e iniciado sesion.");
-
+                while (connected && users.Exists(u => u.Username == user.Split("@")[0]))
+                {
+                    SendData(socketHandler, "Error: Username ya en sistema.");
+                    connected = ReceiveData(socketHandler, ref user);
+                }
+                if (connected)
+                {
+                    User newUser = new User()
+                    {
+                        Id = users.Count + 1,
+                        Username = user.Split("@")[0],
+                        Password = user.Split("@")[1]
+                    };
+                    users.Add(newUser);
+                    socketHandler.UserName = newUser.Username;
+                    SendData(socketHandler, "OK");
+                    Println(socketHandler.UserName + " se ha registrado e iniciado sesion.");
+                }
+            }
         }
 
         private static void SendClientProducts(List<Product> products, SocketHelper socketHelper)

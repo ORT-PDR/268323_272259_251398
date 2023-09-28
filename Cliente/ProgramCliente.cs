@@ -43,9 +43,9 @@ namespace Cliente
             }
             SendData(socketHelper, initOption);
             if (initOption == "1") LogIn(socketHelper);
-            else RegisterUser(socketHelper);
+            else RegisterUser(socketHelper, ref connected);
 
-            while (!exitMenu)
+            while (!exitMenu && connected)
             {
                 ShowMenu();
                 string option = Read();
@@ -97,10 +97,9 @@ namespace Cliente
 
             socketClient.Shutdown(SocketShutdown.Both);
             socketClient.Close();
-
         }
 
-        private static void RegisterUser(SocketHelper socketHelper)
+        private static void RegisterUser(SocketHelper socketHelper, ref bool connected)
         {
             Print("Ingrese nombre de usuario:   ");
             string username = Console.ReadLine();
@@ -113,7 +112,19 @@ namespace Cliente
             }
             string user = username + "@" + password;
             SendData(socketHelper, user);
-            Println("Bienvenido al sistema " + username);
+            string response = "";
+            connected = ReceiveData(socketHelper, ref response);
+            if (connected)
+            {
+                if (response == "OK")
+                    Println("Bienvenido al sistema " + username);
+                else
+                {
+                    Println("Ya hay un usuario con ese nombre en el sistema. Intente nuevamente.");
+                    RegisterUser(socketHelper, ref connected);
+                }
+            }
+            else Println("Conexión con el servidor perdida.");        
         }
 
         private static void DeleteProduct(ref bool connected, SocketHelper socketHelper)
