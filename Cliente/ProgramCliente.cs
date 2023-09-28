@@ -116,36 +116,40 @@ namespace Cliente
                 Println("\nPresiona cualquier tecla para continuar...");
                 Console.ReadKey();
             }
-
-            try
+            if (errorDeConexion || !connected)
             {
-                Console.WriteLine("Servidor caido, quiere reintentar?");
-                Console.WriteLine("1-Si");
-                Console.WriteLine("2-No");
-                bool eleccionValida = false;
-                int eleccion = 0;
-                while (!eleccionValida)
+                try
                 {
-                    try
+                    Console.WriteLine("Servidor caido, quiere reintentar?");
+                    Console.WriteLine("1-Si");
+                    Console.WriteLine("2-No");
+                    bool eleccionValida = false;
+                    int eleccion = 0;
+                    while (!eleccionValida)
                     {
-                        eleccion = int.Parse(Read());
-                        eleccionValida = true;
+                        try
+                        {
+                            eleccion = int.Parse(Read());
+                            eleccionValida = true;
+                        }
+                        catch (Exception exception)
+                        {
+                            Println("Ingrese 1 o 2 según su eleccón ");
+                        }
                     }
-                    catch (Exception exception)
+                    if (eleccion == 1)
                     {
-                        Println("Ingrese 1 o 2 según su eleccón ");
+                        ReconectarAlServidor();
+                        LogIn(socketHandler, ref connected);
+                        //ClientCode(socketHandler);
                     }
+                    socketClient.Shutdown(SocketShutdown.Both);
                 }
-                if (eleccion == 1)
+                catch (Exception e)
                 {
-                    ReconectarAlServidor();
-                    LogIn(socketHandler, ref connected);
-                    //ClientCode(socketHandler);
                 }
-                socketClient.Shutdown(SocketShutdown.Both);
-            }catch(Exception e)
-            {
             }
+            
             
             socketClient.Close();
 
