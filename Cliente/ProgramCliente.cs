@@ -239,7 +239,10 @@ namespace Cliente
 
                     Print("Inserte nuevo valor:");
                     string newValue = Read();
-
+                    if(attributeOption == "1")
+                    {
+                        SendData(socketHelper, newValue);
+                    }
                     if (attributeOption == "2")
                     {
                         int value = -1;
