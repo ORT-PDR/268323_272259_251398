@@ -26,12 +26,21 @@ namespace Protocolo
             int size = data.Length;
             while (offset < size)
             {
-                int cantEnviada = _socket.Send(data, offset, size - offset, SocketFlags.None);
-                if (cantEnviada == 0)
-                { 
+                try
+                {
+                    int cantEnviada = _socket.Send(data, offset, size - offset, SocketFlags.None);
+                    if (cantEnviada == 0)
+                    {
+                        throw new SocketException();
+                    }
+                    offset += cantEnviada;
+                    
+                }catch (System.ObjectDisposedException ex)
+                {
                     throw new SocketException();
+
                 }
-                offset += cantEnviada;
+                
             }
         }
 
@@ -40,13 +49,21 @@ namespace Protocolo
             byte[] data = new byte[size];
             int offset = 0;
             while (offset < size)
-            { 
-                int cantRecibido = _socket.Receive(data, offset, size - offset, SocketFlags.None);
-                if (cantRecibido == 0)
-                { 
-                    throw new SocketException(); 
+            {
+                try
+                {
+                    int cantRecibido = _socket.Receive(data, offset, size - offset, SocketFlags.None);
+                    if (cantRecibido == 0)
+                    {
+                        throw new SocketException();
+                    }
+                    offset += cantRecibido;
+
+                }catch(System.ObjectDisposedException ex)
+                {
+                    throw new SocketException();
                 }
-                offset += cantRecibido;
+                
             }
             return data;
         }

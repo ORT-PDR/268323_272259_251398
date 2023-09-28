@@ -23,12 +23,20 @@ namespace Servidor
 
         public override string ToString()
         {
+            string reviews = "";
+            for (int i = 0; i < Reviews.Count; i++)
+            {
+                reviews += Reviews[i].ToString();
+                reviews += "\n --------------------- \n ";
+            }
             return "\nId: " + this.Id +
                 "\nDueño: " + this.OwnerUserName +
                 "\nNombre: " + this.Name +
                 "\nDescripción: " + this.Description +
                 "\nStock: " + this.Stock +
-                "\nPrecio: $" + this.Price;
+                "\nPrecio: $" + this.Price +
+                "\nImagen: " + this.Image +
+                "\nReviews: " + reviews;
         }
 
         public override bool Equals(object? obj)

@@ -11,22 +11,23 @@ namespace Protocolo
     {
         private readonly ConversionHandler _conversionHandler;
         private readonly SocketHelper _socketHelper;
-
+        private static object locker = new object();
         public FileCommsHandler(Socket socket)
         {
             _conversionHandler = new ConversionHandler();
+            //_socketHelper = socketHelper;
             _socketHelper = new SocketHelper(socket);
         }
 
-        public void SendFile(string path)
+        public void SendFile(string path,string destinationName)
         {
             if (FileHandler.FileExists(path))
             {
                 var fileName = FileHandler.GetFileName(path);
                 // ---> Enviar el largo del nombre del archivo
-                _socketHelper.Send(_conversionHandler.ConvertIntToBytes(fileName.Length));
+                _socketHelper.Send(_conversionHandler.ConvertIntToBytes(destinationName.Length));
                 // ---> Enviar el nombre del archivo
-                _socketHelper.Send(_conversionHandler.ConvertStringToBytes(fileName));
+                _socketHelper.Send(_conversionHandler.ConvertStringToBytes(destinationName));
 
                 // ---> Obtener el tamaño del archivo
                 long fileSize = FileHandler.GetFileSize(path);
@@ -113,7 +114,11 @@ namespace Protocolo
                     offset += Protocol.MaxPacketSize;
                 }
                 //3- Escribo esa parte del archivo a disco
-                FileStreamHandler.Write(fileName, data);
+                lock (locker)
+                {
+                    FileStreamHandler.Write(fileName, data);
+                }
+               
                 currentPart++;
             }
         }
