@@ -280,9 +280,9 @@ namespace Cliente
                         var fileCommonHandler = new FileCommsHandler(socketClient);
                         try
                         {
-                           
-                            fileCommonHandler.SendFile(newValue, imageName);
                             SendData(socketHelper, newValue);
+                            fileCommonHandler.SendFile(newValue, imageName);
+                            
                             Console.WriteLine("Se envio el archivo nuevo al Servidor");
                         }
                         catch (Exception ex)

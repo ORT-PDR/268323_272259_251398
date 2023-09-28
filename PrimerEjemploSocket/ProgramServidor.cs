@@ -176,7 +176,7 @@ namespace PrimerEjemploSocket
                                 Console.WriteLine("llego el archivo");
                                 string productImage = productName + ".png";
                                 string imageName = productImage;
-                                connected = ReceiveData(socketHandler, ref productImage);
+                                //connected = ReceiveData(socketHandler, ref productImage);
                                 productToModify.Image = productImage;
 
                                 Console.WriteLine("Archivo nuevo recibido!!");
@@ -276,7 +276,6 @@ namespace PrimerEjemploSocket
         static void HandleServer(Socket socketServer)
         {
 
-
             Console.WriteLine("Ingrese exit para cerrar el Server");
             string entrada = Console.ReadLine();
             if (entrada.Equals("exit"))
@@ -313,7 +312,7 @@ namespace PrimerEjemploSocket
                     string productoMostrado = productosDelCliente.ElementAt(i).Name;
                     SendData(socketHelper, productoMostrado);
                 }
-                SendData(socketHelper, "end");
+        //        SendData(socketHelper, "end");
 
             }catch(Exception ex)
             {
