@@ -5,6 +5,7 @@ using Protocolo;
 using Microsoft.VisualBasic.FileIO;
 using Common;
 using System.IO;
+using System;
 
 namespace Cliente
 {
@@ -12,21 +13,31 @@ namespace Cliente
     {
         static readonly SettingsManager settingMng = new SettingsManager();
         static bool errorDeConexion = true;
+        static Socket socketClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        static string clientIp = settingMng.ReadSettings(ClientConfig.clientIPconfigKey);
+        static int clientPort = int.Parse(settingMng.ReadSettings(ClientConfig.clientPortconfigKey));
+        static string serverIp = settingMng.ReadSettings(ClientConfig.serverIPconfigKey);
+        static int serverPort = int.Parse(settingMng.ReadSettings(ClientConfig.serverPortconfigKey));
+
+        static IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
+        //socketClient.Bind(localEndPoint);
+        static IPEndPoint remoteEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
+
         static void Main(string[] args)
         {
             Println("Inciar Cliente...");
             
             //CONECTAR AL SERVIDOR
-            var socketClient = new Socket(AddressFamily.InterNetwork,SocketType.Stream,ProtocolType.Tcp);
+            //var socketClient = new Socket(AddressFamily.InterNetwork,SocketType.Stream,ProtocolType.Tcp);
 
-            string clientIp = settingMng.ReadSettings(ClientConfig.clientIPconfigKey);
-            int clientPort = int.Parse(settingMng.ReadSettings(ClientConfig.clientPortconfigKey));
-            string serverIp = settingMng.ReadSettings(ClientConfig.serverIPconfigKey);
-            int serverPort = int.Parse(settingMng.ReadSettings(ClientConfig.serverPortconfigKey));
+            //string clientIp = settingMng.ReadSettings(ClientConfig.clientIPconfigKey);
+            //int clientPort = int.Parse(settingMng.ReadSettings(ClientConfig.clientPortconfigKey));
+            //string serverIp = settingMng.ReadSettings(ClientConfig.serverIPconfigKey);
+            //int serverPort = int.Parse(settingMng.ReadSettings(ClientConfig.serverPortconfigKey));
 
-            var localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
+            //var localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
             socketClient.Bind(localEndPoint);
-            var remoteEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
+            //var remoteEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
             
             
             
@@ -42,7 +53,7 @@ namespace Cliente
             
 
 
-            while (!exitMenu)
+            while (!exitMenu && !errorDeConexion)
             {
                 ShowMenu();
                 string option = Read();
@@ -114,7 +125,37 @@ namespace Cliente
                 Console.ReadKey();
             }
 
-            socketClient.Shutdown(SocketShutdown.Both);
+            try
+            {
+                socketClient.Shutdown(SocketShutdown.Both);
+            }catch(Exception e)
+            {
+                Console.WriteLine("Servidor caido, quiere reintentar?");
+                Console.WriteLine("1-Si");
+                Console.WriteLine("2-No");
+                bool eleccionValida = false;
+                int eleccion = 0;
+                while (!eleccionValida)
+                {
+                    try
+                    {
+                        eleccion = int.Parse(Read());
+                        eleccionValida = true;
+                    }
+                    catch (Exception exception)
+                    {
+                        Println("Ingrese 1 o 2 según su eleccón ");
+                    }
+                }
+                if(eleccion == 1)
+                {
+                    ReconectarAlServidor();
+                    LogIn(socketHandler, socketClient, remoteEndPoint);
+                }
+
+                
+            }
+            
             socketClient.Close();
 
         }
@@ -233,7 +274,7 @@ namespace Cliente
                         }
                         SendData(socketHelper, newValue);
                     }
-                    else if (attributeOption == "4")
+                    else if (attributeOption == "4") //Modificar imagen
                     {
                         string imageName = product + "InServer.png";
                         var fileCommonHandler = new FileCommsHandler(socketClient);
@@ -437,10 +478,25 @@ namespace Cliente
             catch (Exception ex)
             {
                 Console.WriteLine("Error de conexion");
+                
+
             }
 
         }
 
+        private static void ReconectarAlServidor()
+        {
+            socketClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+
+            clientIp = settingMng.ReadSettings(ClientConfig.clientIPconfigKey);
+            clientPort = int.Parse(settingMng.ReadSettings(ClientConfig.clientPortconfigKey));
+            serverIp = settingMng.ReadSettings(ClientConfig.serverIPconfigKey);
+            serverPort = int.Parse(settingMng.ReadSettings(ClientConfig.serverPortconfigKey));
+
+            localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
+            socketClient.Bind(localEndPoint);
+            remoteEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
+        }
         private static void RateAProduct(SocketHelper socketHelper, ref bool connected)
         {
             try
@@ -700,7 +756,7 @@ namespace Cliente
         {
             try
             {
-                
+                bool usuarioIncorrecto = false;
                 bool correctUser = false;
                 while (!correctUser)
                 {
@@ -709,7 +765,11 @@ namespace Cliente
                     Print("Ingrese su contraseña: ");
                     string userPass = Read();
                     string user = userName + "#" + userPass;
-                    socketClient.Connect(remoteEndPoint);
+
+                    if (!usuarioIncorrecto)
+                    {
+                        socketClient.Connect(remoteEndPoint);
+                    }
                     SendData(socketHelper, user);
 
                     string response = "";
@@ -724,6 +784,8 @@ namespace Cliente
                     else
                     {
                         Println(response);
+                        usuarioIncorrecto |= true;
+
                     }
                 }
             }

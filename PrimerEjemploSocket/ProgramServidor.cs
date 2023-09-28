@@ -46,6 +46,7 @@ namespace PrimerEjemploSocket
                 {
                     Socket socketClient = socketServer.Accept();
                     clientesActivos.Add(socketClient);
+
                     Println("Se conecto un cliente..");
                     cantClients++;
                     new Thread(() => HandleClient(socketClient, cantClients, users, products)).Start();
@@ -171,7 +172,6 @@ namespace PrimerEjemploSocket
                                 
                                 Console.WriteLine("Antes de recibir el archivo nuevo");
                                 var fileCommonHandler2 = new FileCommsHandler(socketClient);
-                                Console.WriteLine("Reza pa que lo reciba");
                                 fileCommonHandler2.ReceiveFile();
                                 Console.WriteLine("llego el archivo");
                                 string productImage = productName + ".png";
@@ -517,7 +517,7 @@ namespace PrimerEjemploSocket
             {
                 foreach (Product prod in products)
                 {
-                    if (withStock)
+                    if (prod.Stock>0)
                     {
                         SendData(socketHelper, prod.Name + " | Stock: " + prod.Stock);
                     }
