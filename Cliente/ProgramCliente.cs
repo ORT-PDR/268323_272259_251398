@@ -508,11 +508,19 @@ namespace Cliente
 
                 Console.Write("Ingrese el nombre del producto a calificar: ");
                 string prodName = Read();
-                while (!productsToRate.Contains(prodName))
+                productsToRate = productsToRate.Select(product => product.Split('|')[0].Trim()).ToList();
+
+                bool productExists = productsToRate.Contains(prodName);
+                while (!productExists)
                 {
                     Print("Ingrese alguna de las opciones listadas: ");
                     prodName = Read();
+                    if (productsToRate.Contains(prodName))
+                    {
+                        productExists = true;
+                    }
                 }
+               
                 SendData(socketHelper, prodName);
 
                 Println("¿Cuál es su opinión del producto?");
@@ -655,17 +663,24 @@ namespace Cliente
                 Println("Productos disponibles:");
                 List<string> productsToConsult = GetUserProducts(socketHelper, ref connected);
                 ShowProducts(productsToConsult);
-                Print("Ingrese el nombre del producto que quiera consultar ");
+                Print("Ingrese el nombre del producto que quiera consultar: ");
                 string prodName = Read();
-                while (!productsToConsult.Contains(prodName))
+                productsToConsult = productsToConsult.Select(product => product.Split('|')[0].Trim()).ToList();
+
+                bool productExists = productsToConsult.Contains(prodName);
+                while (!productExists)
                 {
                     Print("Ingrese alguna de las opciones listadas: ");
                     prodName = Read();
+                    if(productsToConsult.Contains(prodName))
+                    {
+                        productExists = true;
+                    }
                 }
                 Println("Información sobre el producto: " + prodName);
                 SendData(socketHelper, prodName);
-                string consultedProduct = "";
 
+                string consultedProduct = "";
                 ReceiveData(socketHelper, ref consultedProduct);
                 Println(consultedProduct);
 

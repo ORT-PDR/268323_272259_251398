@@ -234,10 +234,10 @@ namespace PrimerEjemploSocket
                             string searchDirectory = @"C:\Users\Alan\Desktop\ProgRedes\oblProg\268323_272259_251398\PrimerEjemploSocket\bin\Debug\net6.0";  // Replace with your image folder path                                                                                                                                      // Search for image files with the specified name
                             string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
                             string path = imageFiles[0];
-                            SendData(socketHandler, image);
+                            
                             fileCommonHandler.SendFile(path, consultedProduct.Name+"InClient.png");
-                            
-                            
+                            SendData(socketHandler, image);
+
                             Console.WriteLine("Se envio el archivo al Cliente");
                             
                         }
