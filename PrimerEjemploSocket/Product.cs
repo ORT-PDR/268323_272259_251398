@@ -9,7 +9,7 @@ namespace Servidor
     internal class Product
     {
         public int Id { get; set; }
-        public int OwnerId { get; set; }
+        public string OwnerUserName { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
         public int Stock { get; set; }
@@ -30,7 +30,7 @@ namespace Servidor
                 reviews += "\n --------------------- \n ";
             }
             return "\nId: " + this.Id +
-                "\nId Dueño: " + this.OwnerId +
+                "\nId Dueño: " + this.OwnerUserName +
                 "\nNombre: " + this.Name +
                 "\nDescripción: " + this.Description +
                 "\nStock: " + this.Stock +
