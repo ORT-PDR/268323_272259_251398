@@ -18,6 +18,8 @@ namespace Cliente
         static int clientPort = int.Parse(settingMng.ReadSettings(ClientConfig.clientPortconfigKey));
         static string serverIp = settingMng.ReadSettings(ClientConfig.serverIPconfigKey);
         static int serverPort = int.Parse(settingMng.ReadSettings(ClientConfig.serverPortconfigKey));
+        static bool exitMenu = false;
+        static bool connected = true;
 
         //static IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
         //static IPEndPoint remoteEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
@@ -33,11 +35,11 @@ namespace Cliente
             
             
             
-            bool exitMenu = false;
-            bool connected = true;
+            //bool exitMenu = false;
+            //bool connected = true;
             
 
-            SocketHelper socketHandler = new SocketHelper(socketClient);
+            //SocketHelper socketHandler = new SocketHelper(socketClient);
           //  while(errorDeConexion)
             //{
                 LogIn(socketHandler, socketClient, remoteEndPoint);
@@ -119,9 +121,6 @@ namespace Cliente
 
             try
             {
-                socketClient.Shutdown(SocketShutdown.Both);
-            }catch(Exception e)
-            {
                 Console.WriteLine("Servidor caido, quiere reintentar?");
                 Console.WriteLine("1-Si");
                 Console.WriteLine("2-No");
@@ -139,11 +138,16 @@ namespace Cliente
                         Println("Ingrese 1 o 2 según su eleccón ");
                     }
                 }
-                if(eleccion == 1)
+                if (eleccion == 1)
                 {
                     ReconectarAlServidor();
                     LogIn(socketHandler, socketClient, remoteEndPoint);
+                    ClientCode();
                 }
+                socketClient.Shutdown(SocketShutdown.Both);
+            }catch(Exception e)
+            {
+                
 
                 
             }
@@ -152,6 +156,81 @@ namespace Cliente
 
         }
 
+        private static void ClientCode()
+        {
+            while (!exitMenu && !errorDeConexion)
+            {
+                ShowMenu();
+                string option = Read();
+                try
+                {
+                    int checkOption = int.Parse(option);
+                    SendData(socketHandler, option);
+                }
+                catch (Exception ex)
+                {
+
+                }
+
+                switch (option)
+                {
+                    case "1":
+                        if (!errorDeConexion)
+                        {
+                            PublishProduct(socketHandler, socketClient);
+                        }
+                        break;
+                    case "2":
+                        if (!errorDeConexion)
+                        {
+                            BuyAProduct(socketHandler, socketClient, ref connected);
+                        }
+                        break;
+                    case "3":
+                        if (!errorDeConexion)
+                        {
+                            ModifyAProduct(ref connected, socketHandler, socketClient);
+                        }
+                        break;
+                    case "4":
+                        if (!errorDeConexion)
+                        {
+                            DeleteProduct(ref connected, socketHandler);
+                        }
+                        break;
+                    case "5":
+                        if (!errorDeConexion)
+                        {
+                            SearchProductByFilter(ref connected, socketHandler);
+                        }
+                        break;
+                    case "6":
+                        if (!errorDeConexion)
+                        {
+                            ConsultAProduct(ref connected, socketHandler, socketClient);
+                        }
+                        break;
+                    case "7":
+                        if (!errorDeConexion)
+                        {
+                            RateAProduct(socketHandler, ref connected);
+                        }
+                        break;
+                    case "8":
+                        Println("Saliendo del programa...");
+                        exitMenu = true;
+
+                        break;
+                    default:
+                        Println("Opción no válida. Por favor, seleccione una opción válida.");
+
+                        break;
+                }
+
+                Println("\nPresiona cualquier tecla para continuar...");
+                Console.ReadKey();
+            }
+        }
         private static void DeleteProduct(ref bool connected, SocketHelper socketHelper)
         {
             try
@@ -231,7 +310,10 @@ namespace Cliente
 
                     Print("Inserte nuevo valor:");
                     string newValue = Read();
-
+                    if(attributeOption == "1")
+                    {
+                        SendData(socketHelper, newValue);
+                    }
                     if (attributeOption == "2")
                     {
                         int value = -1;
@@ -488,6 +570,9 @@ namespace Cliente
             localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
             socketClient.Bind(localEndPoint);
             remoteEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
+            errorDeConexion = false;
+
+
         }
         private static void RateAProduct(SocketHelper socketHelper, ref bool connected)
         {
