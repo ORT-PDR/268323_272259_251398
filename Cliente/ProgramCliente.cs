@@ -722,7 +722,7 @@ namespace Cliente
 
                 Console.WriteLine("Antes de recibir el archivo");
                 var fileCommonHandler = new FileCommsHandler(socketClient);
-                fileCommonHandler.ReceiveFile();
+                fileCommonHandler.ReceiveFile(ClientConfig.clientImageRouteKey);
                 string productImage = prodName;
                 string imageName = productImage;
                 connected = ReceiveData(socketHelper, ref productImage);

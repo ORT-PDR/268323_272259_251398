@@ -185,7 +185,7 @@ namespace PrimerEjemploSocket
                                 
                                 Console.WriteLine("Antes de recibir el archivo nuevo");
                                 var fileCommonHandler2 = new FileCommsHandler(socketClient);
-                                fileCommonHandler2.ReceiveFile();
+                                fileCommonHandler2.ReceiveFile(ServerConfig.serverImageRouteKey);
                                 Console.WriteLine("llego el archivo");
                                 string productImage = productName + ".png";
                                 string imageName = productImage;
@@ -485,7 +485,7 @@ namespace PrimerEjemploSocket
                 {
                     Console.WriteLine("Antes de recibir el archivo");
                     var fileCommonHandler = new FileCommsHandler(socketClient);
-                    fileCommonHandler.ReceiveFile();
+                    fileCommonHandler.ReceiveFile(ServerConfig.serverImageRouteKey);
                     productImage = productName + ".png";
                     imageName = productImage;
                     connected = ReceiveData(socketHelper, ref productImage);
