@@ -758,6 +758,9 @@ namespace Cliente
                 ReceiveData(socketHelper, ref consultedProduct);
                 Println(consultedProduct);
 
+                var imageToDelete = prodName + "InClient.png";
+                FileStreamHandler.Delete(imageToDelete, settingMng.ReadSettings(ClientConfig.clientImageRoute));
+                
                 Console.WriteLine("Antes de recibir el archivo");
                 var fileCommonHandler = new FileCommsHandler(socketClient);
                 fileCommonHandler.ReceiveFile();
