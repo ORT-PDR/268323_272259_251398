@@ -40,7 +40,7 @@ namespace Protocolo
         {
             try
             {
-                 fileName += "InServer.png";
+                fileName += "InServer.png";
                 string searchDirectory = @pathDir;
                 // Search for image files with the specified name
                 string[] imageFiles = Directory.GetFiles(searchDirectory, $"{fileName}.*");

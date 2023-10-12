@@ -180,7 +180,7 @@ namespace PrimerEjemploSocket
                             case "4":
                                 lock (locker)
                                 {
-                                   FileStreamHandler.Delete(productToModify.Name, ServerConfig.serverImageRouteKey);
+                                   FileStreamHandler.Delete(productToModify.Name, settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
                                 }
                                 
                                 Console.WriteLine("Antes de recibir el archivo nuevo");
