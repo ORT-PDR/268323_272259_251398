@@ -26,133 +26,164 @@ namespace Cliente
 
         static void Main(string[] args)
         {
-            Println("Iniciar Cliente...");
+            
 
-            socketClient.Bind(localEndPoint);
-            Println("Estableciendo conexión con el servidor...");
-            bool connectionEstablished = false;
-            while (!connectionEstablished)
-            {
-                try
+            //SocketHelper socketHandler = new SocketHelper(socketClient);
+
+                bool intentoConcetarme = true;
+                while (intentoConcetarme)
                 {
-                    socketClient.Connect(remoteEndPoint);
-                    connectionEstablished = true;
-                }
-                catch { }
-            }
+                    socketClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    clientIp = settingMng.ReadSettings(ClientConfig.clientIPconfigKey);
+                    clientPort = int.Parse(settingMng.ReadSettings(ClientConfig.clientPortconfigKey));
+                    serverIp = settingMng.ReadSettings(ClientConfig.serverIPconfigKey);
+                    serverPort = int.Parse(settingMng.ReadSettings(ClientConfig.serverPortconfigKey));
 
-            Println("Se estableció conexión con el servidor");
+                   localEndPoint = new IPEndPoint(IPAddress.Parse(clientIp), clientPort);
 
-            SocketHelper socketHandler = new SocketHelper(socketClient);
+                    Println("Iniciar Cliente...");
 
-            EnterSystem(socketHandler);
-
-            while (!exitMenu && !errorDeConexion && connected)
-            {
-                ShowMenu();
-                string option = Read();
-                try
-                {
-                    int checkOption = int.Parse(option);
-                    if (checkOption > 0 && checkOption <= 8) SendData(socketHandler, option);
-                }
-                catch { }
-              
-                switch (option)
-                {
-                    case "1":
-                        if(!errorDeConexion)
-                        {
-                            PublishProduct(socketHandler, socketClient);
-                        }
-                        break;
-                    case "2":
-                        if (!errorDeConexion)
-                        {
-                            BuyAProduct(socketHandler, ref connected);
-                        }                                             
-                        break;
-                    case "3":
-                        if(!errorDeConexion)
-                        {
-                            ModifyAProduct(ref connected, socketHandler);
-                        }                       
-                        break;
-                    case "4":
-                        if (!errorDeConexion)
-                        {
-                            DeleteProduct(ref connected, socketHandler);
-                        }
-                        break;
-                    case "5":
-                        if (!errorDeConexion)
-                        {
-                            SearchProductByFilter(ref connected, socketHandler);
-                        }
-                        break;
-                    case "6":
-                        if (!errorDeConexion)
-                        {
-                            ConsultAProduct(ref connected, socketHandler);
-                        }
-                        break;
-                    case "7":
-                        if (!errorDeConexion)
-                        {
-                            RateAProduct(socketHandler, ref  connected);
-                        }
-                        break;
-                    case "8":
-                        Println("Saliendo del programa...");
-                        exitMenu = true;
-
-                        break;
-                    default:
-                        Println("Opción no válida. Por favor, seleccione una opción válida.");
-
-                        break;
-                }
-
-                Println("\nPresiona cualquier tecla para continuar...");
-                Console.ReadKey();
-            }
-            if (errorDeConexion || !connected)
-            {
-                try
-                {
-                    Console.WriteLine("Servidor caido, quiere reintentar?");
-                    Console.WriteLine("1-Si");
-                    Console.WriteLine("2-No");
-                    bool eleccionValida = false;
-                    int eleccion = 0;
-                    while (!eleccionValida)
+                    socketClient.Bind(localEndPoint);
+                    Println("Estableciendo conexión con el servidor...");
+                    bool connectionEstablished = false;
+                    while (!connectionEstablished)
                     {
                         try
                         {
-                            eleccion = int.Parse(Read());
-                            eleccionValida = true;
+                            socketClient.Connect(remoteEndPoint);
+                            connectionEstablished = true;
                         }
-                        catch (Exception exception)
-                        {
-                            Println("Ingrese 1 o 2 según su eleccón ");
-                        }
+                        catch { }
                     }
-                    if (eleccion == 1)
-                    {
-                        ReconectarAlServidor();
-                        LogIn(socketHandler, ref connected);
-                        //ClientCode(socketHandler);
-                    }
-                    socketClient.Shutdown(SocketShutdown.Both);
-                }
-                catch (Exception e)
-                {
-                }
-            }
-            
-            
-            socketClient.Close();
+                    // int meConecteCantVeces = 0;
+                    Println("Se estableció conexión con el servidor");
+                    
+                    /*     
+                     if (meConecteCantVeces == 1)
+                     {
+                         try
+                     {
+                             socketClient.Bind(localEndPoint);
+                             socketClient.Connect(remoteEndPoint);
+                             connectionEstablished = true;
+                         }
+                     catch { }
+                     }
+                     */
+                    remoteEndPoint = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
+                    errorDeConexion = false;
+                    SocketHelper socketHandler = new SocketHelper(socketClient);
+                    EnterSystem(socketHandler);
 
+                    while (!exitMenu && !errorDeConexion && connected)
+                {
+                    ShowMenu();
+                    string option = Read();
+                    try
+                    {
+                        int checkOption = int.Parse(option);
+                        if (checkOption > 0 && checkOption <= 8) SendData(socketHandler, option);
+                    }
+                    catch { }
+
+                    switch (option)
+                    {
+                        case "1":
+                            if (!errorDeConexion)
+                            {
+                                PublishProduct(socketHandler, socketClient);
+                            }
+                            break;
+                        case "2":
+                            if (!errorDeConexion)
+                            {
+                                BuyAProduct(socketHandler, ref connected);
+                            }
+                            break;
+                        case "3":
+                            if (!errorDeConexion)
+                            {
+                                ModifyAProduct(ref connected, socketHandler);
+                            }
+                            break;
+                        case "4":
+                            if (!errorDeConexion)
+                            {
+                                DeleteProduct(ref connected, socketHandler);
+                            }
+                            break;
+                        case "5":
+                            if (!errorDeConexion)
+                            {
+                                SearchProductByFilter(ref connected, socketHandler);
+                            }
+                            break;
+                        case "6":
+                            if (!errorDeConexion)
+                            {
+                                ConsultAProduct(ref connected, socketHandler);
+                            }
+                            break;
+                        case "7":
+                            if (!errorDeConexion)
+                            {
+                                RateAProduct(socketHandler, ref connected);
+                            }
+                            break;
+                        case "8":
+                            Println("Saliendo del programa...");
+                            exitMenu = true;
+
+                            break;
+                        default:
+                            Println("Opción no válida. Por favor, seleccione una opción válida.");
+
+                            break;
+                    }
+
+                    Println("\nPresiona cualquier tecla para continuar...");
+                    Console.ReadKey();
+                }
+                    if (errorDeConexion || !connected)
+                {
+                    try
+                    {
+                        Console.WriteLine("Servidor caido, quiere reintentar?");
+                        Console.WriteLine("1-Si");
+                        Console.WriteLine("2-No");
+                        bool eleccionValida = false;
+                        int eleccion = 0;
+                        while (!eleccionValida)
+                        {
+                            try
+                            {
+                                eleccion = int.Parse(Read());
+                                eleccionValida = true;
+                            }
+                            catch (Exception exception)
+                            {
+                                Println("Ingrese 1 o 2 según su eleccón ");
+                            }
+                        }
+                        if (eleccion == 1)
+                        {
+                           
+                            //meConecteCantVeces = 1;
+                        }
+                        else
+                        {
+                            intentoConcetarme = false;
+                            socketClient.Shutdown(SocketShutdown.Both);
+                            socketClient.Close();
+                            
+                        }
+                        
+                    }
+                    catch { }
+                }
+                }
+                
+                socketClient.Close();
         }
         
         private static void DeleteProduct(ref bool connected, SocketHelper socketHelper)
@@ -361,7 +392,6 @@ namespace Cliente
                 Println("Error de conexión");
                 errorDeConexion = true;
                 throw new Exception("Error de conexion");
-                
             }
         }
 
@@ -509,12 +539,20 @@ namespace Cliente
                 initOption = Console.ReadLine();
 
             }
+            try
+            {
+                SendData(socketHandler, initOption);
 
-            SendData(socketHandler, initOption);
+                if (initOption == "1") LogIn(socketHandler, ref connected);
 
-            if (initOption == "1") LogIn(socketHandler, ref connected);
+                else RegisterUser(socketHandler, ref connected);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("No fue posible acceder al servidor");
+                errorDeConexion = true;
+            }
 
-            else RegisterUser(socketHandler, ref connected);
         }
 
         private static void RegisterUser(SocketHelper socketHelper, ref bool connected)
@@ -554,7 +592,7 @@ namespace Cliente
                 Println("Conexión con el servidor perdida.");
             }
         }
-
+/*
         private static void ReconectarAlServidor()
         {
             socketClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
@@ -570,7 +608,7 @@ namespace Cliente
             errorDeConexion = false;
 
 
-        }
+        }*/
         private static void RateAProduct(SocketHelper socketHelper, ref bool connected)
         {
             try
@@ -720,6 +758,9 @@ namespace Cliente
                 ReceiveData(socketHelper, ref consultedProduct);
                 Println(consultedProduct);
 
+                var imageToDelete = prodName + "InClient.png";
+                FileStreamHandler.Delete(imageToDelete, settingMng.ReadSettings(ClientConfig.clientImageRoute));
+                
                 Console.WriteLine("Antes de recibir el archivo");
                 var fileCommonHandler = new FileCommsHandler(socketClient);
                 fileCommonHandler.ReceiveFile();
@@ -835,82 +876,5 @@ namespace Cliente
         }
     }
 
-    /*
-        private static void ClientCode(SocketHelper socketHandler)
-        {
-            while (!exitMenu && !errorDeConexion)
-            {
-                ShowMenu();
-                string option = Read();
-                try
-                {
-                    int checkOption = int.Parse(option);
-                    SendData(socketHandler, option);
-                }
-                catch (Exception ex)
-                {
-
-                }
-
-                switch (option)
-                {
-                    case "1":
-                        if (!errorDeConexion)
-                        {
-                            PublishProduct(socketHandler, socketClient);
-                        }
-                        break;
-                    case "2":
-                        if (!errorDeConexion)
-                        {
-                            BuyAProduct(socketHandler, socketClient, ref connected);
-                        }
-                        break;
-                    case "3":
-                        if (!errorDeConexion)
-                        {
-                            ModifyAProduct(ref connected, socketHandler, socketClient);
-                        }
-                        break;
-                    case "4":
-                        if (!errorDeConexion)
-                        {
-                            DeleteProduct(ref connected, socketHandler);
-                        }
-                        break;
-                    case "5":
-                        if (!errorDeConexion)
-                        {
-                            SearchProductByFilter(ref connected, socketHandler);
-                        }
-                        break;
-                    case "6":
-                        if (!errorDeConexion)
-                        {
-                            ConsultAProduct(ref connected, socketHandler, socketClient);
-                        }
-                        break;
-                    case "7":
-                        if (!errorDeConexion)
-                        {
-                            RateAProduct(socketHandler, ref connected);
-                        }
-                        break;
-                    case "8":
-                        Println("Saliendo del programa...");
-                        exitMenu = true;
-
-                        break;
-                    default:
-                        Println("Opción no válida. Por favor, seleccione una opción válida.");
-
-                        break;
-                }
-
-                Println("\nPresiona cualquier tecla para continuar...");
-                Console.ReadKey();
-            }
-        }
-        */
 }
 

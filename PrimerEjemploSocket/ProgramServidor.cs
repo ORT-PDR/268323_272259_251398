@@ -180,7 +180,8 @@ namespace PrimerEjemploSocket
                             case "4":
                                 lock (locker)
                                 {
-                                   FileStreamHandler.Delete(productToModify.Name, ServerConfig.serverImageRouteKey);
+                                    var imageToDelete = productToModify.Name + "InServer.png";
+                                   FileStreamHandler.Delete(imageToDelete, settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
                                 }
                                 
                                 Console.WriteLine("Antes de recibir el archivo nuevo");
@@ -285,25 +286,25 @@ namespace PrimerEjemploSocket
         
         static void HandleServer(Socket socketServer)
         {
-
-            Console.WriteLine("Ingrese exit para cerrar el Server");
-            string entrada = Console.ReadLine();
-            if (entrada.Equals("exit"))
+            while (servidorEncendido)
             {
+                Console.WriteLine("Ingrese exit para cerrar el Server");
+                string entrada = Console.ReadLine();
+                if (entrada.Equals("exit"))
+                {
+                    ApagarServidor();
+                    try
+                    {
+                        socketServer.Shutdown(SocketShutdown.Both);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Apagando srvidor");
+                    }
 
-                ApagarServidor();
-                try
-                {
-                    socketServer.Shutdown(SocketShutdown.Both);
-                }catch (Exception ex)
-                {
-                    Console.WriteLine("Apagando srvidor");
+                    socketServer.Close();
                 }
-                
-                socketServer.Close();
             }
-
-
         }
         
         private static void SendClientProducts(List<Product> products, SocketHelper socketHelper)
