@@ -54,44 +54,51 @@ namespace Cliente
                 while (!exitMenu && !conectionError && connected)
                 {
                     ShowMenu();
-                    string option = Read();
                     try
                     {
-                        int checkOption = int.Parse(option);
-                        if (checkOption > 0 && checkOption <= 8) SendData(socketHelper, option);
-                    }
-                    catch { }
+                        string option = Read();
+                        try
+                        {
+                            int checkOption = int.Parse(option);
+                            if (checkOption > 0 && checkOption <= 8) SendData(socketHelper, option);
+                        }
+                        catch { }
 
-                    switch (option)
+                        switch (option)
+                        {
+                            case "1":
+                                if (!conectionError) PublishProduct(socketHelper, tcpClient);
+                                break;
+                            case "2":
+                                if (!conectionError) BuyAProduct(socketHelper, ref connected);
+                                break;
+                            case "3":
+                                if (!conectionError) ModifyAProduct(ref connected, socketHelper, tcpClient);
+                                break;
+                            case "4":
+                                if (!conectionError) DeleteProduct(ref connected, socketHelper);
+                                break;
+                            case "5":
+                                if (!conectionError) SearchProductByFilter(ref connected, socketHelper);
+                                break;
+                            case "6":
+                                if (!conectionError) ConsultAProduct(ref connected, socketHelper, tcpClient);
+                                break;
+                            case "7":
+                                if (!conectionError) RateAProduct(socketHelper, ref connected);
+                                break;
+                            case "8":
+                                Println("Saliendo del programa...");
+                                exitMenu = true;
+                                break;
+                            default:
+                                Println("Opción no válida. Por favor, seleccione una opción válida.");
+                                break;
+                        }
+                    }
+                    catch (ExitMenuException)
                     {
-                        case "1":
-                            if (!conectionError) PublishProduct(socketHelper, tcpClient);
-                            break;
-                        case "2":
-                            if (!conectionError) BuyAProduct(socketHelper, ref connected);
-                            break;
-                        case "3":
-                            if (!conectionError) ModifyAProduct(ref connected, socketHelper, tcpClient);
-                            break;
-                        case "4":
-                            if (!conectionError) DeleteProduct(ref connected, socketHelper);
-                            break;
-                        case "5":
-                            if (!conectionError) SearchProductByFilter(ref connected, socketHelper); 
-                            break;
-                        case "6":
-                            if (!conectionError) ConsultAProduct(ref connected, socketHelper, tcpClient);
-                            break;
-                        case "7":
-                            if (!conectionError) RateAProduct(socketHelper, ref connected);
-                            break;
-                        case "8":
-                            Println("Saliendo del programa...");
-                            exitMenu = true;
-                            break;
-                        default:
-                            Println("Opción no válida. Por favor, seleccione una opción válida.");
-                            break;
+                        break;
                     }
 
                     Println("\nPresiona cualquier tecla para continuar...");
@@ -225,7 +232,7 @@ namespace Cliente
                             }
                             if (value < 0)
                             {
-                                Console.WriteLine("El precio debe ser un numero positivo. Inserte nuevamente:");
+                                Println("El precio debe ser un numero positivo. Inserte nuevamente:");
                                 newValue = Read();
                             }
                         }
@@ -240,13 +247,10 @@ namespace Cliente
                             {
                                 value = Convert.ToInt32(newValue);
                             }
-                            catch
-                            {
-                                
-                            }
+                            catch { }
                             if (value < 0)
                             {
-                                Console.WriteLine("El precio debe ser un numero positivo. Inserte nuevamente:");
+                                Println("El precio debe ser un numero positivo. Inserte nuevamente:");
                                 newValue = Read();
                             }
                         }
@@ -274,18 +278,18 @@ namespace Cliente
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error de conexion");
+                Println("Error de conexion");
             }
             
         }
 
         private static void PrintModifyProductOptions()
         {
-            Console.WriteLine("Que campo desea modificar: (Digite la opción)");
-            Console.WriteLine("1. Descripcion");
-            Console.WriteLine("2. Stock Disponible");
-            Console.WriteLine("3. Precio");
-            Console.WriteLine("4. Imagen");
+            Println("Que campo desea modificar: (Digite la opción)");
+            Println("1. Descripcion");
+            Println("2. Stock Disponible");
+            Println("3. Precio");
+            Println("4. Imagen");
         }
 
         private static void ShowMenu()
@@ -321,6 +325,8 @@ namespace Cliente
 
         private static async void SendData(SocketHelper socketHelper, string text)
         {
+            if (text == "exit") throw new ExitMenuException();
+
             byte[] data = Encoding.UTF8.GetBytes(text);
             byte[] dataLength = BitConverter.GetBytes(data.Length);
 
@@ -444,12 +450,12 @@ namespace Cliente
                     SendData(socketHelper, "sin imagen");
                 }
                 string resultCreate = ReceiveData(socketHelper).Result;
-                if (connected && resultCreate == "OK") Console.WriteLine("Producto agregado con éxito.");
-                else Console.WriteLine("No se pudo agregar el producto");
+                if (connected && resultCreate == "OK") Println("Producto agregado con éxito.");
+                else Println("No se pudo agregar el producto");
             }
             catch
             {
-                Console.WriteLine("Error de conexion");
+                Println("Error de conexion");
             }
         }
 
@@ -479,7 +485,7 @@ namespace Cliente
             }
             catch (Exception ex)
             {
-                Console.WriteLine("No fue posible acceder al servidor");
+                Println("No fue posible acceder al servidor");
                 conectionError = true;
             }
 
@@ -531,7 +537,7 @@ namespace Cliente
                 List<string> productsToRate = GetUserProducts(socketHelper, ref connected);
                 ShowProducts(productsToRate);
 
-                Console.Write("Ingrese el nombre del producto a calificar: ");
+                Print("Ingrese el nombre del producto a calificar: ");
                 string prodName = Read();
                 productsToRate = productsToRate.Select(product => product.Split('|')[0].Trim()).ToList();
 
@@ -549,7 +555,7 @@ namespace Cliente
                 SendData(socketHelper, prodName);
 
                 Println("¿Cuál es su opinión del producto?");
-                var opinion = Console.ReadLine();
+                var opinion = Read();
                 SendData(socketHelper, opinion);
 
                 string input = "";
@@ -577,7 +583,7 @@ namespace Cliente
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error de conexion");
+                Println("Error de conexion");
             }
             
         }
@@ -654,19 +660,30 @@ namespace Cliente
                 string consultedProduct = ReceiveData(socketHelper).Result;
                 Println(consultedProduct);
 
-                var imageToDelete = prodName + "InClient.png";
-                FileStreamHandler.Delete(imageToDelete, settingMng.ReadSettings(ClientConfig.clientImageRouteKey));
-                
-                Console.WriteLine("Antes de recibir el archivo");
-                var fileCommonHandler = new FileCommsHandler(client);
-                fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ClientConfig.clientImageRouteKey));
-                string imageName = prodName;
-                string productImage = ReceiveData(socketHelper).Result;
-                Console.WriteLine("Archivo recibido!!");
+                string image = ReceiveData(socketHelper).Result;
+                if (image != "sin imágen")
+                {
+                    var imageToDelete = prodName + "InClient.png";
+                    FileStreamHandler.Delete(imageToDelete, settingMng.ReadSettings(ClientConfig.clientImageRouteKey));
+
+                    Println("Antes de recibir el archivo");
+                    var fileCommonHandler = new FileCommsHandler(client);
+                    fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ClientConfig.clientImageRouteKey));
+                    string imageName = prodName;
+                    string productImage = ReceiveData(socketHelper).Result;
+                    if (productImage == "error")
+                    {
+                        Println("La imagen no fue encontrada.");
+                    }
+                    else
+                    {
+                        Println("Archivo recibido!!");
+                    }
+                }
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error de conexion");
+                Println("Error de conexion");
             }
         }
 
@@ -730,7 +747,7 @@ namespace Cliente
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Error de conexion");
+                Println("Error de conexion");
             }
         }
 
@@ -764,7 +781,7 @@ namespace Cliente
             }
             catch (Exception ex)
             {
-                Console.WriteLine("No fue posible acceder al servidor");
+                Println("No fue posible acceder al servidor");
                 conectionError = true;
             }
         }

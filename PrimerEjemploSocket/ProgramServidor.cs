@@ -42,7 +42,7 @@ namespace PrimerEjemploSocket
                 }
                 catch (Exception)
                 {
-                    Console.WriteLine("Cerrando Servidor");
+                    Println("Cerrando Servidor");
                 }
             }
 
@@ -201,33 +201,29 @@ namespace PrimerEjemploSocket
                         {
                             consultedProduct = products.FirstOrDefault(prod => prod.Name == productToConsult);
                         }
-
-                        var fileCommonHandler = new FileCommsHandler(client);
-                        try
+                        SendData(socketHelper, consultedProduct.ToString());
+                        SendData(socketHelper, consultedProduct.Image);
+                        if (consultedProduct.Image != "sin imágen")
                         {
-                            SendData(socketHelper, consultedProduct.ToString());
-                            string image = consultedProduct.Name + "InServer.png";
-                            string searchDirectory = @settingMng.ReadSettings(ServerConfig.serverImageRouteKey);
-                            string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
-                            string path = imageFiles[0];
+                            var fileCommonHandler = new FileCommsHandler(client);
+                            try
+                            {
+                                string image = consultedProduct.Name + "InServer.png";
+                                string searchDirectory = @settingMng.ReadSettings(ServerConfig.serverImageRouteKey);
+                                string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
+                                string path = imageFiles[0];
 
-                            fileCommonHandler.SendFile(path, consultedProduct.Name + "InClient.png");
-                            SendData(socketHelper, image);
+                                fileCommonHandler.SendFile(path, consultedProduct.Name + "InClient.png");
+                                SendData(socketHelper, image);
 
-                            Console.WriteLine("Se envio el archivo al Cliente");
-
+                                Println("Se envio el archivo al Cliente");
+                            }
+                            catch (Exception ex)
+                            {
+                                Println("Imagen no encontrada");
+                                SendData(socketHelper, "error");
+                            }
                         }
-                        catch (System.IndexOutOfRangeException ex)
-                        {
-                            Console.WriteLine("Image Not Found in Server");
-                            string image = "error-404";
-                            string searchDirectory = @settingMng.ReadSettings(ServerConfig.serverImageRouteKey);
-                            string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
-                            string path = imageFiles[0];
-                            fileCommonHandler.SendFile(path, "error");
-                            SendData(socketHelper, "");
-                        }
-
                         break;
 
                     case 7:
@@ -252,8 +248,8 @@ namespace PrimerEjemploSocket
         {
             while (isServerOn)
             {
-                Console.WriteLine("Ingrese exit para cerrar el Server");
-                string entrada = Console.ReadLine();
+                Println("Ingrese exit para cerrar el Server");
+                string entrada = Read();
                 if (entrada.Equals("exit"))
                 {
                     ApagarServidor();
@@ -263,7 +259,7 @@ namespace PrimerEjemploSocket
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine("Apagando srvidor");
+                        Println("Apagando srvidor");
                     }
 
                     socketServer.Close();
@@ -324,6 +320,11 @@ namespace PrimerEjemploSocket
         private static void Println(string text)
         {
             Console.WriteLine(text);
+        }
+
+        private static string Read()
+        {
+            return Console.ReadLine();
         }
 
         private static async void SendData(SocketHelper socketHelper, string text)
@@ -438,7 +439,7 @@ namespace PrimerEjemploSocket
                     productImage = ReceiveData(socketHelper).Result;
 
 
-                    Console.WriteLine("Archivo recibido!!");
+                    Println("Archivo recibido!!");
                 }
                 else
                 {
@@ -608,7 +609,7 @@ namespace PrimerEjemploSocket
                 Description = "Primera mesa de Nahuel",
                 Stock = 4,
                 Price = 252,
-                Image = "logo-og.png"
+                Image = "sin imágen"
             };
             products.Add(prod1);
             Product prod2 = new Product()
@@ -619,7 +620,7 @@ namespace PrimerEjemploSocket
                 Description = "Primera silla de Nahuel",
                 Stock = 3,
                 Price = 134,
-                Image = "image"
+                Image = "sin imágen"
             };
             products.Add(prod2);
             Product prod3 = new Product()
@@ -630,7 +631,7 @@ namespace PrimerEjemploSocket
                 Description = "Primera cama de Alan",
                 Stock = 7,
                 Price = 300,
-                Image = "image"
+                Image = "sin imágen"
             };
             products.Add(prod3);
             Product prod4 = new Product()
@@ -641,7 +642,7 @@ namespace PrimerEjemploSocket
                 Description = "Primer escritorio de Lucas",
                 Stock = 1,
                 Price = 450,
-                Image = "image"
+                Image = "sin imágen"
             };
             products.Add(prod4);
         }
@@ -649,8 +650,6 @@ namespace PrimerEjemploSocket
         static void ApagarServidor()
         {
             isServerOn = false;
-
         }
-
     }
 }
