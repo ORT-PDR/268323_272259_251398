@@ -12,11 +12,10 @@ namespace Protocolo
         private readonly ConversionHandler _conversionHandler;
         private readonly SocketHelper _socketHelper;
         private static object locker = new object();
-        public FileCommsHandler(Socket socket)
+        public FileCommsHandler(TcpClient client)
         {
             _conversionHandler = new ConversionHandler();
-            //_socketHelper = socketHelper;
-            _socketHelper = new SocketHelper(socket);
+            _socketHelper = new SocketHelper(client);
         }
 
         public void SendFile(string path,string destinationName)
@@ -25,15 +24,15 @@ namespace Protocolo
             {
                 var fileName = FileHandler.GetFileName(path);
                 // ---> Enviar el largo del nombre del archivo
-                _socketHelper.Send(_conversionHandler.ConvertIntToBytes(destinationName.Length));
+                _socketHelper.SendAsync(_conversionHandler.ConvertIntToBytes(destinationName.Length));
                 // ---> Enviar el nombre del archivo
-                _socketHelper.Send(_conversionHandler.ConvertStringToBytes(destinationName));
+                _socketHelper.SendAsync(_conversionHandler.ConvertStringToBytes(destinationName));
 
                 // ---> Obtener el tamaño del archivo
                 long fileSize = FileHandler.GetFileSize(path);
                 // ---> Enviar el tamaño del archivo
                 var convertedFileSize = _conversionHandler.ConvertLongToBytes(fileSize);
-                _socketHelper.Send(convertedFileSize);
+                _socketHelper.SendAsync(convertedFileSize);
                 // ---> Enviar el archivo (pero con file stream)
                 SendFileWithStream(fileSize, path);
             }
@@ -47,13 +46,13 @@ namespace Protocolo
         {
             // ---> Recibir el largo del nombre del archivo
             int fileNameSize = _conversionHandler.ConvertBytesToInt(
-                _socketHelper.Receive(Protocol.DataSize));
+                _socketHelper.ReceiveAsync(Protocol.DataSize).Result);
             // ---> Recibir el nombre del archivo
-            string fileName = _conversionHandler.ConvertBytesToString(_socketHelper.Receive(fileNameSize));
+            string fileName = _conversionHandler.ConvertBytesToString(_socketHelper.ReceiveAsync(fileNameSize).Result);
             Console.WriteLine(fileName);
             // ---> Recibir el largo del archivo
             long fileSize = _conversionHandler.ConvertBytesToLong(
-                _socketHelper.Receive(Protocol.FileSize));
+                _socketHelper.ReceiveAsync(Protocol.FileSize).Result);
             // ---> Recibir el archivo
             ReceiveFileWithStreams(fileSize, fileName);
         }
@@ -85,7 +84,7 @@ namespace Protocolo
                     offset += Protocol.MaxPacketSize;
                 }
 
-                _socketHelper.Send(data); //3- Envío ese segmento a travez de la red
+                _socketHelper.SendAsync(data); //3- Envío ese segmento a travez de la red
                 currentPart++;
             }
         }
@@ -105,13 +104,13 @@ namespace Protocolo
                 {
                     //1.1 - Si es, recibo la ultima parte
                     var lastPartSize = (int)(fileSize - offset);
-                    data = _socketHelper.Receive(lastPartSize);
+                    data = _socketHelper.ReceiveAsync(lastPartSize).Result;
                     offset += lastPartSize;
                 }
                 else
                 {
                     //2.2- Si no, recibo una parte cualquiera
-                    data = _socketHelper.Receive(Protocol.MaxPacketSize);
+                    data = _socketHelper.ReceiveAsync(Protocol.MaxPacketSize).Result;
                     offset += Protocol.MaxPacketSize;
                 }
                 //3- Escribo esa parte del archivo a disco

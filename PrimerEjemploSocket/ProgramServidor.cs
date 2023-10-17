@@ -1,14 +1,9 @@
 ﻿using Common;
 using Protocolo;
 using Servidor;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Channels;
 
 namespace PrimerEjemploSocket
 {
@@ -16,97 +11,77 @@ namespace PrimerEjemploSocket
     {
         static readonly SettingsManager settingMng = new SettingsManager();
         private static object locker = new object();
-        public static bool servidorEncendido = true;
+        private static bool isServerOn = true;
 
-
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             List<Product> products = new List<Product>();
             List<User> users = new List<User>();
-            List<Socket> clientesActivos = new List<Socket>();
+            List<TcpClient> activeClients = new();
             
             LoadTestData(ref users, ref products);
 
-            Println("Inciar Servidor...");
-
-            var socketServer = new Socket(AddressFamily.InterNetwork,SocketType.Stream,ProtocolType.Tcp);
-
             string serverIp = settingMng.ReadSettings(ServerConfig.serverIPconfigKey);
             int serverPort = int.Parse(settingMng.ReadSettings(ServerConfig.serverPortconfigKey));
-
-            
-            //var localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
-
             var localEndPoint = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
 
-
-            socketServer.Bind(localEndPoint);
-            socketServer.Listen(10);
-            new Thread(() => HandleServer(socketServer)).Start();
+            TcpListener listener = new(localEndPoint);
+            listener.Start();
             Println("Esperando por clientes....");
-
-
-            int cantClients = 0;
+            int connectedClients = 0;
             
-            while (servidorEncendido) 
+            while (isServerOn) 
             {
                 try
                 {
-                    Socket socketClient = socketServer.Accept();
-                    clientesActivos.Add(socketClient);
-
+                    TcpClient tcpClient = await listener.AcceptTcpClientAsync();
+                    activeClients.Add(tcpClient);
                     Println("Se conecto un cliente..");
-                    cantClients++;
-                    new Thread(() => HandleClient(socketClient, cantClients, users, products)).Start();
+                    connectedClients++;
+                    var thread = Task.Run(async () => await HandleClientAsync(tcpClient, connectedClients, users, products));
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     Console.WriteLine("Cerrando Servidor");
                 }
-                
-                
             }
 
-            for(int i = 0; i< clientesActivos.Count; i++)
+            for(int i = 0; i< activeClients.Count; i++)
             {
-                clientesActivos[i].Shutdown(SocketShutdown.Both);
-                clientesActivos[i].Close();
+                activeClients[i].Close();
             }
 
-            if (servidorEncendido)
+            if (isServerOn)
             {
-                socketServer.Shutdown(SocketShutdown.Both);
-                socketServer.Close();
-                Console.WriteLine("Servidor apagado");
+                //socketServer.Close();
+                Println("Servidor apagado");
             }
             
         }
 
-        static void HandleClient(Socket socketClient, int nroClient, List<User> users, List<Product> products) 
+        static async Task HandleClientAsync(TcpClient client, int nroClient, List<User> users, List<Product> products) 
         {
             bool connected = true;
-            SocketHelper socketHandler = new SocketHelper(socketClient);
+            SocketHelper socketHelper = new(client);
 
-            string initOption = "";
-            connected = ReceiveData(socketHandler, ref initOption);
+            string initOption = ReceiveData(socketHelper).Result;
             if (connected)
             {
-                if (initOption == "1") LogIn(socketHandler, ref connected, users);
-                else RegisterUser(socketHandler, ref connected, ref users);
+                if (initOption == "1") LogIn(socketHelper, ref connected, users);
+                else RegisterUser(socketHelper, ref connected, ref users);
             }
 
             int option = 0;
-            string strOption = "";
             while (connected)
             {
-                connected = ReceiveData(socketHandler, ref strOption);
+                string strOption = ReceiveData(socketHelper).Result;
                 if (!connected) break;
                 option = int.Parse(strOption);
                 switch (option)
                 {
                     case 1:
                         //Publicación de producto
-                        Product product = CreateProduct(socketHandler, ref connected, ref products, socketClient);
+                        Product product = CreateProduct(socketHelper, ref connected, ref products, client);
                         bool productAlreadyExists = false;
                         lock (locker)
                         {
@@ -118,16 +93,15 @@ namespace PrimerEjemploSocket
                             {
                                 products.Add(product);
                             }
-                            SendData(socketHandler, "OK");
-                            Println(socketHandler.UserName + " agrego un producto");
+                            SendData(socketHelper, "OK");
+                            Println(socketHelper.UserName + " agrego un producto");
                         }
                         break;
                     case 2:
                         //Compra de productos
-                        SendProductsNameStock(socketHandler, products);
+                        SendProductsNameStock(socketHelper, products);
 
-                        string message = "";
-                        connected = ReceiveData(socketHandler, ref message);
+                        string message = ReceiveData(socketHelper).Result;
                         if (connected)
                         {
                             string nameProduct = message.Split('@')[0];
@@ -138,33 +112,30 @@ namespace PrimerEjemploSocket
                                 productBought = products.Find(p => p.Name == nameProduct);
                             }
                             int stock = productBought.Stock - int.Parse(amountBought);
-                            if (stock < 0) SendData(socketHandler, "error");
+                            if (stock < 0) SendData(socketHelper, "error");
                             else
                             {
                                 productBought.Stock -= int.Parse(amountBought);
-                                Println(socketHandler.UserName + " compró " + amountBought + " unidades de " + nameProduct);
-                                SendData(socketHandler, "ok");
+                                Println(socketHelper.UserName + " compró " + amountBought + " unidades de " + nameProduct);
+                                SendData(socketHelper, "ok");
                             }
                         }
                         break;
 
                     case 3:
                         //Modificación de producto
-                        SendClientProducts(products, socketHandler);
+                        SendClientProducts(products, socketHelper);
 
-                        string productName = "";
-                        connected = ReceiveData(socketHandler, ref productName);
+                        string productName = ReceiveData(socketHelper).Result;
                         Product productToModify;
                         lock (locker)
                         {
                             productToModify = products.Find(p => p.Name == productName);
                         }
 
-                        string atributeOption = "";
-                        connected = ReceiveData(socketHandler, ref atributeOption);
+                        string atributeOption = ReceiveData(socketHelper).Result;
 
-                        string newValue = "";
-                        connected = ReceiveData(socketHandler, ref newValue);
+                        string newValue = ReceiveData(socketHelper).Result;
 
                         switch (atributeOption)
                         {
@@ -178,37 +149,31 @@ namespace PrimerEjemploSocket
                                 productToModify.Price = int.Parse(newValue);
                                 break;
                             case "4":
-                                lock (locker)
-                                {
-                                    var imageToDelete = productToModify.Name + "InServer.png";
-                                   FileStreamHandler.Delete(imageToDelete, settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
-                                }
+                                var imageToDelete = productToModify.Name + "InServer.png";
+                                FileStreamHandler.Delete(imageToDelete, settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
                                 
-                                Console.WriteLine("Antes de recibir el archivo nuevo");
-                                var fileCommonHandler2 = new FileCommsHandler(socketClient);
+                                Println("Antes de recibir el archivo nuevo");
+                                var fileCommonHandler2 = new FileCommsHandler(client);
                                 fileCommonHandler2.ReceiveFile();
-                                Console.WriteLine("llego el archivo");
                                 string productImage = productName + ".png";
-                                string imageName = productImage;
                                 productToModify.Image = productImage;
 
-                                Console.WriteLine("Archivo nuevo recibido!!");
+                                Println("Archivo nuevo recibido!!");
 
                                 break;
                         }
-                        Println(socketHandler.UserName + " modificó el producto " + productName);
+                        Println(socketHelper.UserName + " modificó el producto " + productName);
                         break;
                     case 4:
                         //Baja de producto
-                        List<Product> clientProducts = GetClientProducts(products, socketHandler.UserName);
-                        SendProducts(socketHandler, clientProducts);
-                        DeleteProduct(socketHandler, ref connected, ref products);
+                        List<Product> clientProducts = GetClientProducts(products, socketHelper.UserName);
+                        SendProducts(socketHelper, clientProducts);
+                        DeleteProduct(socketHelper, ref connected, ref products);
 
                         break;
                     case 5:
                         //Búsqueda de productos
-                        string filterText = "";
-                        connected = ReceiveData(socketHandler, ref filterText);
+                        string filterText = ReceiveData(socketHelper).Result;
 
                         lock (locker)
                         {
@@ -216,21 +181,20 @@ namespace PrimerEjemploSocket
                             {
                                 if (prod.Name.Contains(filterText))
                                 {
-                                    SendData(socketHandler, prod.ToString());
+                                    SendData(socketHelper, prod.ToString());
                                     Println(prod.Name);
                                 }
                             }
                         }
                         
-                        SendData(socketHandler, "end");
+                        SendData(socketHelper, "end");
 
                         break;
                     case 6:
                         //consultar un producto específico
-                        SendProducts(socketHandler, products);
+                        SendProducts(socketHelper, products);
 
-                        string productToConsult = "";
-                        connected = ReceiveData(socketHandler, ref productToConsult);
+                        string productToConsult = ReceiveData(socketHelper).Result;
 
                         Product consultedProduct;
                         lock (locker)
@@ -238,17 +202,17 @@ namespace PrimerEjemploSocket
                             consultedProduct = products.FirstOrDefault(prod => prod.Name == productToConsult);
                         }
 
-                        var fileCommonHandler = new FileCommsHandler(socketClient);
+                        var fileCommonHandler = new FileCommsHandler(client);
                         try
                         {
-                            SendData(socketHandler, consultedProduct.ToString());
+                            SendData(socketHelper, consultedProduct.ToString());
                             string image = consultedProduct.Name + "InServer.png";
                             string searchDirectory = @settingMng.ReadSettings(ServerConfig.serverImageRouteKey);
                             string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
                             string path = imageFiles[0];
 
                             fileCommonHandler.SendFile(path, consultedProduct.Name + "InClient.png");
-                            SendData(socketHandler, image);
+                            SendData(socketHelper, image);
 
                             Console.WriteLine("Se envio el archivo al Cliente");
 
@@ -261,14 +225,14 @@ namespace PrimerEjemploSocket
                             string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
                             string path = imageFiles[0];
                             fileCommonHandler.SendFile(path, "error");
-                            SendData(socketHandler, "");
+                            SendData(socketHelper, "");
                         }
 
                         break;
 
                     case 7:
-                        SendProducts(socketHandler, products);
-                        RateAProduct(socketHandler, ref connected, ref products);
+                        SendProducts(socketHelper, products);
+                        RateAProduct(socketHelper, ref connected, ref products);
 
                         break;
                     
@@ -286,7 +250,7 @@ namespace PrimerEjemploSocket
         
         static void HandleServer(Socket socketServer)
         {
-            while (servidorEncendido)
+            while (isServerOn)
             {
                 Console.WriteLine("Ingrese exit para cerrar el Server");
                 string entrada = Console.ReadLine();
@@ -362,17 +326,17 @@ namespace PrimerEjemploSocket
             Console.WriteLine(text);
         }
 
-        private static void SendData(SocketHelper socketHelper, string text)
+        private static async void SendData(SocketHelper socketHelper, string text)
         {
             byte[] data = Encoding.UTF8.GetBytes(text);
             byte[] dataLength = BitConverter.GetBytes(data.Length);
 
-            if (servidorEncendido)
+            if (isServerOn)
             {
                 try
                 {
-                    socketHelper.Send(dataLength);
-                    socketHelper.Send(data);
+                    await socketHelper.SendAsync(dataLength);
+                    await socketHelper.SendAsync(data);
                 }
                 catch (SocketException)
                 {
@@ -382,29 +346,19 @@ namespace PrimerEjemploSocket
             
         }
 
-        private static bool ReceiveData(SocketHelper socketHelper, ref string text)
+        private static async Task<string> ReceiveData(SocketHelper socketHelper)
         {
-            try
-            {
-                byte[] largoData = socketHelper.Receive(Protocol.DataSize);
-                byte[] data = socketHelper.Receive(BitConverter.ToInt32(largoData));
-
-                text = Encoding.UTF8.GetString(data);
-                return true;
-            }
-            catch (SocketException e)
-            {
-                return false;
-            }
+            byte[] dataLength = await socketHelper.ReceiveAsync(Protocol.DataSize);
+            byte[] data = await socketHelper.ReceiveAsync(BitConverter.ToInt32(dataLength));
+            return Encoding.UTF8.GetString(data);
         }
 
         private static void LogIn(SocketHelper socketHelper, ref bool connected, List<User> users)
         {
             bool correctUser = false;
-            string user = "";
-            while (!correctUser && servidorEncendido)
+            while (!correctUser && isServerOn)
             {
-                connected = ReceiveData(socketHelper, ref user);
+                string user = ReceiveData(socketHelper).Result;
                 correctUser = UserIsCorrect(user, users);
 
                 if (correctUser)
@@ -447,62 +401,51 @@ namespace PrimerEjemploSocket
             return false;
         }
 
-        private static Product CreateProduct(SocketHelper socketHelper, ref bool connected, ref List<Product> products, Socket socketClient)
+        private static Product CreateProduct(SocketHelper socketHelper, ref bool connected, ref List<Product> products, TcpClient client)
         {
             try
             {
-                //string sincronizacion = "";
-                //ReceiveData(socketHelper, ref sincronizacion);
-                string productName = "";
-                connected = ReceiveData(socketHelper, ref productName);
+                string productName = ReceiveData(socketHelper).Result;
                 bool isInProducts = products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
                 while (connected && isInProducts)
                 {
                     SendData(socketHelper, "Error: Producto ya ingresado al sistema.");
-                    connected = ReceiveData(socketHelper, ref productName);
+                    productName = ReceiveData(socketHelper).Result;
                     isInProducts = products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
 
                 }
                 SendData(socketHelper, "OK");
 
-                string productDescription = "";
-                connected = ReceiveData(socketHelper, ref productDescription);
+                string productDescription = ReceiveData(socketHelper).Result;
 
-                string strProductStock = "";
-                connected = ReceiveData(socketHelper, ref strProductStock);
+                string strProductStock = ReceiveData(socketHelper).Result;
                 int productStock = int.Parse(strProductStock);
 
-                string strProductPrice = "";
-                connected = ReceiveData(socketHelper, ref strProductPrice);
+                string strProductPrice = ReceiveData(socketHelper).Result;
                 int productPrice = int.Parse(strProductPrice);
 
-                string strHasImage = "";
-                connected = ReceiveData(socketHelper, ref strHasImage);
+                string strHasImage = ReceiveData(socketHelper).Result;
                 int hasImage = int.Parse(strHasImage);
                 string productImage = "";
                 string imageName = "";
-                //recibir la imagen del cliente
+
                 if (hasImage == 1)
                 {
                     Console.WriteLine("Antes de recibir el archivo");
-                    var fileCommonHandler = new FileCommsHandler(socketClient);
+                    var fileCommonHandler = new FileCommsHandler(client);
                     fileCommonHandler.ReceiveFile();
-                    productImage = productName + ".png";
-                    imageName = productImage;
-                    connected = ReceiveData(socketHelper, ref productImage);
+                    imageName = productName + ".png";
+                    productImage = ReceiveData(socketHelper).Result;
 
 
                     Console.WriteLine("Archivo recibido!!");
                 }
                 else
                 {
-                    productImage = "sin imágen";
-                    imageName = productImage;
-                    connected = ReceiveData(socketHelper, ref productImage);
+                    imageName = "sin imágen";
+                    productImage = ReceiveData(socketHelper).Result;
                     Console.WriteLine();
                 }
-                
-
                 if (connected)
                 {
                     Product product = new Product();
@@ -521,17 +464,16 @@ namespace PrimerEjemploSocket
             }
         }
 
-        private static void RegisterUser(SocketHelper socketHandler, ref bool connected, ref List<User> users)
+        private static void RegisterUser(SocketHelper socketHelper, ref bool connected, ref List<User> users)
         {
-            string user = "";
-            connected = ReceiveData(socketHandler, ref user);
+            string user = ReceiveData(socketHelper).Result;
 
             if (connected)
             {
                 while (connected && users.Exists(u => u.Username == user.Split("@")[0]))
                 {
-                    SendData(socketHandler, "Error: Username ya en sistema.");
-                    connected = ReceiveData(socketHandler, ref user);
+                    SendData(socketHelper, "Error: Username ya en sistema.");
+                    user = ReceiveData(socketHelper).Result;
                 }
                 if (connected)
                 {
@@ -542,9 +484,9 @@ namespace PrimerEjemploSocket
                         Password = user.Split("@")[1]
                     };
                     users.Add(newUser);
-                    socketHandler.UserName = newUser.Username;
-                    SendData(socketHandler, "OK");
-                    Println(socketHandler.UserName + " se ha registrado e iniciado sesion.");
+                    socketHelper.UserName = newUser.Username;
+                    SendData(socketHelper, "OK");
+                    Println(socketHelper.UserName + " se ha registrado e iniciado sesion.");
                 }
             }
         }
@@ -562,7 +504,7 @@ namespace PrimerEjemploSocket
             {
                 foreach (Product prod in products)
                 {
-                    if (prod.Stock>0)
+                    if (prod.Stock > 0)
                     {
                         SendData(socketHelper, prod.Name + " | Stock: " + prod.Stock);
                     }
@@ -586,43 +528,32 @@ namespace PrimerEjemploSocket
 
         private static void DeleteProduct(SocketHelper socketHelper, ref bool connected, ref List<Product> products)
         {
-            string prodToDelete = "";
-            connected = ReceiveData(socketHelper, ref prodToDelete);
+            string prodToDelete = ReceiveData(socketHelper).Result;
 
-            if (connected)
+            lock (locker)
             {
-                lock (locker)
-                {
-                    products = products.Where(prod => !(prod.Name.Equals(prodToDelete))).ToList();
-                }
-                SendData(socketHelper, "Se ha eliminado el producto correctamente");
-                FileStreamHandler.Delete(prodToDelete, ServerConfig.serverImageRouteKey);
-                Println(socketHelper.UserName + " eliminó el producto " + prodToDelete);
+                products = products.Where(prod => !(prod.Name.Equals(prodToDelete))).ToList();
             }
+            SendData(socketHelper, "Se ha eliminado el producto correctamente");
+            FileStreamHandler.Delete(prodToDelete, ServerConfig.serverImageRouteKey);
+            Println(socketHelper.UserName + " eliminó el producto " + prodToDelete);
         }
 
         private static void RateAProduct(SocketHelper socketHelper, ref bool connected, ref List<Product> products)
         {
             try
             {
-                string strProductName = "";
-                connected = ReceiveData(socketHelper, ref strProductName);
-                // int idProduct = int.Parse(strIdProduct);
+                string strProductName = ReceiveData(socketHelper).Result;
 
-                string opinion = "";
-                connected = ReceiveData(socketHelper, ref opinion);
+                string opinion = ReceiveData(socketHelper).Result;
 
-                string strRating = "";
-                connected = ReceiveData(socketHelper, ref strRating);
+                string strRating = ReceiveData(socketHelper).Result;
                 int rating = int.Parse(strRating);
 
                 Review review = new Review()
                 {
                     UserName = socketHelper.UserName,
                     Comment = opinion,
-                    //AmountOfRatings++,
-                    //TotalRatingSum += rating,
-                    //Rating = review.TotalRatingSum/review.AmountOfRatings,
                     Rating = rating,
                 };
 
@@ -717,7 +648,7 @@ namespace PrimerEjemploSocket
 
         static void ApagarServidor()
         {
-            servidorEncendido = false;
+            isServerOn = false;
 
         }
 
