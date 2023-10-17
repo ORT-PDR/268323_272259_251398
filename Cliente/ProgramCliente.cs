@@ -659,7 +659,7 @@ namespace Cliente
                 
                 Console.WriteLine("Antes de recibir el archivo");
                 var fileCommonHandler = new FileCommsHandler(client);
-                fileCommonHandler.ReceiveFile();
+                fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ClientConfig.clientImageRouteKey));
                 string imageName = prodName;
                 string productImage = ReceiveData(socketHelper).Result;
                 Console.WriteLine("Archivo recibido!!");

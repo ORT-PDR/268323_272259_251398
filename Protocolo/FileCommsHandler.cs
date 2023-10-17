@@ -42,7 +42,7 @@ namespace Protocolo
             }
         }
 
-        public void ReceiveFile()
+        public void ReceiveFile(string path)
         {
             // ---> Recibir el largo del nombre del archivo
             int fileNameSize = _conversionHandler.ConvertBytesToInt(
@@ -54,7 +54,7 @@ namespace Protocolo
             long fileSize = _conversionHandler.ConvertBytesToLong(
                 _socketHelper.ReceiveAsync(Protocol.FileSize).Result);
             // ---> Recibir el archivo
-            ReceiveFileWithStreams(fileSize, fileName);
+            ReceiveFileWithStreams(fileSize, path + @"\" + fileName);
         }
 
         private void SendFileWithStream(long fileSize, string path)

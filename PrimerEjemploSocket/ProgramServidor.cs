@@ -154,7 +154,7 @@ namespace PrimerEjemploSocket
                                 
                                 Println("Antes de recibir el archivo nuevo");
                                 var fileCommonHandler2 = new FileCommsHandler(client);
-                                fileCommonHandler2.ReceiveFile();
+                                fileCommonHandler2.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
                                 string productImage = productName + ".png";
                                 productToModify.Image = productImage;
 
@@ -431,9 +431,9 @@ namespace PrimerEjemploSocket
 
                 if (hasImage == 1)
                 {
-                    Console.WriteLine("Antes de recibir el archivo");
+                    Println("Antes de recibir el archivo");
                     var fileCommonHandler = new FileCommsHandler(client);
-                    fileCommonHandler.ReceiveFile();
+                    fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
                     imageName = productName + ".png";
                     productImage = ReceiveData(socketHelper).Result;
 
@@ -444,7 +444,7 @@ namespace PrimerEjemploSocket
                 {
                     imageName = "sin imágen";
                     productImage = ReceiveData(socketHelper).Result;
-                    Console.WriteLine();
+                    Println("");
                 }
                 if (connected)
                 {
@@ -535,7 +535,7 @@ namespace PrimerEjemploSocket
                 products = products.Where(prod => !(prod.Name.Equals(prodToDelete))).ToList();
             }
             SendData(socketHelper, "Se ha eliminado el producto correctamente");
-            FileStreamHandler.Delete(prodToDelete, ServerConfig.serverImageRouteKey);
+            FileStreamHandler.Delete(prodToDelete, settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
             Println(socketHelper.UserName + " eliminó el producto " + prodToDelete);
         }
 
