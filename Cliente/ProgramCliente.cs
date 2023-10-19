@@ -79,7 +79,7 @@ namespace Cliente
                                 if (!conectionError) DeleteProduct(ref connected, socketHelper);
                                 break;
                             case "5":
-                                if (!conectionError) SearchProductByFilter(ref connected, socketHelper);
+                                if (!conectionError) SearchProductByFilter(socketHelper);
                                 break;
                             case "6":
                                 if (!conectionError) ConsultAProduct(ref connected, socketHelper, tcpClient);
@@ -96,7 +96,11 @@ namespace Cliente
                                 break;
                         }
                     }
-                    catch (ExitMenuException)
+                    catch (SocketException)
+                    {
+                        break;
+                    }
+                    catch (Exception)
                     {
                         break;
                     }
@@ -156,7 +160,7 @@ namespace Cliente
             }
         }
 
-        private static void SearchProductByFilter(ref bool connected, SocketHelper socketHelper)
+        private static async Task SearchProductByFilter(SocketHelper socketHelper)
         {
             try
             {
@@ -164,11 +168,11 @@ namespace Cliente
                 Print("Ingrese el nombre para filtrar: ");
                 string filterText = Read();
                 SendData(socketHelper, filterText);
-                string product = "";
+                var product = "";
                 while (product != "end")
                 {
                     Println(product);
-                    product = ReceiveData(socketHelper).Result;
+                    product = await ReceiveData(socketHelper);
                     if (!connected) Println("No se pudo realizar la busqueda.");
                 }
             }
@@ -339,7 +343,11 @@ namespace Cliente
             {
                 Println("Error de conexión");
                 conectionError = true;
-                throw new Exception("Error de conexion");
+            }
+            catch (Exception)
+            {
+                Println("Error de conexión");
+                conectionError = true;
             }
         }
 

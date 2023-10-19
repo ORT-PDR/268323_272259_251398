@@ -29,7 +29,9 @@ namespace PrimerEjemploSocket
             listener.Start();
             Println("Esperando por clientes....");
             int connectedClients = 0;
-            
+
+            var server = Task.Run(async () => await HandleServer(listener));
+
             while (isServerOn) 
             {
                 try
@@ -53,7 +55,7 @@ namespace PrimerEjemploSocket
 
             if (isServerOn)
             {
-                //socketServer.Close();
+                listener.Stop();
                 Println("Servidor apagado");
             }
             
@@ -244,7 +246,7 @@ namespace PrimerEjemploSocket
             Console.WriteLine("Cliente {0} desconectado", nroClient);
         }
         
-        static void HandleServer(Socket socketServer)
+        static async Task HandleServer(TcpListener listener)
         {
             while (isServerOn)
             {
@@ -255,14 +257,12 @@ namespace PrimerEjemploSocket
                     ApagarServidor();
                     try
                     {
-                        socketServer.Shutdown(SocketShutdown.Both);
+                        listener.Stop();
                     }
                     catch (Exception ex)
                     {
                         Println("Apagando srvidor");
                     }
-
-                    socketServer.Close();
                 }
             }
         }
