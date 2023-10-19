@@ -12,14 +12,15 @@ namespace PrimerEjemploSocket
         static readonly SettingsManager settingMng = new SettingsManager();
         private static object locker = new object();
         private static bool isServerOn = true;
+        private static List<Product> products = new List<Product>();
+        private static List<User> users = new List<User>();
 
         static async Task Main(string[] args)
         {
-            List<Product> products = new List<Product>();
-            List<User> users = new List<User>();
+            
             List<TcpClient> activeClients = new();
             
-            LoadTestData(ref users, ref products);
+            LoadTestData();
 
             string serverIp = settingMng.ReadSettings(ServerConfig.serverIPconfigKey);
             int serverPort = int.Parse(settingMng.ReadSettings(ServerConfig.serverPortconfigKey));
@@ -40,7 +41,7 @@ namespace PrimerEjemploSocket
                     activeClients.Add(tcpClient);
                     Println("Se conecto un cliente..");
                     connectedClients++;
-                    var thread = Task.Run(async () => await HandleClientAsync(tcpClient, connectedClients, users, products));
+                    var thread = Task.Run(async () => await HandleClientAsync(tcpClient, connectedClients));
                 }
                 catch (Exception)
                 {
@@ -61,7 +62,7 @@ namespace PrimerEjemploSocket
             
         }
 
-        static async Task HandleClientAsync(TcpClient client, int nroClient, List<User> users, List<Product> products) 
+        static async Task HandleClientAsync(TcpClient client, int nroClient) 
         {
             bool connected = true;
             SocketHelper socketHelper = new(client);
@@ -71,13 +72,15 @@ namespace PrimerEjemploSocket
             {
                 if (initOption == "1")
                 {
-                    LogIn(socketHelper, users);
+                    await LogIn(socketHelper);
                 }
                 else
                 {
-                    //CHEQUEAR ESTO
-                    var newUser = RegisterUser(socketHelper, users).Result;
-                    users.Add(newUser);
+                    var newUser = await RegisterUser(socketHelper);
+                    lock (locker)
+                    {
+                        users.Add(newUser);
+                    }
                 }
             }
 
@@ -91,8 +94,7 @@ namespace PrimerEjemploSocket
                 {
                     case 1:
                         //Publicación de producto
-                        //CHEQUEAR ESTO
-                        var product = CreateProduct(socketHelper, products, client).Result;
+                        var product = await CreateProduct(socketHelper, client);
                         bool productAlreadyExists = false;
                         lock (locker)
                         {
@@ -110,7 +112,7 @@ namespace PrimerEjemploSocket
                         break;
                     case 2:
                         //Compra de productos
-                        SendProductsNameStock(socketHelper, products);
+                        SendProductsNameStock(socketHelper);
 
                         var message = await ReceiveData(socketHelper);
                         if (connected)
@@ -135,7 +137,7 @@ namespace PrimerEjemploSocket
 
                     case 3:
                         //Modificación de producto
-                        SendClientProducts(products, socketHelper);
+                        SendClientProducts(socketHelper);
 
                         var productName = await ReceiveData(socketHelper);
                         Product productToModify;
@@ -177,9 +179,9 @@ namespace PrimerEjemploSocket
                         break;
                     case 4:
                         //Baja de producto
-                        List<Product> clientProducts = GetClientProducts(products, socketHelper.UserName);
+                        List<Product> clientProducts = GetClientProducts(socketHelper.UserName);
                         SendProducts(socketHelper, clientProducts);
-                        DeleteProduct(socketHelper, products);
+                        await DeleteProduct(socketHelper);
 
                         break;
                     case 5:
@@ -238,8 +240,8 @@ namespace PrimerEjemploSocket
                         break;
 
                     case 7:
-                        SendProducts(socketHelper, products);
-                        RateAProduct(socketHelper, products);
+                        SendProducts(socketHelper);
+                        await RateAProduct(socketHelper);
 
                         break;
                     
@@ -276,7 +278,7 @@ namespace PrimerEjemploSocket
             }
         }
         
-        private static void SendClientProducts(List<Product> products, SocketHelper socketHelper)
+        private static void SendClientProducts(SocketHelper socketHelper)
         {
             try
             {
@@ -300,7 +302,7 @@ namespace PrimerEjemploSocket
             
         }
 
-        private static void SendProductsNameStock(SocketHelper socketHelper, List<Product> products)
+        private static void SendProductsNameStock(SocketHelper socketHelper)
         {
             lock (locker)
             {
@@ -363,13 +365,13 @@ namespace PrimerEjemploSocket
             return Encoding.UTF8.GetString(data);
         }
 
-        private static async Task LogIn(SocketHelper socketHelper, List<User> users)
+        private static async Task LogIn(SocketHelper socketHelper)
         {
             bool correctUser = false;
             while (!correctUser && isServerOn)
             {
                 var user = await ReceiveData(socketHelper);
-                correctUser = UserIsCorrect(user, users);
+                correctUser = UserIsCorrect(user);
 
                 if (correctUser)
                 {
@@ -385,7 +387,7 @@ namespace PrimerEjemploSocket
             }
         }
 
-        private static bool UserIsCorrect(string user, List<User> users)
+        private static bool UserIsCorrect(string user)
         {
             string userName = "";
             string userPass = "";
@@ -411,18 +413,24 @@ namespace PrimerEjemploSocket
             return false;
         }
 
-        private static async Task<Product> CreateProduct(SocketHelper socketHelper, List<Product> products, TcpClient client)
+        private static async Task<Product> CreateProduct(SocketHelper socketHelper, TcpClient client)
         {
             try
             {
                 var productName = await ReceiveData(socketHelper);
-                bool isInProducts = products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
+                bool isInProducts;
+                lock (locker)
+                {
+                    isInProducts = products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
+                }
                 while (isInProducts)
                 {
                     SendData(socketHelper, "Error: Producto ya ingresado al sistema.");
                     productName = await ReceiveData(socketHelper);
-                    isInProducts = products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
-
+                    lock (locker)
+                    {
+                        isInProducts = products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
+                    }
                 }
                 SendData(socketHelper, "OK");
 
@@ -471,11 +479,17 @@ namespace PrimerEjemploSocket
             }
         }
 
-        private static async Task<User> RegisterUser(SocketHelper socketHelper, List<User> users)
+        private static async Task<User> RegisterUser(SocketHelper socketHelper)
         {
             var user = await ReceiveData(socketHelper);
 
-            while (users.Exists(u => u.Username == user.Split("@")[0]))
+            bool userExists = true;
+            lock (locker)
+            {
+                userExists = users.Exists(u => u.Username == user.Split("@")[0]);
+            }
+            
+            while (userExists)
             {
                 SendData(socketHelper, "Error: Username ya en sistema.");
                 user = await ReceiveData(socketHelper);
@@ -517,7 +531,32 @@ namespace PrimerEjemploSocket
             }
         }
 
-        private static List<Product> GetClientProducts(List<Product> products, string clientUserName)
+        private static void SendProducts(SocketHelper socketHelper)
+        {
+            string quantProducts;
+            lock (locker)
+            {
+                quantProducts = products.Count.ToString();
+            }
+            SendData(socketHelper, quantProducts);
+
+            lock (locker)
+            {
+                foreach (Product prod in products)
+                {
+                    if (prod.Stock > 0)
+                    {
+                        SendData(socketHelper, prod.Name + " | Stock: " + prod.Stock);
+                    }
+                    else
+                    {
+                        SendData(socketHelper, prod.Name);
+                    }
+                }
+            }
+        }
+
+        private static List<Product> GetClientProducts(string clientUserName)
         {
             List<Product> clientProducts;
             lock (locker)
@@ -527,7 +566,7 @@ namespace PrimerEjemploSocket
             return clientProducts;
         }
 
-        private static async Task DeleteProduct(SocketHelper socketHelper, List<Product> products)
+        private static async Task DeleteProduct(SocketHelper socketHelper)
         {
             var prodToDelete = await ReceiveData(socketHelper);
 
@@ -540,7 +579,7 @@ namespace PrimerEjemploSocket
             Println(socketHelper.UserName + " eliminó el producto " + prodToDelete);
         }
 
-        private static async Task RateAProduct(SocketHelper socketHelper, List<Product> products)
+        private static async Task RateAProduct(SocketHelper socketHelper)
         {
             try
             {
@@ -577,7 +616,7 @@ namespace PrimerEjemploSocket
             }
         }
 
-        private static void LoadTestData(ref List<User> users, ref List<Product> products)
+        private static void LoadTestData()
         {
             User user1 = new User()
             {

@@ -49,7 +49,7 @@ namespace Cliente
                     
                 conectionError = false;
                 SocketHelper socketHelper = new(tcpClient);
-                EnterSystem(socketHelper);
+                await EnterSystem(socketHelper);
 
                 while (!exitMenu && !conectionError && connected)
                 {
@@ -67,25 +67,25 @@ namespace Cliente
                         switch (option)
                         {
                             case "1":
-                                if (!conectionError) PublishProduct(socketHelper, tcpClient);
+                                if (!conectionError) await PublishProduct(socketHelper, tcpClient);
                                 break;
                             case "2":
-                                if (!conectionError) BuyAProduct(socketHelper);
+                                if (!conectionError) await BuyAProduct(socketHelper);
                                 break;
                             case "3":
-                                if (!conectionError) ModifyAProduct(ref connected, socketHelper, tcpClient);
+                                if (!conectionError) await ModifyAProduct(socketHelper, tcpClient);
                                 break;
                             case "4":
-                                if (!conectionError) DeleteProduct(socketHelper);
+                                if (!conectionError) await DeleteProduct(socketHelper);
                                 break;
                             case "5":
-                                if (!conectionError) SearchProductByFilter(socketHelper);
+                                if (!conectionError) await SearchProductByFilter(socketHelper);
                                 break;
                             case "6":
-                                if (!conectionError) ConsultAProduct(socketHelper, tcpClient);
+                                if (!conectionError) await ConsultAProduct(socketHelper, tcpClient);
                                 break;
                             case "7":
-                                if (!conectionError) RateAProduct(socketHelper, ref connected);
+                                if (!conectionError) await RateAProduct(socketHelper);
                                 break;
                             case "8":
                                 Println("Saliendo del programa...");
@@ -183,13 +183,12 @@ namespace Cliente
           
         }
 
-        private static void ModifyAProduct(ref bool connected, SocketHelper socketHelper, TcpClient client)
+        private static async Task ModifyAProduct(SocketHelper socketHelper, TcpClient client)
         {
             try
             {
                 Println("Has seleccionado la opción Modificación de producto");
-                //CHEQUEAR ESTO
-                List<string> productNames = GetUserProducts(socketHelper).Result;
+                List<string> productNames = await GetUserProducts(socketHelper);
                 for (int i = 0; i < productNames.Count; i++)
                 {
                     Println($"{productNames[i]}");
@@ -381,14 +380,13 @@ namespace Cliente
                 string productDescription = Read();
                 SendData(socketHelper, productDescription);
 
-                int stock;
                 bool stockCorrect = false;
                 while (!stockCorrect)
                 {
                     Print("Cantidad disponible: ");
                     string input = Read();
 
-                    if (int.TryParse(input, out stock) && stock >= 0)
+                    if (int.TryParse(input, out int stock) && stock >= 0)
                     {
                         stockCorrect = true;
                         SendData(socketHelper, input);
@@ -468,7 +466,7 @@ namespace Cliente
             }
         }
 
-        private static void EnterSystem(SocketHelper socketHelper)
+        private static async Task EnterSystem(SocketHelper socketHelper)
         {
             Println("Ingrese la opción:");
             Println("1. Iniciar Sesión");
@@ -478,19 +476,21 @@ namespace Cliente
 
             while (initOption != "1" && initOption != "2")
             {
-
                 Println("Ingrese una opcion valida.");
-
                 initOption = Read();
-
             }
             try
             {
                 SendData(socketHelper, initOption);
 
-                if (initOption == "1") LogIn(socketHelper);
-
-                else RegisterUser(socketHelper);
+                if (initOption == "1")
+                {
+                    await LogIn(socketHelper);
+                }
+                else
+                {
+                    await RegisterUser(socketHelper);
+                }
             }
             catch (Exception ex)
             {
@@ -500,11 +500,11 @@ namespace Cliente
 
         }
 
-        private static async void RegisterUser(SocketHelper socketHelper)
+        private static async Task RegisterUser(SocketHelper socketHelper)
         {
-            Print("Ingrese nombre de usuario:   ");
+            Print("Ingrese nombre de usuario: ");
             string username = Read();
-            Print("Ingrese constraseña:   ");
+            Print("Ingrese constraseña: ");
             string password = Read();
             while (password == "")
             {
@@ -526,7 +526,7 @@ namespace Cliente
                     else
                     {
                         Println("Ya hay un usuario con ese nombre en el sistema. Intente nuevamente.");
-                        RegisterUser(socketHelper);
+                        await RegisterUser(socketHelper);
                     }
                 }
             }
@@ -537,14 +537,13 @@ namespace Cliente
             }
         }
 
-        private static void RateAProduct(SocketHelper socketHelper, ref bool connected)
+        private static async Task RateAProduct(SocketHelper socketHelper)
         {
             try
             {
                 Println("Has seleccionado la opción Calificar un producto");
 
-                //CHEQUEAR ESTO
-                List<string> productsToRate = GetUserProducts(socketHelper).Result;
+                List<string> productsToRate = await GetUserProducts(socketHelper);
                 ShowProducts(productsToRate);
 
                 Print("Ingrese el nombre del producto a calificar: ");
@@ -648,8 +647,7 @@ namespace Cliente
             {
                 Println("Has seleccionado la opción Consultar un producto específico");
                 Println("Productos disponibles:");
-                //CHEQUEAR ESTO
-                List<string> productsToConsult = GetUserProducts(socketHelper).Result;
+                List<string> productsToConsult = await GetUserProducts(socketHelper);
                 ShowProducts(productsToConsult);
                 Print("Ingrese el nombre del producto que quiera consultar: ");
                 string prodName = Read();
@@ -704,7 +702,6 @@ namespace Cliente
             {
                 Println("Has seleccionado la opción Compra de productos");
                 bool isBought = false;
-                //CHEQUEAR ESTO
                 List<NameStock> products = await GetProductsToBuy(socketHelper);
                 while (!isBought)
                 {
