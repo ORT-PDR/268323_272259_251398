@@ -70,19 +70,19 @@ namespace Cliente
                                 if (!conectionError) PublishProduct(socketHelper, tcpClient);
                                 break;
                             case "2":
-                                if (!conectionError) BuyAProduct(socketHelper, ref connected);
+                                if (!conectionError) BuyAProduct(socketHelper);
                                 break;
                             case "3":
                                 if (!conectionError) ModifyAProduct(ref connected, socketHelper, tcpClient);
                                 break;
                             case "4":
-                                if (!conectionError) DeleteProduct(ref connected, socketHelper);
+                                if (!conectionError) DeleteProduct(socketHelper);
                                 break;
                             case "5":
                                 if (!conectionError) SearchProductByFilter(socketHelper);
                                 break;
                             case "6":
-                                if (!conectionError) ConsultAProduct(ref connected, socketHelper, tcpClient);
+                                if (!conectionError) ConsultAProduct(socketHelper, tcpClient);
                                 break;
                             case "7":
                                 if (!conectionError) RateAProduct(socketHelper, ref connected);
@@ -141,17 +141,17 @@ namespace Cliente
             }
         }
         
-        private static void DeleteProduct(ref bool connected, SocketHelper socketHelper)
+        private static async Task DeleteProduct(SocketHelper socketHelper)
         {
             try
             {
                 Println("Has seleccionado la opción Baja de producto");
-                List<string> userProducts = GetUserProducts(socketHelper, ref connected);
+                List<string> userProducts = await GetUserProducts(socketHelper);
                 ShowProducts(userProducts);
                 Print("Ingrese el nombre del producto a eliminar: ");
                 string prodName = Read();
                 SendData(socketHelper, prodName);
-                string response = ReceiveData(socketHelper).Result;
+                var response = await ReceiveData(socketHelper);
                 Println(response);
             }
             catch (Exception ex)
@@ -188,7 +188,8 @@ namespace Cliente
             try
             {
                 Println("Has seleccionado la opción Modificación de producto");
-                List<string> productNames = GetUserProducts(socketHelper, ref connected);
+                //CHEQUEAR ESTO
+                List<string> productNames = GetUserProducts(socketHelper).Result;
                 for (int i = 0; i < productNames.Count; i++)
                 {
                     Println($"{productNames[i]}");
@@ -358,7 +359,7 @@ namespace Cliente
             return Encoding.UTF8.GetString(data);
         }
 
-        private static void PublishProduct(SocketHelper socketHelper, TcpClient client)
+        private static async Task PublishProduct(SocketHelper socketHelper, TcpClient client)
         {
             try
             {
@@ -367,13 +368,13 @@ namespace Cliente
                 string productName = Read();
                 SendData(socketHelper, productName);
 
-                string isOK = ReceiveData(socketHelper).Result;
+                var isOK = await ReceiveData(socketHelper);
                 while (isOK != "OK")
                 {
                     Print("El producto ya se encuentra en el sistema. Inserte un nombre de producto no publicado: ");
                     productName = Read();
                     SendData(socketHelper, productName);
-                    isOK = ReceiveData(socketHelper).Result;
+                    isOK = await ReceiveData(socketHelper);
                 }
 
                 Print("Descripción del producto: ");
@@ -457,7 +458,7 @@ namespace Cliente
                     SendData(socketHelper, eleccion + "");
                     SendData(socketHelper, "sin imagen");
                 }
-                string resultCreate = ReceiveData(socketHelper).Result;
+                var resultCreate = await ReceiveData(socketHelper);
                 if (connected && resultCreate == "OK") Println("Producto agregado con éxito.");
                 else Println("No se pudo agregar el producto");
             }
@@ -487,9 +488,9 @@ namespace Cliente
             {
                 SendData(socketHelper, initOption);
 
-                if (initOption == "1") LogIn(socketHelper, ref connected);
+                if (initOption == "1") LogIn(socketHelper);
 
-                else RegisterUser(socketHelper, ref connected);
+                else RegisterUser(socketHelper);
             }
             catch (Exception ex)
             {
@@ -499,7 +500,7 @@ namespace Cliente
 
         }
 
-        private static void RegisterUser(SocketHelper socketHelper, ref bool connected)
+        private static async void RegisterUser(SocketHelper socketHelper)
         {
             Print("Ingrese nombre de usuario:   ");
             string username = Read();
@@ -514,10 +515,10 @@ namespace Cliente
             {
                 string user = username + "@" + password;
                 SendData(socketHelper, user);
-                string response = ReceiveData(socketHelper).Result;
+                var response = await ReceiveData(socketHelper);
                 if (connected)
                 {
-                    if (response == "OK")
+                    if (response.ToString() == "OK")
                     {
                         Println("Bienvenido al sistema " + username);
                         conectionError = false;
@@ -525,7 +526,7 @@ namespace Cliente
                     else
                     {
                         Println("Ya hay un usuario con ese nombre en el sistema. Intente nuevamente.");
-                        RegisterUser(socketHelper, ref connected);
+                        RegisterUser(socketHelper);
                     }
                 }
             }
@@ -542,7 +543,8 @@ namespace Cliente
             {
                 Println("Has seleccionado la opción Calificar un producto");
 
-                List<string> productsToRate = GetUserProducts(socketHelper, ref connected);
+                //CHEQUEAR ESTO
+                List<string> productsToRate = GetUserProducts(socketHelper).Result;
                 ShowProducts(productsToRate);
 
                 Print("Ingrese el nombre del producto a calificar: ");
@@ -606,26 +608,26 @@ namespace Cliente
             Println("");
         }
 
-        private static List<string> GetUserProducts(SocketHelper socketHelper, ref bool connected)
+        private static async Task<List<string>> GetUserProducts(SocketHelper socketHelper)
         {
-            string strQuantProducts = ReceiveData(socketHelper).Result;
+            var strQuantProducts = await ReceiveData(socketHelper);
             int quantProducts = int.Parse(strQuantProducts);
 
             List<string> products = new List<string>();
 
             for (int i=0; i<quantProducts; i++)
             {
-                string prod = ReceiveData(socketHelper).Result;
+                var prod = await ReceiveData(socketHelper);
                 products.Add(prod);
             }
 
             return products;
         }
 
-        private static List<NameStock> GetProductsToBuy(SocketHelper socketHelper, ref bool connected)
+        private static async Task<List<NameStock>> GetProductsToBuy(SocketHelper socketHelper)
         {
             var products = new List<NameStock>();
-            string reception = ReceiveData(socketHelper).Result;
+            var reception = await ReceiveData(socketHelper);
             while (connected && reception != "end")
             {
                 NameStock product = new NameStock()
@@ -635,18 +637,19 @@ namespace Cliente
                 };
                 products.Add(product);
                 Console.WriteLine("Producto: {0}   |   Stock: {1}", product.Name, product.Stock);
-                reception = ReceiveData(socketHelper).Result;
+                reception = await ReceiveData(socketHelper);
             }
             return products;
         }
 
-        private static void ConsultAProduct(ref bool connected, SocketHelper socketHelper, TcpClient client)
+        private static async Task ConsultAProduct(SocketHelper socketHelper, TcpClient client)
         {
             try
             {
                 Println("Has seleccionado la opción Consultar un producto específico");
                 Println("Productos disponibles:");
-                List<string> productsToConsult = GetUserProducts(socketHelper, ref connected);
+                //CHEQUEAR ESTO
+                List<string> productsToConsult = GetUserProducts(socketHelper).Result;
                 ShowProducts(productsToConsult);
                 Print("Ingrese el nombre del producto que quiera consultar: ");
                 string prodName = Read();
@@ -665,10 +668,10 @@ namespace Cliente
                 Println("Información sobre el producto: " + prodName);
                 SendData(socketHelper, prodName);
 
-                string consultedProduct = ReceiveData(socketHelper).Result;
+                var consultedProduct = await ReceiveData(socketHelper);
                 Println(consultedProduct);
 
-                string image = ReceiveData(socketHelper).Result;
+                var image = await ReceiveData(socketHelper);
                 if (image != "sin imágen")
                 {
                     var imageToDelete = prodName + "InClient.png";
@@ -678,7 +681,7 @@ namespace Cliente
                     var fileCommonHandler = new FileCommsHandler(client);
                     fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ClientConfig.clientImageRouteKey));
                     string imageName = prodName;
-                    string productImage = ReceiveData(socketHelper).Result;
+                    var productImage = await ReceiveData(socketHelper);
                     if (productImage == "error")
                     {
                         Println("La imagen no fue encontrada.");
@@ -695,13 +698,14 @@ namespace Cliente
             }
         }
 
-        private static void BuyAProduct(SocketHelper socketHelper, ref bool connected)
+        private static async Task BuyAProduct(SocketHelper socketHelper)
         {
             try
             {
                 Println("Has seleccionado la opción Compra de productos");
                 bool isBought = false;
-                List<NameStock> products = GetProductsToBuy(socketHelper, ref connected);
+                //CHEQUEAR ESTO
+                List<NameStock> products = await GetProductsToBuy(socketHelper);
                 while (!isBought)
                 {
                     Print("Ingrese nombre del producto a comprar: ");
@@ -731,9 +735,9 @@ namespace Cliente
                                 }
                                 else
                                 {
-                                    string message = productNameStock.Name + "@" + amountToBuy.ToString();
+                                    var message = productNameStock.Name + "@" + amountToBuy.ToString();
                                     SendData(socketHelper, message);
-                                    message = ReceiveData(socketHelper).Result;
+                                    message = await ReceiveData(socketHelper);
                                     if (connected)
                                     {
                                         if (message.Equals("ok")) isBought = true;
@@ -759,7 +763,7 @@ namespace Cliente
             }
         }
 
-        private static void LogIn(SocketHelper socketHelper, ref bool connected)
+        private static async Task LogIn(SocketHelper socketHelper)
         {
             try
             {
@@ -773,7 +777,7 @@ namespace Cliente
                     string user = userName + "#" + userPass;
                     SendData(socketHelper, user);
 
-                    string response = ReceiveData(socketHelper).Result;
+                    var response = await ReceiveData(socketHelper);
 
                     if (response == "ok")
                     {
