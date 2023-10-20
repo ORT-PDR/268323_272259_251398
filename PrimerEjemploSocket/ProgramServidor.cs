@@ -88,7 +88,6 @@ namespace PrimerEjemploSocket
             while (connected)
             {
                 var strOption = await ReceiveData(socketHelper);
-                if (!connected) break;
                 option = int.Parse(strOption);
                 switch (option)
                 {
@@ -106,13 +105,13 @@ namespace PrimerEjemploSocket
                             {
                                 products.Add(product);
                             }
-                            SendData(socketHelper, "OK");
+                            await SendData(socketHelper, "OK");
                             Println(socketHelper.UserName + " agrego un producto");
                         }
                         break;
                     case 2:
                         //Compra de productos
-                        SendProductsNameStock(socketHelper);
+                        await SendProductsNameStock(socketHelper);
 
                         var message = await ReceiveData(socketHelper);
                         if (connected)
@@ -125,19 +124,19 @@ namespace PrimerEjemploSocket
                                 productBought = products.Find(p => p.Name == nameProduct);
                             }
                             int stock = productBought.Stock - int.Parse(amountBought);
-                            if (stock < 0) SendData(socketHelper, "error");
+                            if (stock < 0) await SendData(socketHelper, "error");
                             else
                             {
                                 productBought.Stock -= int.Parse(amountBought);
                                 Println(socketHelper.UserName + " compró " + amountBought + " unidades de " + nameProduct);
-                                SendData(socketHelper, "ok");
+                                await SendData(socketHelper, "ok");
                             }
                         }
                         break;
 
                     case 3:
                         //Modificación de producto
-                        SendClientProducts(socketHelper);
+                        await SendClientProducts(socketHelper);
 
                         var productName = await ReceiveData(socketHelper);
                         Product productToModify;
@@ -180,7 +179,7 @@ namespace PrimerEjemploSocket
                     case 4:
                         //Baja de producto
                         List<Product> clientProducts = GetClientProducts(socketHelper.UserName);
-                        SendProducts(socketHelper, clientProducts);
+                        await SendProducts(socketHelper, clientProducts);
                         await DeleteProduct(socketHelper);
 
                         break;
@@ -188,24 +187,29 @@ namespace PrimerEjemploSocket
                         //Búsqueda de productos
                         var filterText = await ReceiveData(socketHelper);
 
+                        List<string> filteredProds = new();
                         lock (locker)
                         {
                             foreach (var prod in products)
                             {
                                 if (prod.Name.Contains(filterText))
                                 {
-                                    SendData(socketHelper, prod.ToString());
+                                    filteredProds.Add(prod.ToString());
                                     Println(prod.Name);
                                 }
                             }
                         }
+                        foreach (string prod in filteredProds)
+                        {
+                            await SendData(socketHelper, prod);
+                        }
                         
-                        SendData(socketHelper, "end");
+                        await SendData(socketHelper, "end");
 
                         break;
                     case 6:
                         //consultar un producto específico
-                        SendProducts(socketHelper, products);
+                        await SendProducts(socketHelper, products);
 
                         var productToConsult = await ReceiveData(socketHelper);
 
@@ -214,8 +218,8 @@ namespace PrimerEjemploSocket
                         {
                             consultedProduct = products.FirstOrDefault(prod => prod.Name == productToConsult);
                         }
-                        SendData(socketHelper, consultedProduct.ToString());
-                        SendData(socketHelper, consultedProduct.Image);
+                        await SendData(socketHelper, consultedProduct.ToString());
+                        await SendData(socketHelper, consultedProduct.Image);
                         if (consultedProduct.Image != "sin imágen")
                         {
                             var fileCommonHandler = new FileCommsHandler(client);
@@ -227,20 +231,20 @@ namespace PrimerEjemploSocket
                                 string path = imageFiles[0];
 
                                 fileCommonHandler.SendFile(path, consultedProduct.Name + "InClient.png");
-                                SendData(socketHelper, image);
+                                await SendData(socketHelper, image);
 
                                 Println("Se envio el archivo al Cliente");
                             }
-                            catch (Exception ex)
+                            catch (Exception)
                             {
                                 Println("Imagen no encontrada");
-                                SendData(socketHelper, "error");
+                                await SendData(socketHelper, "error");
                             }
                         }
                         break;
 
                     case 7:
-                        SendProducts(socketHelper);
+                        await SendProducts(socketHelper);
                         await RateAProduct(socketHelper);
 
                         break;
@@ -270,15 +274,15 @@ namespace PrimerEjemploSocket
                     {
                         listener.Stop();
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
-                        Println("Apagando srvidor");
+                        Println("Apagando servidor");
                     }
                 }
             }
         }
         
-        private static void SendClientProducts(SocketHelper socketHelper)
+        private static async Task SendClientProducts(SocketHelper socketHelper)
         {
             try
             {
@@ -287,40 +291,40 @@ namespace PrimerEjemploSocket
                 {
                     productosDelCliente = products.Where(prod => prod.OwnerUserName == socketHelper.UserName).ToList();
                 }
-                SendData(socketHelper, productosDelCliente.Count.ToString());
+                await SendData(socketHelper, productosDelCliente.Count.ToString());
 
                 for (int i = 0; i < productosDelCliente.Count; i++)
                 {
                     string productoMostrado = productosDelCliente.ElementAt(i).Name;
-                    SendData(socketHelper, productoMostrado);
+                    await SendData(socketHelper, productoMostrado);
                 }
 
-            }catch(Exception ex)
+            }catch(Exception)
             {
                 return;
             }
             
         }
 
-        private static void SendProductsNameStock(SocketHelper socketHelper)
+        private static async Task SendProductsNameStock(SocketHelper socketHelper)
         {
+            List<string> productNames = new List<string>();
             lock (locker)
             {
-                try
+                foreach (Product product in products)
                 {
-                    foreach (Product product in products)
+                    if (product.Stock > 0)
                     {
-                        if (product.Stock > 0)
-                        {
-                            string mensaje = product.Name + "@" + product.Stock.ToString();
-                            SendData(socketHelper, mensaje);
-                        }
+                        string name = product.Name + "@" + product.Stock.ToString();
+                        productNames.Add(name);
                     }
-                } catch {
-                    return;
-                }   
+                }
             }
-            SendData(socketHelper, "end");
+            foreach (string name in productNames)
+            {
+                await SendData(socketHelper, name);
+            }
+            await SendData(socketHelper, "end");
         }
 
         private static void Print(string text)
@@ -338,7 +342,7 @@ namespace PrimerEjemploSocket
             return Console.ReadLine();
         }
 
-        private static async void SendData(SocketHelper socketHelper, string text)
+        private static async Task SendData(SocketHelper socketHelper, string text)
         {
             byte[] data = Encoding.UTF8.GetBytes(text);
             byte[] dataLength = BitConverter.GetBytes(data.Length);
@@ -375,14 +379,14 @@ namespace PrimerEjemploSocket
 
                 if (correctUser)
                 {
-                    SendData(socketHelper, "ok");
+                    await SendData(socketHelper, "ok");
                     socketHelper.UserName = user.Split('#')[0];
                     Println(socketHelper.UserName + " conectado");
                     correctUser = true;
                 }
                 else
                 {
-                    SendData(socketHelper, "Nombre de usuario y/o contraseña incorrecto/s. Vuelva a intentarlo.");
+                    await SendData(socketHelper, "Nombre de usuario y/o contraseña incorrecto/s. Vuelva a intentarlo.");
                 }
             }
         }
@@ -397,7 +401,7 @@ namespace PrimerEjemploSocket
                 userPass = user.Split('#')[1];
 
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 return false;
             }
@@ -425,14 +429,14 @@ namespace PrimerEjemploSocket
                 }
                 while (isInProducts)
                 {
-                    SendData(socketHelper, "Error: Producto ya ingresado al sistema.");
+                    await SendData(socketHelper, "Error: Producto ya ingresado al sistema.");
                     productName = await ReceiveData(socketHelper);
                     lock (locker)
                     {
                         isInProducts = products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
                     }
                 }
-                SendData(socketHelper, "OK");
+                await SendData(socketHelper, "OK");
 
                 var productDescription = await ReceiveData(socketHelper);
 
@@ -473,7 +477,7 @@ namespace PrimerEjemploSocket
                 product.OwnerUserName = socketHelper.UserName;
                 return product;
             }
-            catch(Exception ex)
+            catch(Exception)
             {
                 return null;
             }
@@ -491,7 +495,7 @@ namespace PrimerEjemploSocket
             
             while (userExists)
             {
-                SendData(socketHelper, "Error: Username ya en sistema.");
+                await SendData(socketHelper, "Error: Username ya en sistema.");
                 user = await ReceiveData(socketHelper);
             }
             User newUser = new()
@@ -501,58 +505,53 @@ namespace PrimerEjemploSocket
                 Password = user.Split("@")[1]
             };
             socketHelper.UserName = newUser.Username;
-            SendData(socketHelper, "OK");
+            await SendData(socketHelper, "OK");
             Println(socketHelper.UserName + " se ha registrado e iniciado sesion.");
             return newUser;
         }
 
-        private static void SendProducts(SocketHelper socketHelper, List<Product> products)
+        private static async Task SendProducts(SocketHelper socketHelper, List<Product> products)
         {
             string quantProducts;
             lock (locker)
             {
                 quantProducts = products.Count.ToString();
             }
-            SendData(socketHelper, quantProducts);
+            await SendData(socketHelper, quantProducts);
 
-            lock (locker)
+            foreach (Product prod in products)
             {
-                foreach (Product prod in products)
+                if (prod.Stock > 0)
                 {
-                    if (prod.Stock > 0)
-                    {
-                        SendData(socketHelper, prod.Name + " | Stock: " + prod.Stock);
-                    }
-                    else
-                    {
-                        SendData(socketHelper, prod.Name);
-                    }
+                    await SendData(socketHelper, prod.Name + " | Stock: " + prod.Stock);
+                }
+                else
+                {
+                    await SendData(socketHelper, prod.Name);
                 }
             }
         }
 
-        private static void SendProducts(SocketHelper socketHelper)
+        private static async Task SendProducts(SocketHelper socketHelper)
         {
             string quantProducts;
             lock (locker)
             {
                 quantProducts = products.Count.ToString();
             }
-            SendData(socketHelper, quantProducts);
+            await SendData(socketHelper, quantProducts);
 
+            List<string> prodNamesWithStock = new();
             lock (locker)
             {
                 foreach (Product prod in products)
                 {
-                    if (prod.Stock > 0)
-                    {
-                        SendData(socketHelper, prod.Name + " | Stock: " + prod.Stock);
-                    }
-                    else
-                    {
-                        SendData(socketHelper, prod.Name);
-                    }
+                    prodNamesWithStock.Add(prod.Name + " | Stock: " + prod.Stock);
                 }
+            }
+            foreach (string name in prodNamesWithStock)
+            {
+                await SendData(socketHelper, name);
             }
         }
 
@@ -574,7 +573,7 @@ namespace PrimerEjemploSocket
             {
                 products = products.Where(prod => !(prod.Name.Equals(prodToDelete))).ToList();
             }
-            SendData(socketHelper, "Se ha eliminado el producto correctamente");
+            await SendData(socketHelper, "Se ha eliminado el producto correctamente");
             FileStreamHandler.Delete(prodToDelete, settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
             Println(socketHelper.UserName + " eliminó el producto " + prodToDelete);
         }
@@ -610,7 +609,7 @@ namespace PrimerEjemploSocket
                 }
                 Println(socketHelper.UserName + "calificó un producto.");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return;
             }
