@@ -124,50 +124,14 @@ namespace PrimerEjemploSocket
                             break;
                         case 6:
                             //consultar un producto específico
-                            await SendProducts(socketHelper, products);
-
-                            var productToConsult = await ReceiveData(socketHelper);
-
-                            Product consultedProduct;
-                            lock (locker)
-                            {
-                                consultedProduct = products.FirstOrDefault(prod => prod.Name == productToConsult);
-                            }
-                            await SendData(socketHelper, consultedProduct.ToString());
-                            await SendData(socketHelper, consultedProduct.Image);
-                            if (consultedProduct.Image != "sin imágen")
-                            {
-                                var fileCommonHandler = new FileCommsHandler(client);
-                                try
-                                {
-                                    string image = consultedProduct.Name + "InServer.png";
-                                    string searchDirectory = @settingMng.ReadSettings(ServerConfig.serverImageRouteKey);
-                                    string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
-                                    string path = imageFiles[0];
-
-                                    fileCommonHandler.SendFile(path, consultedProduct.Name + "InClient.png");
-                                    await SendData(socketHelper, image);
-
-                                    Println("Se envio el archivo al Cliente");
-                                }
-                                catch (Exception)
-                                {
-                                    Println("Imagen no encontrada");
-                                    await SendData(socketHelper, "error");
-                                }
-                            }
+                            await ConsultProduct(socketHelper, client);
                             break;
-
                         case 7:
-                            await SendProducts(socketHelper);
+                            //calificar un producto
                             await RateAProduct(socketHelper);
-
                             break;
-
                         case 8:
-
                             break;
-
                         default:
                             Println("Opción no válida.");
                             break;
@@ -594,41 +558,71 @@ namespace PrimerEjemploSocket
             await SendData(socketHelper, "end");
         }
 
+        private static async Task ConsultProduct(SocketHelper socketHelper, TcpClient client)
+        {
+            await SendProducts(socketHelper, products);
+
+            var productToConsult = await ReceiveData(socketHelper);
+
+            Product consultedProduct;
+            lock (locker)
+            {
+                consultedProduct = products.FirstOrDefault(prod => prod.Name == productToConsult);
+            }
+            await SendData(socketHelper, consultedProduct.ToString());
+            await SendData(socketHelper, consultedProduct.Image);
+            if (consultedProduct.Image != "sin imágen")
+            {
+                var fileCommonHandler = new FileCommsHandler(client);
+                try
+                {
+                    string image = consultedProduct.Name + "InServer.png";
+                    string searchDirectory = @settingMng.ReadSettings(ServerConfig.serverImageRouteKey);
+                    string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
+                    string path = imageFiles[0];
+
+                    fileCommonHandler.SendFile(path, consultedProduct.Name + "InClient.png");
+                    await SendData(socketHelper, image);
+
+                    Println("Se envio el archivo al Cliente");
+                }
+                catch (Exception)
+                {
+                    Println("Imagen no encontrada");
+                    await SendData(socketHelper, "error");
+                }
+            }
+        }
+
         private static async Task RateAProduct(SocketHelper socketHelper)
         {
-            try
+            await SendProducts(socketHelper);
+            var strProductName = await ReceiveData(socketHelper);
+
+            var opinion = await ReceiveData(socketHelper);
+
+            var strRating = await ReceiveData(socketHelper);
+            int rating = int.Parse(strRating);
+
+            Review review = new Review()
             {
-                var strProductName = await ReceiveData(socketHelper);
+                UserName = socketHelper.UserName,
+                Comment = opinion,
+                Rating = rating,
+            };
 
-                var opinion = await ReceiveData(socketHelper);
-
-                var strRating = await ReceiveData(socketHelper);
-                int rating = int.Parse(strRating);
-
-                Review review = new Review()
+            lock (locker)
+            {
+                foreach (var prod in products)
                 {
-                    UserName = socketHelper.UserName,
-                    Comment = opinion,
-                    Rating = rating,
-                };
-
-                lock (locker)
-                {
-                    foreach (var prod in products)
+                    if (prod.Name == strProductName)
                     {
-                        if (prod.Name == strProductName)
-                        {
-                            prod.Reviews.Add(review);
-                            break;
-                        }
+                        prod.Reviews.Add(review);
+                        break;
                     }
                 }
-                Println(socketHelper.UserName + "calificó un producto.");
             }
-            catch (Exception)
-            {
-                return;
-            }
+            Println(socketHelper.UserName + "calificó un producto.");
         }
 
         private static void LoadTestData()

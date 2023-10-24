@@ -600,120 +600,108 @@ namespace Cliente
 
         private static async Task ConsultAProduct(SocketHelper socketHelper, TcpClient client)
         {
-            try
+            Println("Has seleccionado la opción Consultar un producto específico");
+            Println("Productos disponibles:");
+            List<string> productsToConsult = await GetUserProducts(socketHelper);
+            ShowProducts(productsToConsult);
+            Print("Ingrese el nombre del producto que quiera consultar: ");
+            string prodName = Read();
+            productsToConsult = productsToConsult.Select(product => product.Split('|')[0].Trim()).ToList();
+
+            bool productExists = productsToConsult.Contains(prodName);
+            while (!productExists)
             {
-                Println("Has seleccionado la opción Consultar un producto específico");
-                Println("Productos disponibles:");
-                List<string> productsToConsult = await GetUserProducts(socketHelper);
-                ShowProducts(productsToConsult);
-                Print("Ingrese el nombre del producto que quiera consultar: ");
-                string prodName = Read();
-                productsToConsult = productsToConsult.Select(product => product.Split('|')[0].Trim()).ToList();
-
-                bool productExists = productsToConsult.Contains(prodName);
-                while (!productExists)
+                Print("Ingrese alguna de las opciones listadas: ");
+                prodName = Read();
+                if (productsToConsult.Contains(prodName))
                 {
-                    Print("Ingrese alguna de las opciones listadas: ");
-                    prodName = Read();
-                    if (productsToConsult.Contains(prodName))
-                    {
-                        productExists = true;
-                    }
-                }
-                Println("Información sobre el producto: " + prodName);
-                await SendData(socketHelper, prodName);
-
-                var consultedProduct = await ReceiveData(socketHelper);
-                Println(consultedProduct);
-
-                var image = await ReceiveData(socketHelper);
-                if (image != "sin imágen")
-                {
-                    var imageToDelete = prodName + "InClient.png";
-                    FileStreamHandler.Delete(imageToDelete, settingMng.ReadSettings(ClientConfig.clientImageRouteKey));
-
-                    Println("Antes de recibir el archivo");
-                    var fileCommonHandler = new FileCommsHandler(client);
-                    fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ClientConfig.clientImageRouteKey));
-                    string imageName = prodName;
-                    var productImage = await ReceiveData(socketHelper);
-                    if (productImage == "error")
-                    {
-                        Println("La imagen no fue encontrada.");
-                    }
-                    else
-                    {
-                        Println("Archivo recibido!!");
-                    }
+                    productExists = true;
                 }
             }
-            catch (Exception)
+            Println("Información sobre el producto: " + prodName);
+            await SendData(socketHelper, prodName);
+
+            var consultedProduct = await ReceiveData(socketHelper);
+            Println(consultedProduct);
+
+            var image = await ReceiveData(socketHelper);
+            if (image != "sin imágen")
             {
-                Println("Error de conexion");
+                var imageToDelete = prodName + "InClient.png";
+                FileStreamHandler.Delete(imageToDelete, settingMng.ReadSettings(ClientConfig.clientImageRouteKey));
+
+                Println("Antes de recibir el archivo");
+                var fileCommonHandler = new FileCommsHandler(client);
+                fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ClientConfig.clientImageRouteKey));
+                string imageName = prodName;
+                var productImage = await ReceiveData(socketHelper);
+                if (productImage == "error")
+                {
+                    Println("La imagen no fue encontrada.");
+                }
+                else
+                {
+                    Println("Archivo recibido!!");
+                }
             }
+            Println("Presione una tecla para volver al menú");
+            Console.ReadKey();
         }
 
         private static async Task BuyAProduct(SocketHelper socketHelper)
         {
-            try
+            Println("Has seleccionado la opción Compra de productos");
+            bool isBought = false;
+            List<NameStock> products = await GetProductsToBuy(socketHelper);
+            while (!isBought)
             {
-                Println("Has seleccionado la opción Compra de productos");
-                bool isBought = false;
-                List<NameStock> products = await GetProductsToBuy(socketHelper);
-                while (!isBought)
+                Print("Ingrese nombre del producto a comprar: ");
+                string productToBuyName = Read();
+                NameStock productNameStock = products.Find(p => p.Name.Equals(productToBuyName));
+                if (productNameStock != null)
                 {
-                    Print("Ingrese nombre del producto a comprar: ");
-                    string productToBuyName = Read();
-                    NameStock productNameStock = products.Find(p => p.Name.Equals(productToBuyName));
-                    if (productNameStock != null)
+                    int stock = int.Parse(productNameStock.Stock);
+                    if (stock > 0)
                     {
-                        int stock = int.Parse(productNameStock.Stock);
-                        if (stock > 0)
+                        Print("Ingrese cantidad a comprar: ");
+                        int amountToBuy = -1;
+                        while (amountToBuy < 1)
                         {
-                            Print("Ingrese cantidad a comprar: ");
-                            int amountToBuy = -1;
-                            while (amountToBuy < 1)
+                            try
                             {
-                                try
+                                amountToBuy = int.Parse(Read());
+                            }
+                            catch
+                            {
+                                Print("Ingrese un numero positivo de cantidad a comprar: ");
+                            }
+                            if (amountToBuy > stock)
+                            {
+                                Println("Stock Insuficiente, inserte una cantidad que no exceda el stock:");
+                                amountToBuy = -1;
+                            }
+                            else
+                            {
+                                var message = productNameStock.Name + "@" + amountToBuy.ToString();
+                                await SendData(socketHelper, message);
+                                message = await ReceiveData(socketHelper);
+                                if (connected)
                                 {
-                                    amountToBuy = int.Parse(Read());
-                                }
-                                catch
-                                {
-                                    Print("Ingrese un numero positivo de cantidad a comprar: ");
-                                }
-                                if (amountToBuy > stock)
-                                {
-                                    Println("Stock Insuficiente, inserte una cantidad que no exceda el stock:");
-                                    amountToBuy = -1;
-                                }
-                                else
-                                {
-                                    var message = productNameStock.Name + "@" + amountToBuy.ToString();
-                                    await SendData(socketHelper, message);
-                                    message = await ReceiveData(socketHelper);
-                                    if (connected)
-                                    {
-                                        if (message.Equals("ok")) isBought = true;
-                                        else Println("No hay stock disponible del producto seleccionado");
-                                    }
+                                    if (message.Equals("ok")) isBought = true;
+                                    else Println("No hay stock disponible del producto seleccionado");
                                 }
                             }
-                        }
-                        else
-                        {
-                            Println("No hay Stock del producto");
                         }
                     }
                     else
                     {
-                        Println("Nombre de producto no valido");
+                        Println("No hay Stock del producto");
                     }
                 }
-            }
-            catch (Exception)
-            {
-                Println("Error de conexion");
+                else
+                {
+                    Println("Nombre de producto no valido");
+                }
             }
         }
 
