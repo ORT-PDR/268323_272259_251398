@@ -102,32 +102,25 @@ namespace PrimerEjemploSocket
                     switch (option)
                     {
                         case 1:
-                            //Publicación de producto
                             await CreateProduct(socketHelper, client);
                             break;
                         case 2:
-                            //Compra de productos
                             await BuyProduct(socketHelper);
                             break;
 
                         case 3:
-                            //Modificación de producto
                             await ModifyProduct(socketHelper, client);
                             break;
                         case 4:
-                            //Baja de producto
                             await DeleteProduct(socketHelper);
                             break;
                         case 5:
-                            //Búsqueda de productos
                             await SearchForProducts(socketHelper);
                             break;
                         case 6:
-                            //consultar un producto específico
                             await ConsultProduct(socketHelper, client);
                             break;
                         case 7:
-                            //calificar un producto
                             await RateAProduct(socketHelper);
                             break;
                         case 8:
