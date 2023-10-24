@@ -70,193 +70,130 @@ namespace PrimerEjemploSocket
             var initOption = await ReceiveData(socketHelper);
             if (connected)
             {
-                if (initOption == "1")
+                try
                 {
-                    await LogIn(socketHelper);
-                }
-                else
-                {
-                    var newUser = await RegisterUser(socketHelper);
-                    lock (locker)
+                    if (initOption == "1")
                     {
-                        users.Add(newUser);
+                        await LogIn(socketHelper);
                     }
+                    else
+                    {
+                        var newUser = await RegisterUser(socketHelper);
+                        lock (locker)
+                        {
+                            users.Add(newUser);
+                        }
+                    }
+                }
+                catch (ExitException) 
+                {
+                    connected = false;
                 }
             }
 
             int option = 0;
             while (connected)
             {
-                var strOption = await ReceiveData(socketHelper);
-                option = int.Parse(strOption);
-                switch (option)
+                try
                 {
-                    case 1:
-                        //Publicación de producto
-                        var product = await CreateProduct(socketHelper, client);
-                        bool productAlreadyExists = false;
-                        lock (locker)
-                        {
-                            productAlreadyExists = !products.Contains(product);
-                        }
-                        if (productAlreadyExists)
-                        {
+                    var strOption = await ReceiveData(socketHelper);
+                    option = int.Parse(strOption);
+
+                    switch (option)
+                    {
+                        case 1:
+                            //Publicación de producto
+                            await CreateProduct(socketHelper, client);
+                            break;
+                        case 2:
+                            //Compra de productos
+                            await BuyProduct(socketHelper);
+                            break;
+
+                        case 3:
+                            //Modificación de producto
+                            await ModifyProduct(socketHelper, client);
+                            break;
+                        case 4:
+                            //Baja de producto
+                            await DeleteProduct(socketHelper);
+                            break;
+                        case 5:
+                            //Búsqueda de productos
+                            var filterText = await ReceiveData(socketHelper);
+
+                            List<string> filteredProds = new();
                             lock (locker)
                             {
-                                products.Add(product);
-                            }
-                            await SendData(socketHelper, "OK");
-                            Println(socketHelper.UserName + " agrego un producto");
-                        }
-                        break;
-                    case 2:
-                        //Compra de productos
-                        await SendProductsNameStock(socketHelper);
-
-                        var message = await ReceiveData(socketHelper);
-                        if (connected)
-                        {
-                            string nameProduct = message.Split('@')[0];
-                            string amountBought = message.Split('@')[1];
-                            Product productBought;
-                            lock (locker)
-                            {
-                                productBought = products.Find(p => p.Name == nameProduct);
-                            }
-                            int stock = productBought.Stock - int.Parse(amountBought);
-                            if (stock < 0) await SendData(socketHelper, "error");
-                            else
-                            {
-                                productBought.Stock -= int.Parse(amountBought);
-                                Println(socketHelper.UserName + " compró " + amountBought + " unidades de " + nameProduct);
-                                await SendData(socketHelper, "ok");
-                            }
-                        }
-                        break;
-
-                    case 3:
-                        //Modificación de producto
-                        await SendClientProducts(socketHelper);
-
-                        var productName = await ReceiveData(socketHelper);
-                        Product productToModify;
-                        lock (locker)
-                        {
-                            productToModify = products.Find(p => p.Name == productName);
-                        }
-
-                        var atributeOption = await ReceiveData(socketHelper);
-
-                        var newValue = await ReceiveData(socketHelper);
-
-                        switch (atributeOption)
-                        {
-                            case "1":
-                                productToModify.Description = newValue;
-                                break;
-                            case "2":
-                                productToModify.Stock = int.Parse(newValue);
-                                break;
-                            case "3":
-                                productToModify.Price = int.Parse(newValue);
-                                break;
-                            case "4":
-                                var imageToDelete = productToModify.Name + "InServer.png";
-                                FileStreamHandler.Delete(imageToDelete, settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
-                                
-                                Println("Antes de recibir el archivo nuevo");
-                                var fileCommonHandler2 = new FileCommsHandler(client);
-                                fileCommonHandler2.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
-                                string productImage = productName + ".png";
-                                productToModify.Image = productImage;
-
-                                Println("Archivo nuevo recibido!!");
-
-                                break;
-                        }
-                        Println(socketHelper.UserName + " modificó el producto " + productName);
-                        break;
-                    case 4:
-                        //Baja de producto
-                        List<Product> clientProducts = GetClientProducts(socketHelper.UserName);
-                        await SendProducts(socketHelper, clientProducts);
-                        await DeleteProduct(socketHelper);
-
-                        break;
-                    case 5:
-                        //Búsqueda de productos
-                        var filterText = await ReceiveData(socketHelper);
-
-                        List<string> filteredProds = new();
-                        lock (locker)
-                        {
-                            foreach (var prod in products)
-                            {
-                                if (prod.Name.Contains(filterText))
+                                foreach (var prod in products)
                                 {
-                                    filteredProds.Add(prod.ToString());
-                                    Println(prod.Name);
+                                    if (prod.Name.Contains(filterText))
+                                    {
+                                        filteredProds.Add(prod.ToString());
+                                        Println(prod.Name);
+                                    }
                                 }
                             }
-                        }
-                        foreach (string prod in filteredProds)
-                        {
-                            await SendData(socketHelper, prod);
-                        }
-                        
-                        await SendData(socketHelper, "end");
-
-                        break;
-                    case 6:
-                        //consultar un producto específico
-                        await SendProducts(socketHelper, products);
-
-                        var productToConsult = await ReceiveData(socketHelper);
-
-                        Product consultedProduct;
-                        lock (locker)
-                        {
-                            consultedProduct = products.FirstOrDefault(prod => prod.Name == productToConsult);
-                        }
-                        await SendData(socketHelper, consultedProduct.ToString());
-                        await SendData(socketHelper, consultedProduct.Image);
-                        if (consultedProduct.Image != "sin imágen")
-                        {
-                            var fileCommonHandler = new FileCommsHandler(client);
-                            try
+                            foreach (string prod in filteredProds)
                             {
-                                string image = consultedProduct.Name + "InServer.png";
-                                string searchDirectory = @settingMng.ReadSettings(ServerConfig.serverImageRouteKey);
-                                string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
-                                string path = imageFiles[0];
-
-                                fileCommonHandler.SendFile(path, consultedProduct.Name + "InClient.png");
-                                await SendData(socketHelper, image);
-
-                                Println("Se envio el archivo al Cliente");
+                                await SendData(socketHelper, prod);
                             }
-                            catch (Exception)
+
+                            await SendData(socketHelper, "end");
+
+                            break;
+                        case 6:
+                            //consultar un producto específico
+                            await SendProducts(socketHelper, products);
+
+                            var productToConsult = await ReceiveData(socketHelper);
+
+                            Product consultedProduct;
+                            lock (locker)
                             {
-                                Println("Imagen no encontrada");
-                                await SendData(socketHelper, "error");
+                                consultedProduct = products.FirstOrDefault(prod => prod.Name == productToConsult);
                             }
-                        }
-                        break;
+                            await SendData(socketHelper, consultedProduct.ToString());
+                            await SendData(socketHelper, consultedProduct.Image);
+                            if (consultedProduct.Image != "sin imágen")
+                            {
+                                var fileCommonHandler = new FileCommsHandler(client);
+                                try
+                                {
+                                    string image = consultedProduct.Name + "InServer.png";
+                                    string searchDirectory = @settingMng.ReadSettings(ServerConfig.serverImageRouteKey);
+                                    string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
+                                    string path = imageFiles[0];
 
-                    case 7:
-                        await SendProducts(socketHelper);
-                        await RateAProduct(socketHelper);
+                                    fileCommonHandler.SendFile(path, consultedProduct.Name + "InClient.png");
+                                    await SendData(socketHelper, image);
 
-                        break;
-                    
-                    case 8:
-                        
-                        break;
+                                    Println("Se envio el archivo al Cliente");
+                                }
+                                catch (Exception)
+                                {
+                                    Println("Imagen no encontrada");
+                                    await SendData(socketHelper, "error");
+                                }
+                            }
+                            break;
 
-                    default:
-                        Println("Opción no válida.");
-                        break;
+                        case 7:
+                            await SendProducts(socketHelper);
+                            await RateAProduct(socketHelper);
+
+                            break;
+
+                        case 8:
+
+                            break;
+
+                        default:
+                            Println("Opción no válida.");
+                            break;
+                    }
                 }
+                catch (ExitException) { }
             }
             Console.WriteLine("Cliente {0} desconectado", nroClient);
         }
@@ -366,7 +303,9 @@ namespace PrimerEjemploSocket
         {
             byte[] dataLength = await socketHelper.ReceiveAsync(Protocol.DataSize);
             byte[] data = await socketHelper.ReceiveAsync(BitConverter.ToInt32(dataLength));
-            return Encoding.UTF8.GetString(data);
+            string received = Encoding.UTF8.GetString(data);
+            if (received.ToLower().Equals("exit")) throw new ExitException();
+            return received;
         }
 
         private static async Task LogIn(SocketHelper socketHelper)
@@ -417,69 +356,75 @@ namespace PrimerEjemploSocket
             return false;
         }
 
-        private static async Task<Product> CreateProduct(SocketHelper socketHelper, TcpClient client)
+        private static async Task CreateProduct(SocketHelper socketHelper, TcpClient client)
         {
-            try
+            var productName = await ReceiveData(socketHelper);
+            bool isInProducts;
+            lock (locker)
             {
-                var productName = await ReceiveData(socketHelper);
-                bool isInProducts;
+                isInProducts = products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
+            }
+            while (isInProducts)
+            {
+                await SendData(socketHelper, "Error: Producto ya ingresado al sistema.");
+                productName = await ReceiveData(socketHelper);
                 lock (locker)
                 {
                     isInProducts = products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
                 }
-                while (isInProducts)
+            }
+            await SendData(socketHelper, "OK");
+
+            var productDescription = await ReceiveData(socketHelper);
+
+            var strProductStock = await ReceiveData(socketHelper);
+            int productStock = int.Parse(strProductStock);
+
+            var strProductPrice = await ReceiveData(socketHelper);
+            int productPrice = int.Parse(strProductPrice);
+
+            var strHasImage = await ReceiveData(socketHelper);
+            int hasImage = int.Parse(strHasImage);
+            var productImage = "";
+            string imageName = "";
+
+            if (hasImage == 1)
+            {
+                Println("Antes de recibir el archivo");
+                var fileCommonHandler = new FileCommsHandler(client);
+                fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
+                imageName = productName + ".png";
+                productImage = await ReceiveData(socketHelper);
+
+
+                Println("Archivo recibido!!");
+            }
+            else
+            {
+                imageName = "sin imágen";
+                productImage = await ReceiveData(socketHelper);
+                Println("");
+            }
+            Product product = new Product();
+            product.Name = productName;
+            product.Description = productDescription;
+            product.Price = productPrice;
+            product.Stock = productStock;
+            product.Image = imageName;
+            product.OwnerUserName = socketHelper.UserName;
+            bool productAlreadyExists = false;
+            lock (locker)
+            {
+                productAlreadyExists = !products.Contains(product);
+            }
+            if (productAlreadyExists)
+            {
+                lock (locker)
                 {
-                    await SendData(socketHelper, "Error: Producto ya ingresado al sistema.");
-                    productName = await ReceiveData(socketHelper);
-                    lock (locker)
-                    {
-                        isInProducts = products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
-                    }
+                    products.Add(product);
                 }
                 await SendData(socketHelper, "OK");
-
-                var productDescription = await ReceiveData(socketHelper);
-
-                var strProductStock = await ReceiveData(socketHelper);
-                int productStock = int.Parse(strProductStock);
-
-                var strProductPrice = await ReceiveData(socketHelper);
-                int productPrice = int.Parse(strProductPrice);
-
-                var strHasImage = await ReceiveData(socketHelper);
-                int hasImage = int.Parse(strHasImage);
-                var productImage = "";
-                string imageName = "";
-
-                if (hasImage == 1)
-                {
-                    Println("Antes de recibir el archivo");
-                    var fileCommonHandler = new FileCommsHandler(client);
-                    fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
-                    imageName = productName + ".png";
-                    productImage = await ReceiveData(socketHelper);
-
-
-                    Println("Archivo recibido!!");
-                }
-                else
-                {
-                    imageName = "sin imágen";
-                    productImage = await ReceiveData(socketHelper);
-                    Println("");
-                }
-                Product product = new Product();
-                product.Name = productName;
-                product.Description = productDescription;
-                product.Price = productPrice;
-                product.Stock = productStock;
-                product.Image = imageName;
-                product.OwnerUserName = socketHelper.UserName;
-                return product;
-            }
-            catch(Exception)
-            {
-                return null;
+                Println(socketHelper.UserName + " agrego un producto");
             }
         }
 
@@ -565,8 +510,75 @@ namespace PrimerEjemploSocket
             return clientProducts;
         }
 
+        private static async Task BuyProduct(SocketHelper socketHelper)
+        {
+            await SendProductsNameStock(socketHelper);
+
+            var message = await ReceiveData(socketHelper);
+            string nameProduct = message.Split('@')[0];
+            string amountBought = message.Split('@')[1];
+            Product productBought;
+            lock (locker)
+            {
+                productBought = products.Find(p => p.Name == nameProduct);
+            }
+            int stock = productBought.Stock - int.Parse(amountBought);
+            if (stock < 0) await SendData(socketHelper, "error");
+            else
+            {
+                productBought.Stock -= int.Parse(amountBought);
+                Println(socketHelper.UserName + " compró " + amountBought + " unidades de " + nameProduct);
+                await SendData(socketHelper, "ok");
+            }
+        }
+
+        private static async Task ModifyProduct(SocketHelper socketHelper, TcpClient client)
+        {
+            await SendClientProducts(socketHelper);
+
+            var productName = await ReceiveData(socketHelper);
+            Product productToModify;
+            lock (locker)
+            {
+                productToModify = products.Find(p => p.Name == productName);
+            }
+
+            var atributeOption = await ReceiveData(socketHelper);
+
+            var newValue = await ReceiveData(socketHelper);
+
+            switch (atributeOption)
+            {
+                case "1":
+                    productToModify.Description = newValue;
+                    break;
+                case "2":
+                    productToModify.Stock = int.Parse(newValue);
+                    break;
+                case "3":
+                    productToModify.Price = int.Parse(newValue);
+                    break;
+                case "4":
+                    var imageToDelete = productToModify.Name + "InServer.png";
+                    FileStreamHandler.Delete(imageToDelete, settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
+
+                    Println("Antes de recibir el archivo nuevo");
+                    var fileCommonHandler2 = new FileCommsHandler(client);
+                    fileCommonHandler2.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
+                    string productImage = productName + ".png";
+                    productToModify.Image = productImage;
+
+                    Println("Archivo nuevo recibido!!");
+
+                    break;
+            }
+            Println(socketHelper.UserName + " modificó el producto " + productName);
+        }
+
         private static async Task DeleteProduct(SocketHelper socketHelper)
         {
+            List<Product> clientProducts = GetClientProducts(socketHelper.UserName);
+            await SendProducts(socketHelper, clientProducts);
             var prodToDelete = await ReceiveData(socketHelper);
 
             lock (locker)

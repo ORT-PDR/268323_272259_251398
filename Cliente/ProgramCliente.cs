@@ -255,10 +255,11 @@ namespace Cliente
 
         private static async Task SendData(SocketHelper socketHelper, string text)
         {
-            if (text.ToLower().Equals("exit")) throw new ExitMenuException();
 
             byte[] data = Encoding.UTF8.GetBytes(text);
             byte[] dataLength = BitConverter.GetBytes(data.Length);
+
+            if (text.ToLower().Equals("exit")) throw new ExitMenuException();
 
             try
             {
