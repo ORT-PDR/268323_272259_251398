@@ -107,7 +107,6 @@ namespace PrimerEjemploSocket
                         case 2:
                             await BuyProduct(socketHelper);
                             break;
-
                         case 3:
                             await ModifyProduct(socketHelper, client);
                             break;
@@ -182,7 +181,7 @@ namespace PrimerEjemploSocket
 
         private static async Task SendProductsNameStock(SocketHelper socketHelper)
         {
-            List<string> productNames = new List<string>();
+            List<string> productNames = new();
             lock (locker)
             {
                 foreach (Product product in products)
@@ -574,7 +573,7 @@ namespace PrimerEjemploSocket
                     string[] imageFiles = Directory.GetFiles(searchDirectory, $"{image}.*");
                     string path = imageFiles[0];
 
-                    fileCommonHandler.SendFile(path, consultedProduct.Name + "InClient.png");
+                    await fileCommonHandler.SendFile(path, consultedProduct.Name + "InClient.png");
                     await SendData(socketHelper, image);
 
                     Println("Se envio el archivo al Cliente");

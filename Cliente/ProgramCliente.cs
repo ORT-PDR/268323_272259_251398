@@ -52,7 +52,7 @@ namespace Cliente
                         tryToConnect = false;
                     }
                 }
-                catch (ExitMenuException ex)
+                catch (ExitMenuException)
                 {
                     Println("Saliendo del programa...");
                     tcpClient.Close();
@@ -170,112 +170,104 @@ namespace Cliente
 
         private static async Task PublishProduct(SocketHelper socketHelper, TcpClient client)
         {
-            try
+            Println("Has seleccionado la opción Publicación de producto");
+            string productName = await ReadProductName(socketHelper);
+
+            Print("Descripción: ");
+            string productDescription = Read();
+            await SendData(socketHelper, productDescription);
+
+            await ReadInt(socketHelper, "Cantidad disponible: ", "Ingrese un entero mayor o igual a 0.");
+
+            await ReadInt(socketHelper, "Precio: ", "Ingrese un entero mayor a 0.");
+
+            await AddImage(socketHelper, client, productName);
+        }
+
+        private static async Task<string> ReadProductName(SocketHelper socketHelper)
+        {
+            Print("Nombre del producto: ");
+            string productName = Read();
+            await SendData(socketHelper, productName);
+            var isOK = await ReceiveData(socketHelper);
+            while (isOK != "OK")
             {
-                Println("Has seleccionado la opción Publicación de producto");
-                Print("Nombre del producto: ");
-                string productName = Read();
+                Print("El producto ya se encuentra en el sistema. Ingrese otro nombre: ");
+                productName = Read();
                 await SendData(socketHelper, productName);
+                isOK = await ReceiveData(socketHelper);
+            }
+            return productName;
+        }
 
-                var isOK = await ReceiveData(socketHelper);
-                while (isOK != "OK")
+        private static async Task ReadInt(SocketHelper socketHelper, string instruction, string errorMsg)
+        {
+            bool isValueCorrect = false;
+            while (!isValueCorrect)
+            {
+                Print(instruction);
+                string input = Read();
+                if (int.TryParse(input, out int intValue) && intValue >= 0)
                 {
-                    Print("El producto ya se encuentra en el sistema. Inserte un nombre de producto no publicado: ");
-                    productName = Read();
-                    await SendData(socketHelper, productName);
-                    isOK = await ReceiveData(socketHelper);
-                }
-
-                Print("Descripción del producto: ");
-                string productDescription = Read();
-                await SendData(socketHelper, productDescription);
-
-                bool stockCorrect = false;
-                while (!stockCorrect)
-                {
-                    Print("Cantidad disponible: ");
-                    string input = Read();
-
-                    if (int.TryParse(input, out int stock) && stock >= 0)
-                    {
-                        stockCorrect = true;
-                        await SendData(socketHelper, input);
-                    }
-                    else
-                    {
-                        Println("Ingrese un número entero válido mayor o igual a 0.");
-                    }
-                }
-
-                int precioProducto = 0;
-                bool priceCorrect = false;
-                while (!priceCorrect)
-                {
-                    Print("Precio del producto: ");
-                    string input = Read();
-
-                    if (int.TryParse(input, out precioProducto) && precioProducto > 0)
-                    {
-                        priceCorrect = true;
-                        await SendData(socketHelper, input);
-                    }
-                    else
-                    {
-                        Println("Ingrese un número válido mayor a 0.");
-                    }
-                }
-                Println("Desea agregar imagen?");
-                Println("1-Si");
-                Println("2-No");
-                bool eleccionValida = false;
-                int eleccion = 0;
-                while (!eleccionValida)
-                {
-                    try
-                    {
-                        eleccion = int.Parse(Read());
-                        eleccionValida = true;
-                    }
-                    catch (Exception)
-                    {
-                        Println("Ingrese 1 o 2 según su eleccón ");
-                    }
-                }
-
-                if (eleccion == 1)
-                {
-                    await SendData(socketHelper, eleccion + "");
-                    Print("Ruta de la imagen del producto: ");
-                    string path = Read();
-                    string imageName = productName + "InServer.png";
-
-                    var fileCommonHandler = new FileCommsHandler(client);
-                    try
-                    {
-                        fileCommonHandler.SendFile(path, imageName);
-                        await SendData(socketHelper, path);
-                        Println("Se envio el archivo al Servidor");
-                    }
-                    catch (Exception ex)
-                    {
-                        Println(ex.Message);
-                        await SendData(socketHelper, "");
-                    }
+                    isValueCorrect = true;
+                    await SendData(socketHelper, input);
                 }
                 else
                 {
-                    await SendData(socketHelper, eleccion + "");
-                    await SendData(socketHelper, "sin imagen");
+                    Println(errorMsg);
                 }
-                var resultCreate = await ReceiveData(socketHelper);
-                if (connected && resultCreate == "OK") Println("Producto agregado con éxito.");
-                else Println("No se pudo agregar el producto");
-            }
-            catch (ServerErrorException)
-            {
-                Println("Error de conexion");
             }
         }
+
+        private static async Task AddImage(SocketHelper socketHelper, TcpClient client, string productName)
+        {
+            Println("Desea agregar imagen?");
+            Println("1-Si");
+            Println("2-No");
+            bool isValueCorrect = false;
+            string input = "2";
+            while (!isValueCorrect)
+            {
+                input = Read();
+                if (int.TryParse(input, out int intValue) && (intValue == 1 || intValue == 2))
+                {
+                    isValueCorrect = true;
+                }
+                else
+                {
+                    Print("Ingrese 1 si desea agregar una imagen, de lo contrario digite 2: ");
+                }
+            }
+
+            if (input == "1")
+            {
+                await SendData(socketHelper, input);
+                Print("Ruta de la imagen del producto: ");
+                string path = Read();
+                string imageName = productName + "InServer.png";
+                var fileCommonHandler = new FileCommsHandler(client);
+                try
+                {
+                    await fileCommonHandler.SendFile(path, imageName);
+                    await SendData(socketHelper, path);
+                    Println("Se envio el archivo al Servidor");
+                }
+                catch (Exception ex)
+                {
+                    Println(ex.Message);
+                    await SendData(socketHelper, "");
+                }
+            }
+            else
+            {
+                await SendData(socketHelper, input);
+                await SendData(socketHelper, "sin imagen");
+            }
+            string resultCreate = await ReceiveData(socketHelper);
+            if (resultCreate == "OK") Println("Producto agregado con éxito.");
+            else Println("No se pudo agregar el producto");
+        }
+
 
         private static async Task DeleteProduct(SocketHelper socketHelper)
         {
@@ -304,7 +296,7 @@ namespace Cliente
             Println("Presione una tecla para volver al menú");
             Console.ReadKey();
         }
-
+        
         private static async Task ModifyAProduct(SocketHelper socketHelper, TcpClient client)
         {
             Println("Has seleccionado la opción Modificación de producto");
@@ -350,10 +342,10 @@ namespace Cliente
                         {
                             value = Convert.ToInt32(newValue);
                         }
-                        catch { }
+                        catch (FormatException) { }
                         if (value < 0)
                         {
-                            Println("El precio debe ser un numero positivo. Inserte nuevamente:");
+                            Print("El precio debe ser un entero positivo. Inserte nuevamente: ");
                             newValue = Read();
                         }
                     }
@@ -368,10 +360,10 @@ namespace Cliente
                         {
                             value = Convert.ToInt32(newValue);
                         }
-                        catch { }
+                        catch (FormatException) { }
                         if (value < 0)
                         {
-                            Println("El precio debe ser un numero positivo. Inserte nuevamente:");
+                            Println("El precio debe ser un entero positivo. Inserte nuevamente:");
                             newValue = Read();
                         }
                     }
@@ -384,7 +376,7 @@ namespace Cliente
                     try
                     {
                         await SendData(socketHelper, newValue);
-                        fileCommonHandler.SendFile(newValue, imageName);
+                        await fileCommonHandler.SendFile(newValue, imageName);
                             
                         Println("Se envio el archivo nuevo al Servidor");
                     }

@@ -18,23 +18,22 @@ namespace Protocolo
             _socketHelper = new SocketHelper(client);
         }
 
-        public void SendFile(string path,string destinationName)
+        public async Task SendFile(string path,string destinationName)
         {
             if (FileHandler.FileExists(path))
             {
                 var fileName = FileHandler.GetFileName(path);
                 // ---> Enviar el largo del nombre del archivo
-                _socketHelper.SendAsync(_conversionHandler.ConvertIntToBytes(destinationName.Length));
+                await _socketHelper.SendAsync(_conversionHandler.ConvertIntToBytes(destinationName.Length));
                 // ---> Enviar el nombre del archivo
-                _socketHelper.SendAsync(_conversionHandler.ConvertStringToBytes(destinationName));
-
+                await _socketHelper.SendAsync(_conversionHandler.ConvertStringToBytes(destinationName));
                 // ---> Obtener el tamaño del archivo
                 long fileSize = FileHandler.GetFileSize(path);
                 // ---> Enviar el tamaño del archivo
                 var convertedFileSize = _conversionHandler.ConvertLongToBytes(fileSize);
-                _socketHelper.SendAsync(convertedFileSize);
+                await _socketHelper.SendAsync(convertedFileSize);
                 // ---> Enviar el archivo (pero con file stream)
-                SendFileWithStream(fileSize, path);
+                await SendFileWithStream(fileSize, path);
             }
             else
             {
@@ -57,7 +56,7 @@ namespace Protocolo
             ReceiveFileWithStreams(fileSize, path + @"\" + fileName);
         }
 
-        private void SendFileWithStream(long fileSize, string path)
+        private async Task SendFileWithStream(long fileSize, string path)
         {
             long fileParts = Protocol.CalculateFileParts(fileSize);
             long offset = 0;
@@ -84,7 +83,7 @@ namespace Protocolo
                     offset += Protocol.MaxPacketSize;
                 }
 
-                _socketHelper.SendAsync(data); //3- Envío ese segmento a travez de la red
+                await _socketHelper.SendAsync(data); //3- Envío ese segmento a travez de la red
                 currentPart++;
             }
         }
