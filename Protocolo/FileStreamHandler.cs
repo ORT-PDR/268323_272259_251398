@@ -39,9 +39,9 @@ namespace Protocolo
                 using var fs = new FileStream(fileName, fileMode);
                 fs.Write(data, 0, data.Length);
             }
-            catch(Exception ex)
+            catch(Exception)
             {
-                Console.WriteLine("Ingrese direccion valida");
+                throw new InvalidRouteException("La ruta para guardar la imagen no es válida.");
             }
         }
 

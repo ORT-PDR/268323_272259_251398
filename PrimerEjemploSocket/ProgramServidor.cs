@@ -42,7 +42,7 @@ namespace PrimerEjemploSocket
                     activeClients.Add(tcpClient);
                     Println("Se conecto un cliente..");
                     connectedClients++;
-                    var thread = Task.Run(async () => await HandleClientAsync(tcpClient, connectedClients));
+                    var thread = Task.Run(async () => await HandleClientAsync(tcpClient, connectedClients, listener));
                 }
                 catch (Exception)
                 {
@@ -63,7 +63,7 @@ namespace PrimerEjemploSocket
             
         }
 
-        static async Task HandleClientAsync(TcpClient client, int nroClient) 
+        static async Task HandleClientAsync(TcpClient client, int nroClient, TcpListener listener) 
         {
             bool connected = true;
             SocketHelper socketHelper = new(client);
@@ -131,6 +131,11 @@ namespace PrimerEjemploSocket
                     }
                 }
                 catch (ExitException) { }
+                catch (ShutServerDownException)
+                {
+                    isServerOn = false;
+                    listener.Stop();
+                }
             }
             Console.WriteLine("Cliente {0} desconectado", nroClient);
         }
@@ -233,7 +238,6 @@ namespace PrimerEjemploSocket
                     Println("Error de conexión");
                 }
             }
-            
         }
 
         private static async Task<string> ReceiveData(SocketHelper socketHelper)
@@ -328,10 +332,20 @@ namespace PrimerEjemploSocket
             if (hasImage == 1)
             {
                 var fileCommonHandler = new FileCommsHandler(client);
-                fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
-                imageName = productName + ".png";
-                productImage = await ReceiveData(socketHelper);
-                if (productImage.Equals("")) imageName = "sin imagen";
+                try
+                {
+                    fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
+                    imageName = productName + ".png";
+                    productImage = await ReceiveData(socketHelper);
+                    if (productImage.Equals("")) imageName = "sin imagen";
+                    await SendData(socketHelper, "ok");
+                }
+                catch (InvalidRouteException ex)
+                {
+                    Println(ex.Message + " Ingrese una ruta correcta y vuelva a iniciar el servidor");
+                    await SendData(socketHelper, "routeError");
+                    throw new ShutServerDownException();
+                }
             }
             else
             {
@@ -339,13 +353,15 @@ namespace PrimerEjemploSocket
                 productImage = await ReceiveData(socketHelper);
                 Println("");
             }
-            Product product = new();
-            product.Name = productName;
-            product.Description = productDescription;
-            product.Price = productPrice;
-            product.Stock = productStock;
-            product.Image = imageName;
-            product.OwnerUserName = socketHelper.UserName;
+            Product product = new()
+            {
+                Name = productName,
+                Description = productDescription,
+                Price = productPrice,
+                Stock = productStock,
+                Image = imageName,
+                OwnerUserName = socketHelper.UserName
+            };
             bool productAlreadyExists = false;
             lock (locker)
             {
@@ -496,14 +512,12 @@ namespace PrimerEjemploSocket
                     var imageToDelete = productToModify.Name + "InServer.png";
                     FileStreamHandler.Delete(imageToDelete, settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
 
-                    Println("Antes de recibir el archivo nuevo");
                     var fileCommonHandler2 = new FileCommsHandler(client);
                     fileCommonHandler2.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
-                    string productImage = productName + ".png";
-                    productToModify.Image = productImage;
-
-                    Println("Archivo nuevo recibido!!");
-
+                    string imageName = productName + ".png";
+                    string productImage = await ReceiveData(socketHelper);
+                    if (productImage.Equals("")) imageName = "sin imagen";
+                    productToModify.Image = imageName;
                     break;
             }
             Println(socketHelper.UserName + " modificó el producto " + productName);

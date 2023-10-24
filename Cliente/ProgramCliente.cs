@@ -5,6 +5,7 @@ using Protocolo;
 using Common;
 using System.Net.Http;
 using Exceptions;
+using System.IO;
 
 namespace Cliente
 {
@@ -108,11 +109,13 @@ namespace Cliente
             Println("2. Registrarse");
 
             string initOption = Read();
+            await ValueEqualsExit(socketHelper, initOption);
 
             while (initOption != "1" && initOption != "2")
             {
                 Println("Ingrese una opcion valida.");
                 initOption = Read();
+                await ValueEqualsExit(socketHelper, initOption);
             }
             await SendData(socketHelper, initOption);
 
@@ -251,6 +254,8 @@ namespace Cliente
                 {
                     await fileCommonHandler.SendFile(path, imageName);
                     await SendData(socketHelper, path);
+                    string result = await ReceiveData(socketHelper);
+                    if (result.Equals("routeError")) throw new ExitMenuException();
                     Println("Se envio el archivo al Servidor");
                 }
                 catch (NonexistingFileException)
@@ -311,10 +316,12 @@ namespace Cliente
             }
             Println("Ingrese nombre del producto a modificar ");
             string productToModifyName = Read();
+            await ValueEqualsExit(socketHelper, productToModifyName);
             while (!productNames.Contains(productToModifyName))
             {
                 Println("Producto no encontrado. Escriba un nombre de producto válido.");
                 productToModifyName = Read();
+                await ValueEqualsExit(socketHelper, productToModifyName);
             }
 
             bool modificado = false;
@@ -322,11 +329,13 @@ namespace Cliente
             {
                 PrintModifyProductOptions();
                 string attributeOption = Read();
+                await ValueEqualsExit(socketHelper, attributeOption);
                 while (attributeOption != "1" && attributeOption != "2" && attributeOption != "3" && attributeOption != "4")
                 {
                     Println("Opcion Inválida.");
                     PrintModifyProductOptions();
                     attributeOption = Read();
+                    await ValueEqualsExit(socketHelper, attributeOption);
                 }
                 await SendData(socketHelper, productToModifyName);
                 await SendData(socketHelper, attributeOption);
@@ -339,39 +348,11 @@ namespace Cliente
                 }
                 if (attributeOption == "2")
                 {
-                    int value = -1;
-                    while (value < 0)
-                    {
-                        try
-                        {
-                            value = Convert.ToInt32(newValue);
-                        }
-                        catch (FormatException) { }
-                        if (value < 0)
-                        {
-                            Print("El precio debe ser un entero positivo. Inserte nuevamente: ");
-                            newValue = Read();
-                        }
-                    }
-                    await SendData(socketHelper, newValue);
+                    await GetCorrectInt(socketHelper, "El stock debe ser un entero positivo. Inserte nuevamente: ", newValue);
                 }
                 else if (attributeOption == "3")
                 {
-                    int value = -1;
-                    while (value <= 0)
-                    {
-                        try
-                        {
-                            value = Convert.ToInt32(newValue);
-                        }
-                        catch (FormatException) { }
-                        if (value < 0)
-                        {
-                            Println("El precio debe ser un entero positivo. Inserte nuevamente:");
-                            newValue = Read();
-                        }
-                    }
-                    await SendData(socketHelper, newValue);
+                    await GetCorrectInt(socketHelper, "El precio debe ser un entero positivo. Inserte nuevamente: ", newValue);
                 }
                 else if (attributeOption == "4")
                 {
@@ -381,17 +362,31 @@ namespace Cliente
                     {
                         await SendData(socketHelper, newValue);
                         await fileCommonHandler.SendFile(newValue, imageName);
-                            
-                        Println("Se envio el archivo nuevo al Servidor");
+                        await SendData(socketHelper, "imageName");
                     }
-                    catch (Exception ex)
+                    catch (NonexistingFileException)
                     {
-                        Println(ex.Message);
+                        Println("El archivo no existe.");
+                        await SendData(socketHelper, "");
+                        await SendData(socketHelper, "");
+                        await SendData(socketHelper, "");
                         await SendData(socketHelper, "");
                     }
                 }
                 modificado = true;
             }
+        }
+
+        private static async Task GetCorrectInt(SocketHelper socketHelper, string errorMsg, string input)
+        {
+            bool isValueCorrect = int.TryParse(input, out int intValue) && intValue > 0;
+            while (!isValueCorrect)
+            {
+                Print(errorMsg);
+                input = Read();
+                isValueCorrect = int.TryParse(input, out intValue) && intValue > 0;
+            }
+            await SendData(socketHelper, input);
         }
 
         private static void PrintModifyProductOptions()
@@ -503,62 +498,54 @@ namespace Cliente
 
         private static async Task RateAProduct(SocketHelper socketHelper)
         {
-            try
+            Println("Has seleccionado la opción Calificar un producto");
+
+            List<string> productsToRate = await GetUserProducts(socketHelper);
+            ShowProducts(productsToRate);
+
+            Print("Ingrese el nombre del producto a calificar: ");
+            string prodName = Read();
+            await ValueEqualsExit(socketHelper, prodName);
+            productsToRate = productsToRate.Select(product => product.Split('|')[0].Trim()).ToList();
+
+            bool productExists = productsToRate.Contains(prodName);
+            while (!productExists)
             {
-                Println("Has seleccionado la opción Calificar un producto");
-
-                List<string> productsToRate = await GetUserProducts(socketHelper);
-                ShowProducts(productsToRate);
-
-                Print("Ingrese el nombre del producto a calificar: ");
-                string prodName = Read();
-                productsToRate = productsToRate.Select(product => product.Split('|')[0].Trim()).ToList();
-
-                bool productExists = productsToRate.Contains(prodName);
-                while (!productExists)
+                Print("Ingrese alguna de las opciones listadas: ");
+                prodName = Read();
+                await ValueEqualsExit(socketHelper, prodName);
+                if (productsToRate.Contains(prodName))
                 {
-                    Print("Ingrese alguna de las opciones listadas: ");
-                    prodName = Read();
-                    if (productsToRate.Contains(prodName))
-                    {
-                        productExists = true;
-                    }
+                    productExists = true;
                 }
+            }
                
-                await SendData(socketHelper, prodName);
+            await SendData(socketHelper, prodName);
 
-                Println("¿Cuál es su opinión del producto?");
-                var opinion = Read();
-                await SendData(socketHelper, opinion);
+            Println("¿Cuál es su opinión del producto?");
+            var opinion = Read();
+            await SendData(socketHelper, opinion);
 
-                string input = "";
-                while (true)
-                {
-                    Println("Califique el producto con numero del 1 al 10");
-                    input = Read();
-                    try
-                    {
-                        int checkOption = int.Parse(input);
-                        if(checkOption >= 1 && checkOption <= 10)
-                        {
-                            await SendData(socketHelper, input);
-                            break;
-                        }
-                        
-                    }
-                    catch (Exception)
-                    {
-                        Println("Ingrese un número entero válido.");
-                    }
-                }
-
-                
-            }
-            catch (Exception)
+            string input = "";
+            while (true)
             {
-                Println("Error de conexion");
+                Println("Califique el producto con numero del 1 al 10");
+                input = Read();
+                try
+                {
+                    int checkOption = int.Parse(input);
+                    if(checkOption >= 1 && checkOption <= 10)
+                    {
+                        await SendData(socketHelper, input);
+                        break;
+                    }
+                        
+                }
+                catch (Exception)
+                {
+                    Println("Ingrese un número entero válido.");
+                }
             }
-            
         }
 
         private static void ShowProducts(List<string> products)
@@ -613,6 +600,7 @@ namespace Cliente
             ShowProducts(productsToConsult);
             Print("Ingrese el nombre del producto que quiera consultar: ");
             string prodName = Read();
+            await ValueEqualsExit(socketHelper, prodName);
             productsToConsult = productsToConsult.Select(product => product.Split('|')[0].Trim()).ToList();
 
             bool productExists = productsToConsult.Contains(prodName);
@@ -620,6 +608,7 @@ namespace Cliente
             {
                 Print("Ingrese alguna de las opciones listadas: ");
                 prodName = Read();
+                await ValueEqualsExit(socketHelper, prodName);
                 if (productsToConsult.Contains(prodName))
                 {
                     productExists = true;
@@ -658,46 +647,40 @@ namespace Cliente
         private static async Task BuyAProduct(SocketHelper socketHelper)
         {
             Println("Has seleccionado la opción Compra de productos");
-            bool isBought = false;
             List<NameStock> products = await GetProductsToBuy(socketHelper);
-            while (!isBought)
+
+            while (true)
             {
                 Print("Ingrese nombre del producto a comprar: ");
                 string productToBuyName = Read();
-                NameStock productNameStock = products.Find(p => p.Name.Equals(productToBuyName));
+                await ValueEqualsExit(socketHelper, productToBuyName);
+                NameStock? productNameStock = products.FirstOrDefault(p => p.Name.Equals(productToBuyName));
+
                 if (productNameStock != null)
                 {
-                    int stock = int.Parse(productNameStock.Stock);
-                    if (stock > 0)
+                    if (int.TryParse(productNameStock.Stock, out int stock) && stock > 0)
                     {
                         Print("Ingrese cantidad a comprar: ");
-                        int amountToBuy = -1;
-                        while (amountToBuy < 1)
+                        if (int.TryParse(Read(), out int amountToBuy) && amountToBuy > 0 && amountToBuy <= stock)
                         {
-                            try
+                            var message = $"{productNameStock.Name}@{amountToBuy}";
+                            await SendData(socketHelper, message);
+                            var response = await ReceiveData(socketHelper);
+
+                            if (response.Equals("ok"))
                             {
-                                amountToBuy = int.Parse(Read());
-                            }
-                            catch
-                            {
-                                Print("Ingrese un numero positivo de cantidad a comprar: ");
-                            }
-                            if (amountToBuy > stock)
-                            {
-                                Println("Stock Insuficiente, inserte una cantidad que no exceda el stock:");
-                                amountToBuy = -1;
+                                Println("Se ha realizado la compra correctamente!\nPresione una tecla para volver al menú.");
+                                Console.ReadKey();
+                                break;
                             }
                             else
                             {
-                                var message = productNameStock.Name + "@" + amountToBuy.ToString();
-                                await SendData(socketHelper, message);
-                                message = await ReceiveData(socketHelper);
-                                if (connected)
-                                {
-                                    if (message.Equals("ok")) isBought = true;
-                                    else Println("No hay stock disponible del producto seleccionado");
-                                }
+                                Println("No hay stock disponible del producto seleccionado");
                             }
+                        }
+                        else
+                        {
+                            Println("Cantidad inválida. Asegúrese de ingresar un número positivo menor o igual al stock disponible.");
                         }
                     }
                     else
@@ -707,8 +690,17 @@ namespace Cliente
                 }
                 else
                 {
-                    Println("Nombre de producto no valido");
+                    Println("Nombre de producto no válido");
                 }
+            }
+        }
+
+        private static async Task ValueEqualsExit(SocketHelper socketHelper, string value)
+        {
+            if (value.ToLower().Equals("exit"))
+            {
+                await SendData(socketHelper, "exit");
+                throw new ExitMenuException();
             }
         }
 
@@ -721,6 +713,7 @@ namespace Cliente
                 {
                     Print("Ingrese su nombre de usuario: ");
                     string userName = Read();
+                    await ValueEqualsExit(socketHelper, userName);
                     Print("Ingrese su contraseña: ");
                     string userPass = Read();
                     string user = userName + "#" + userPass;
