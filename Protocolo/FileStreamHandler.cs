@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Exceptions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -27,7 +28,7 @@ namespace Protocolo
                 return data;
             }
 
-            throw new Exception("File does not exist");
+            throw new NonexistingFileException("File does not exist");
         }
 
         public static void Write(string fileName, byte[] data)

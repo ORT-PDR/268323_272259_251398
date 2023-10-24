@@ -4,6 +4,7 @@ using System.Text;
 using Protocolo;
 using Common;
 using System.Net.Http;
+using Exceptions;
 
 namespace Cliente
 {
@@ -252,9 +253,12 @@ namespace Cliente
                     await SendData(socketHelper, path);
                     Println("Se envio el archivo al Servidor");
                 }
-                catch (Exception ex)
+                catch (NonexistingFileException)
                 {
-                    Println(ex.Message);
+                    Println("El archivo no existe.");
+                    await SendData(socketHelper, "");
+                    await SendData(socketHelper, "");
+                    await SendData(socketHelper, "");
                     await SendData(socketHelper, "");
                 }
             }
@@ -432,16 +436,13 @@ namespace Cliente
 
         private static async Task SendData(SocketHelper socketHelper, string text)
         {
-
             byte[] data = Encoding.UTF8.GetBytes(text);
             byte[] dataLength = BitConverter.GetBytes(data.Length);
-
-            if (text.ToLower().Equals("exit")) throw new ExitMenuException();
-
             try
             {
                 await socketHelper.SendAsync(dataLength);
                 await socketHelper.SendAsync(data);
+                if (text.ToLower().Equals("exit")) throw new ExitMenuException();
             }
             catch (SocketException)
             {
@@ -592,7 +593,7 @@ namespace Cliente
             var reception = await ReceiveData(socketHelper);
             while (connected && reception != "end")
             {
-                NameStock product = new NameStock()
+                NameStock product = new()
                 {
                     Name = reception.Split("@")[0],
                     Stock = reception.Split("@")[1]
@@ -631,7 +632,7 @@ namespace Cliente
             Println(consultedProduct);
 
             var image = await ReceiveData(socketHelper);
-            if (image != "sin imágen")
+            if (image != "sin imagen")
             {
                 var imageToDelete = prodName + "InClient.png";
                 FileStreamHandler.Delete(imageToDelete, settingMng.ReadSettings(ClientConfig.clientImageRouteKey));

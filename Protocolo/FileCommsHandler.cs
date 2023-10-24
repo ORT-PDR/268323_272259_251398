@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Exceptions;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
@@ -37,7 +38,7 @@ namespace Protocolo
             }
             else
             {
-                throw new Exception("File does not exist");
+                throw new NonexistingFileException("File does not exist");
             }
         }
 

@@ -1,4 +1,5 @@
 ﻿using Common;
+using Exceptions;
 using Protocolo;
 using Servidor;
 using System.Net;
@@ -268,8 +269,8 @@ namespace PrimerEjemploSocket
 
         private static bool UserIsCorrect(string user)
         {
-            string userName = "";
-            string userPass = "";
+            string userName;
+            string userPass;
             try
             {
                 userName = user.Split('#')[0];
@@ -322,26 +323,23 @@ namespace PrimerEjemploSocket
             var strHasImage = await ReceiveData(socketHelper);
             int hasImage = int.Parse(strHasImage);
             var productImage = "";
-            string imageName = "";
+            string imageName;
 
             if (hasImage == 1)
             {
-                Println("Antes de recibir el archivo");
                 var fileCommonHandler = new FileCommsHandler(client);
                 fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
                 imageName = productName + ".png";
                 productImage = await ReceiveData(socketHelper);
-
-
-                Println("Archivo recibido!!");
+                if (productImage.Equals("")) imageName = "sin imagen";
             }
             else
             {
-                imageName = "sin imágen";
+                imageName = "sin imagen";
                 productImage = await ReceiveData(socketHelper);
                 Println("");
             }
-            Product product = new Product();
+            Product product = new();
             product.Name = productName;
             product.Description = productDescription;
             product.Price = productPrice;
@@ -563,7 +561,7 @@ namespace PrimerEjemploSocket
             }
             await SendData(socketHelper, consultedProduct.ToString());
             await SendData(socketHelper, consultedProduct.Image);
-            if (consultedProduct.Image != "sin imágen")
+            if (consultedProduct.Image != "sin imagen")
             {
                 var fileCommonHandler = new FileCommsHandler(client);
                 try
@@ -578,7 +576,7 @@ namespace PrimerEjemploSocket
 
                     Println("Se envio el archivo al Cliente");
                 }
-                catch (Exception)
+                catch (NonexistingFileException)
                 {
                     Println("Imagen no encontrada");
                     await SendData(socketHelper, "error");
@@ -619,21 +617,21 @@ namespace PrimerEjemploSocket
 
         private static void LoadTestData()
         {
-            User user1 = new User()
+            User user1 = new()
             {
                 Id = 2,
                 Username = "Nahuel",
                 Password = "Nah123"
             };
             users.Add(user1);
-            User user2 = new User()
+            User user2 = new()
             {
                 Id = 1,
                 Username = "Alan",
                 Password = "Alan123"
             };
             users.Add(user2);
-            User user3 = new User()
+            User user3 = new()
             {
                 Id = 3,
                 Username = "Lucas",
@@ -641,7 +639,7 @@ namespace PrimerEjemploSocket
             };
             users.Add(user3);
 
-            Product prod1 = new Product()
+            Product prod1 = new()
             {
                 Id = 1,
                 OwnerUserName = user1.Username,
@@ -649,10 +647,10 @@ namespace PrimerEjemploSocket
                 Description = "Primera mesa de Nahuel",
                 Stock = 4,
                 Price = 252,
-                Image = "sin imágen"
+                Image = "sin imagen"
             };
             products.Add(prod1);
-            Product prod2 = new Product()
+            Product prod2 = new()
             {
                 Id = 2,
                 OwnerUserName = user1.Username,
@@ -660,10 +658,10 @@ namespace PrimerEjemploSocket
                 Description = "Primera silla de Nahuel",
                 Stock = 3,
                 Price = 134,
-                Image = "sin imágen"
+                Image = "sin imagen"
             };
             products.Add(prod2);
-            Product prod3 = new Product()
+            Product prod3 = new()
             {
                 Id = 3,
                 OwnerUserName = user2.Username,
@@ -671,10 +669,10 @@ namespace PrimerEjemploSocket
                 Description = "Primera cama de Alan",
                 Stock = 7,
                 Price = 300,
-                Image = "sin imágen"
+                Image = "sin imagen"
             };
             products.Add(prod3);
-            Product prod4 = new Product()
+            Product prod4 = new()
             {
                 Id = 4,
                 OwnerUserName = user3.Username,
@@ -682,7 +680,7 @@ namespace PrimerEjemploSocket
                 Description = "Primer escritorio de Lucas",
                 Stock = 1,
                 Price = 450,
-                Image = "sin imágen"
+                Image = "sin imagen"
             };
             products.Add(prod4);
         }
