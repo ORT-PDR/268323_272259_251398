@@ -88,25 +88,18 @@ namespace Cliente
 
         private static async Task SearchProductByFilter(SocketHelper socketHelper)
         {
-            try
+            Println("Has seleccionado la opción Búsqueda de productos");
+            Print("Ingrese el nombre para filtrar: ");
+            string filterText = Read();
+            await SendData(socketHelper, filterText);
+            var product = "";
+            while (product != "end")
             {
-                Println("Has seleccionado la opción Búsqueda de productos");
-                Print("Ingrese el nombre para filtrar: ");
-                string filterText = Read();
-                await SendData(socketHelper, filterText);
-                var product = "";
-                while (product != "end")
-                {
-                    Println(product);
-                    product = await ReceiveData(socketHelper);
-                    if (!connected) Println("No se pudo realizar la busqueda.");
-                }
+                Println(product);
+                product = await ReceiveData(socketHelper);
             }
-            catch (Exception)
-            {
-                Println("Error de conexion");
-            }
-          
+            Println("Presione una tecla para volver al menú");
+            Console.ReadKey();
         }
 
         private static async Task ModifyAProduct(SocketHelper socketHelper, TcpClient client)

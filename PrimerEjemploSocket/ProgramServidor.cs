@@ -120,27 +120,7 @@ namespace PrimerEjemploSocket
                             break;
                         case 5:
                             //Búsqueda de productos
-                            var filterText = await ReceiveData(socketHelper);
-
-                            List<string> filteredProds = new();
-                            lock (locker)
-                            {
-                                foreach (var prod in products)
-                                {
-                                    if (prod.Name.Contains(filterText))
-                                    {
-                                        filteredProds.Add(prod.ToString());
-                                        Println(prod.Name);
-                                    }
-                                }
-                            }
-                            foreach (string prod in filteredProds)
-                            {
-                                await SendData(socketHelper, prod);
-                            }
-
-                            await SendData(socketHelper, "end");
-
+                            await SearchForProducts(socketHelper);
                             break;
                         case 6:
                             //consultar un producto específico
@@ -588,6 +568,30 @@ namespace PrimerEjemploSocket
             await SendData(socketHelper, "Se ha eliminado el producto correctamente");
             FileStreamHandler.Delete(prodToDelete, settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
             Println(socketHelper.UserName + " eliminó el producto " + prodToDelete);
+        }
+
+        private static async Task SearchForProducts(SocketHelper socketHelper)
+        {
+            var filterText = await ReceiveData(socketHelper);
+
+            List<string> filteredProds = new();
+            lock (locker)
+            {
+                foreach (var prod in products)
+                {
+                    if (prod.Name.Contains(filterText))
+                    {
+                        filteredProds.Add(prod.ToString());
+                        Println(prod.Name);
+                    }
+                }
+            }
+            foreach (string prod in filteredProds)
+            {
+                await SendData(socketHelper, prod);
+            }
+
+            await SendData(socketHelper, "end");
         }
 
         private static async Task RateAProduct(SocketHelper socketHelper)
