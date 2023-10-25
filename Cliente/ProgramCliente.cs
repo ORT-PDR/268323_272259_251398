@@ -167,6 +167,8 @@ namespace Cliente
                             Println("Opción no válida. Por favor, seleccione una opción válida.");
                             break;
                     }
+                    Println("\nPresiona cualquier tecla para continuar...");
+                    Console.ReadKey();
                 }
                 catch (ExitMenuException) { }
             }
