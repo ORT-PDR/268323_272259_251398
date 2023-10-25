@@ -2,18 +2,17 @@
 using System.Net;
 using System.Text;
 using Protocolo;
-using Microsoft.VisualBasic.FileIO;
 using Common;
+using System.Net.Http;
+using Exceptions;
 using System.IO;
-using System;
 
 namespace Cliente
 {
     internal class ProgramCliente
     {
-        static readonly SettingsManager settingMng = new SettingsManager();
-        static bool errorDeConexion = true;
-        static Socket socketClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        static readonly SettingsManager settingMng = new();
+        static bool conectionError = true;
         static string clientIp = settingMng.ReadSettings(ClientConfig.clientIPconfigKey);
         static int clientPort = int.Parse(settingMng.ReadSettings(ClientConfig.clientPortconfigKey));
         static string serverIp = settingMng.ReadSettings(ClientConfig.serverIPconfigKey);
@@ -24,326 +23,381 @@ namespace Cliente
         static IPEndPoint localEndPoint = new IPEndPoint(IPAddress.Parse(clientIp), clientPort);
         static IPEndPoint remoteEndPoint = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
-            
+            bool tryToConnect = true;
+            while (tryToConnect)
+            {
+                clientIp = settingMng.ReadSettings(ClientConfig.clientIPconfigKey);
+                clientPort = int.Parse(settingMng.ReadSettings(ClientConfig.clientPortconfigKey));
+                serverIp = settingMng.ReadSettings(ClientConfig.serverIPconfigKey);
+                serverPort = int.Parse(settingMng.ReadSettings(ClientConfig.serverPortconfigKey));
 
-            //SocketHelper socketHandler = new SocketHelper(socketClient);
-
-                bool intentoConcetarme = true;
-                while (intentoConcetarme)
-                {
-                    socketClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                    clientIp = settingMng.ReadSettings(ClientConfig.clientIPconfigKey);
-                    clientPort = int.Parse(settingMng.ReadSettings(ClientConfig.clientPortconfigKey));
-                    serverIp = settingMng.ReadSettings(ClientConfig.serverIPconfigKey);
-                    serverPort = int.Parse(settingMng.ReadSettings(ClientConfig.serverPortconfigKey));
-
-                   localEndPoint = new IPEndPoint(IPAddress.Parse(clientIp), clientPort);
-
-                    Println("Iniciar Cliente...");
-
-                    socketClient.Bind(localEndPoint);
-                    Println("Estableciendo conexión con el servidor...");
-                    bool connectionEstablished = false;
-                    while (!connectionEstablished)
-                    {
-                        try
-                        {
-                            socketClient.Connect(remoteEndPoint);
-                            connectionEstablished = true;
-                        }
-                        catch { }
-                    }
-                    // int meConecteCantVeces = 0;
-                    Println("Se estableció conexión con el servidor");
+                localEndPoint = new IPEndPoint(IPAddress.Parse(clientIp), clientPort);
+                remoteEndPoint = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
                     
-                    /*     
-                     if (meConecteCantVeces == 1)
-                     {
-                         try
-                     {
-                             socketClient.Bind(localEndPoint);
-                             socketClient.Connect(remoteEndPoint);
-                             connectionEstablished = true;
-                         }
-                     catch { }
-                     }
-                     */
-                    remoteEndPoint = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
-                    errorDeConexion = false;
-                    SocketHelper socketHandler = new SocketHelper(socketClient);
-                    EnterSystem(socketHandler);
+                TcpClient tcpClient = new(localEndPoint);
 
-                    while (!exitMenu && !errorDeConexion && connected)
+                await EstablishConection(tcpClient);
+                
+                SocketHelper socketHelper = new(tcpClient);
+                try
                 {
-                    ShowMenu();
-                    string option = Read();
-                    try
+                    await EnterSystem(socketHelper, tcpClient);
+                }
+                catch (ServerErrorException ex)
+                {
+                    Println(ex.Message);
+                    if (!Reconnect())
                     {
-                        int checkOption = int.Parse(option);
-                        if (checkOption > 0 && checkOption <= 8) SendData(socketHandler, option);
+                        tcpClient.Close();
+                        tryToConnect = false;
                     }
-                    catch { }
+                }
+                catch (ExitMenuException)
+                {
+                    Println("Saliendo del programa...");
+                    tcpClient.Close();
+                    tryToConnect = false;
+                }
+                catch (ExitProgramException ex)
+                {
+                    Println(ex.Message);
+                    tcpClient.Close();
+                    tryToConnect = false;
+                }
+            }
+        }
 
+        private static async Task EstablishConection(TcpClient tcpClient)
+        {
+            bool connectionEstablished = false;
+            while (!connectionEstablished)
+            {
+                try
+                {
+                    await tcpClient.ConnectAsync(remoteEndPoint);
+                    connectionEstablished = true;
+                    Println("Se estableció conexión con el servidor");
+                }
+                catch { }
+            }
+        }
+        private static bool Reconnect()
+        {
+            Println("Servidor caido, quiere reintentar?");
+            Println("1-Si");
+            Println("2-No");
+            var wantToReconnect = Read();
+            bool validSelection = wantToReconnect.Equals("1") || wantToReconnect.Equals("2");
+            while (!validSelection)
+            {
+                Print("Digite 1 si quiere reconectarse, de lo contrario digite 2.");
+                wantToReconnect = Read();
+            }
+            if (wantToReconnect == "2")
+            {
+                return false;
+            }
+            return true;
+        }
+
+        private static async Task EnterSystem(SocketHelper socketHelper, TcpClient client)
+        {
+            Println("Ingrese la opción:");
+            Println("1. Iniciar Sesión");
+            Println("2. Registrarse");
+
+            string initOption = Read();
+            await ValueEqualsExit(socketHelper, initOption);
+
+            while (initOption != "1" && initOption != "2")
+            {
+                Println("Ingrese una opcion valida.");
+                initOption = Read();
+                await ValueEqualsExit(socketHelper, initOption);
+            }
+            await SendData(socketHelper, initOption);
+
+            if (initOption == "1")
+            {
+                await LogIn(socketHelper);
+            }
+            else
+            {
+                await RegisterUser(socketHelper);
+            }
+            await Menu(socketHelper, client);
+        }
+        private static async Task Menu(SocketHelper socketHelper, TcpClient client)
+        {
+            while (!exitMenu && connected)
+            {
+                ShowMenu();
+                string option = Read();
+                if (option.ToLower().Equals("exit") || (int.TryParse(option, out int opt) && opt > 0 && opt <= 8)) await SendData(socketHelper, option);
+                try
+                {
                     switch (option)
                     {
                         case "1":
-                            if (!errorDeConexion)
-                            {
-                                PublishProduct(socketHandler, socketClient);
-                            }
+                            if (!conectionError) await PublishProduct(socketHelper, client);
                             break;
                         case "2":
-                            if (!errorDeConexion)
-                            {
-                                BuyAProduct(socketHandler, ref connected);
-                            }
+                            if (!conectionError) await BuyAProduct(socketHelper);
                             break;
                         case "3":
-                            if (!errorDeConexion)
-                            {
-                                ModifyAProduct(ref connected, socketHandler);
-                            }
+                            if (!conectionError) await ModifyAProduct(socketHelper, client);
                             break;
                         case "4":
-                            if (!errorDeConexion)
-                            {
-                                DeleteProduct(ref connected, socketHandler);
-                            }
+                            if (!conectionError) await DeleteProduct(socketHelper);
                             break;
                         case "5":
-                            if (!errorDeConexion)
-                            {
-                                SearchProductByFilter(ref connected, socketHandler);
-                            }
+                            if (!conectionError) await SearchProductByFilter(socketHelper);
                             break;
                         case "6":
-                            if (!errorDeConexion)
-                            {
-                                ConsultAProduct(ref connected, socketHandler);
-                            }
+                            if (!conectionError) await ConsultAProduct(socketHelper, client);
                             break;
                         case "7":
-                            if (!errorDeConexion)
-                            {
-                                RateAProduct(socketHandler, ref connected);
-                            }
+                            if (!conectionError) await RateAProduct(socketHelper);
                             break;
                         case "8":
-                            Println("Saliendo del programa...");
-                            exitMenu = true;
-
-                            break;
+                            throw new ExitProgramException("Saliendo del programa...");
                         default:
                             Println("Opción no válida. Por favor, seleccione una opción válida.");
-
                             break;
                     }
-
                     Println("\nPresiona cualquier tecla para continuar...");
                     Console.ReadKey();
                 }
-                    if (errorDeConexion || !connected)
+                catch (ExitMenuException) { }
+            }
+        }
+
+        private static async Task PublishProduct(SocketHelper socketHelper, TcpClient client)
+        {
+            Println("Has seleccionado la opción Publicación de producto");
+            string productName = await ReadProductName(socketHelper);
+
+            Print("Descripción: ");
+            string productDescription = Read();
+            await SendData(socketHelper, productDescription);
+
+            await ReadInt(socketHelper, "Cantidad disponible: ", "Ingrese un entero mayor o igual a 0.");
+
+            await ReadInt(socketHelper, "Precio: ", "Ingrese un entero mayor a 0.");
+
+            await AddImage(socketHelper, client, productName);
+        }
+
+        private static async Task<string> ReadProductName(SocketHelper socketHelper)
+        {
+            Print("Nombre del producto: ");
+            string productName = Read();
+            await SendData(socketHelper, productName);
+            var isOK = await ReceiveData(socketHelper);
+            while (isOK != "OK")
+            {
+                Print("El producto ya se encuentra en el sistema. Ingrese otro nombre: ");
+                productName = Read();
+                await SendData(socketHelper, productName);
+                isOK = await ReceiveData(socketHelper);
+            }
+            return productName;
+        }
+
+        private static async Task ReadInt(SocketHelper socketHelper, string instruction, string errorMsg)
+        {
+            bool isValueCorrect = false;
+            while (!isValueCorrect)
+            {
+                Print(instruction);
+                string input = Read();
+                if (int.TryParse(input, out int intValue) && intValue >= 0)
                 {
-                    try
-                    {
-                        Console.WriteLine("Servidor caido, quiere reintentar?");
-                        Console.WriteLine("1-Si");
-                        Console.WriteLine("2-No");
-                        bool eleccionValida = false;
-                        int eleccion = 0;
-                        while (!eleccionValida)
-                        {
-                            try
-                            {
-                                eleccion = int.Parse(Read());
-                                eleccionValida = true;
-                            }
-                            catch (Exception exception)
-                            {
-                                Println("Ingrese 1 o 2 según su eleccón ");
-                            }
-                        }
-                        if (eleccion == 1)
-                        {
-                           
-                            //meConecteCantVeces = 1;
-                        }
-                        else
-                        {
-                            intentoConcetarme = false;
-                            socketClient.Shutdown(SocketShutdown.Both);
-                            socketClient.Close();
-                            
-                        }
-                        
-                    }
-                    catch { }
+                    isValueCorrect = true;
+                    await SendData(socketHelper, input);
                 }
+                else
+                {
+                    Println(errorMsg);
                 }
-                
-                socketClient.Close();
+            }
+        }
+
+        private static async Task AddImage(SocketHelper socketHelper, TcpClient client, string productName)
+        {
+            Println("Desea agregar imagen?");
+            Println("1-Si");
+            Println("2-No");
+            bool isValueCorrect = false;
+            string input = "2";
+            while (!isValueCorrect)
+            {
+                input = Read();
+                if (int.TryParse(input, out int intValue) && (intValue == 1 || intValue == 2))
+                {
+                    isValueCorrect = true;
+                }
+                else
+                {
+                    Print("Ingrese 1 si desea agregar una imagen, de lo contrario digite 2: ");
+                }
+            }
+
+            if (input == "1")
+            {
+                await SendData(socketHelper, input);
+                Print("Ruta de la imagen del producto: ");
+                string path = Read();
+                string imageName = productName + "InServer.png";
+                var fileCommonHandler = new FileCommsHandler(client);
+                try
+                {
+                    await fileCommonHandler.SendFile(path, imageName);
+                    await SendData(socketHelper, path);
+                    string result = await ReceiveData(socketHelper);
+                    if (result.Equals("routeError")) throw new ExitMenuException();
+                    Println("Se envio el archivo al Servidor");
+                }
+                catch (NonexistingFileException)
+                {
+                    Println("El archivo no existe.");
+                    await SendData(socketHelper, "");
+                    await SendData(socketHelper, "");
+                    await SendData(socketHelper, "");
+                    await SendData(socketHelper, "");
+                }
+            }
+            else
+            {
+                await SendData(socketHelper, input);
+                await SendData(socketHelper, "sin imagen");
+            }
+            string resultCreate = await ReceiveData(socketHelper);
+            if (resultCreate == "OK") Println("Producto agregado con éxito.");
+            else Println("No se pudo agregar el producto");
+        }
+
+
+        private static async Task DeleteProduct(SocketHelper socketHelper)
+        {
+            Println("Has seleccionado la opción Baja de producto");
+            List<string> userProducts = await GetUserProducts(socketHelper);
+            ShowProducts(userProducts);
+            Print("Ingrese el nombre del producto a eliminar: ");
+            string prodName = Read();
+            await SendData(socketHelper, prodName);
+            var response = await ReceiveData(socketHelper);
+            Println(response);
+        }
+
+        private static async Task SearchProductByFilter(SocketHelper socketHelper)
+        {
+            Println("Has seleccionado la opción Búsqueda de productos");
+            Print("Ingrese el nombre para filtrar: ");
+            string filterText = Read();
+            await SendData(socketHelper, filterText);
+            var product = "";
+            while (product != "end")
+            {
+                Println(product);
+                product = await ReceiveData(socketHelper);
+            }
+            Println("Presione una tecla para volver al menú");
+            Console.ReadKey();
         }
         
-        private static void DeleteProduct(ref bool connected, SocketHelper socketHelper)
+        private static async Task ModifyAProduct(SocketHelper socketHelper, TcpClient client)
         {
-            try
+            Println("Has seleccionado la opción Modificación de producto");
+            List<string> productNames = await GetUserProducts(socketHelper);
+            for (int i = 0; i < productNames.Count; i++)
             {
-                Println("Has seleccionado la opción Baja de producto");
-                List<string> userProducts = GetUserProducts(socketHelper, ref connected);
-                ShowProducts(userProducts);
-                Console.Write("Ingrese el nombre del producto a eliminar: ");
-                string prodName = Read();
-                SendData(socketHelper, prodName);
-                string response = "";
-                ReceiveData(socketHelper, ref response);
-                Println(response);
+                Println($"{productNames[i]}");
             }
-            catch (Exception ex)
+            Println("Ingrese nombre del producto a modificar ");
+            string productToModifyName = Read();
+            await ValueEqualsExit(socketHelper, productToModifyName);
+            while (!productNames.Contains(productToModifyName))
             {
-                Console.WriteLine(ex.Message);
+                Println("Producto no encontrado. Escriba un nombre de producto válido.");
+                productToModifyName = Read();
+                await ValueEqualsExit(socketHelper, productToModifyName);
             }
-        }
 
-        private static void SearchProductByFilter(ref bool connected, SocketHelper socketHelper)
-        {
-            try
+            bool modificado = false;
+            while (!modificado)
             {
-                Println("Has seleccionado la opción Búsqueda de productos");
-                Print("Ingrese el nombre para filtrar: ");
-                string filterText = Read();
-                SendData(socketHelper, filterText);
-                string product = "";
-                while (product != "end")
+                PrintModifyProductOptions();
+                string attributeOption = Read();
+                await ValueEqualsExit(socketHelper, attributeOption);
+                while (attributeOption != "1" && attributeOption != "2" && attributeOption != "3" && attributeOption != "4")
                 {
-                    Println(product);
-                    connected = ReceiveData(socketHelper, ref product);
-                    if (!connected) Println("No se pudo realizar la busqueda.");
-                }
-            }
-            catch (Exception ex)
-            {
-                Println("Error de conexion");
-            }
-          
-        }
-
-        private static void ModifyAProduct(ref bool connected, SocketHelper socketHelper)
-        {
-            try
-            {
-                Println("Has seleccionado la opción Modificación de producto");
-                List<string> productNames = GetUserProducts(socketHelper, ref connected);
-                for (int i = 0; i < productNames.Count; i++)
-                {
-                    Println($"{productNames[i]}");
-                }
-                Println("Ingrese nombre del producto a modificar ");
-                string product = Read();
-                while (!productNames.Contains(product))
-                {
-                    Println("Producto no encontrado. Escriba un nombre de producto válido.");
-                    product = Read();
-                }
-
-                bool modificado = false;
-                while (!modificado)
-                {
+                    Println("Opcion Inválida.");
                     PrintModifyProductOptions();
-                    string attributeOption = Read();
-                    while (attributeOption != "1" && attributeOption != "2" &&
-                        attributeOption != "3" && attributeOption != "4")
-                    {
-                        Println("Opcion Inválida.");
-                        PrintModifyProductOptions();
-                        attributeOption = Read();
-                    }
-                    SendData(socketHelper, product);
-                    SendData(socketHelper, attributeOption);
-
-                    Print("Inserte nuevo valor:");
-                    string newValue = Read();
-                    if(attributeOption == "1")
-                    {
-                        SendData(socketHelper, newValue);
-                    }
-                    if (attributeOption == "2")
-                    {
-                        int value = -1;
-                        while (value < 0)
-                        {
-                            try
-                            {
-                                value = Convert.ToInt32(newValue);
-                            }
-                            catch
-                            {
-                                
-                            }
-                            if (value < 0)
-                            {
-                                Console.WriteLine("El precio debe ser un numero positivo. Inserte nuevamente:");
-                                newValue = Read();
-                            }
-                        }
-                        SendData(socketHelper, newValue);
-                    }
-                    else if (attributeOption == "3")
-                    {
-                        int value = -1;
-                        while (value <= 0)
-                        {
-                            try
-                            {
-                                value = Convert.ToInt32(newValue);
-                            }
-                            catch
-                            {
-                                
-                            }
-                            if (value < 0)
-                            {
-                                Console.WriteLine("El precio debe ser un numero positivo. Inserte nuevamente:");
-                                newValue = Read();
-                            }
-                        }
-                        SendData(socketHelper, newValue);
-                    }
-                    else if (attributeOption == "4")
-                    {
-                        string imageName = product + "InServer.png";
-                        var fileCommonHandler = new FileCommsHandler(socketClient);
-                        try
-                        {
-                            SendData(socketHelper, newValue);
-                            fileCommonHandler.SendFile(newValue, imageName);
-                            
-                            Console.WriteLine("Se envio el archivo nuevo al Servidor");
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine(ex.Message);
-                            SendData(socketHelper, "");
-                        }
-                    }
-                    modificado = true;
+                    attributeOption = Read();
+                    await ValueEqualsExit(socketHelper, attributeOption);
                 }
+                await SendData(socketHelper, productToModifyName);
+                await SendData(socketHelper, attributeOption);
+
+                Print("Inserte nuevo valor:");
+                string newValue = Read();
+                if(attributeOption == "1")
+                {
+                    await SendData(socketHelper, newValue);
+                }
+                if (attributeOption == "2")
+                {
+                    await GetCorrectInt(socketHelper, "El stock debe ser un entero positivo. Inserte nuevamente: ", newValue);
+                }
+                else if (attributeOption == "3")
+                {
+                    await GetCorrectInt(socketHelper, "El precio debe ser un entero positivo. Inserte nuevamente: ", newValue);
+                }
+                else if (attributeOption == "4")
+                {
+                    string imageName = productToModifyName + "InServer.png";
+                    var fileCommonHandler = new FileCommsHandler(client);
+                    try
+                    {
+                        await SendData(socketHelper, newValue);
+                        await fileCommonHandler.SendFile(newValue, imageName);
+                        await SendData(socketHelper, "imageName");
+                    }
+                    catch (NonexistingFileException)
+                    {
+                        Println("El archivo no existe.");
+                        await SendData(socketHelper, "");
+                        await SendData(socketHelper, "");
+                        await SendData(socketHelper, "");
+                        await SendData(socketHelper, "");
+                    }
+                }
+                modificado = true;
             }
-            catch (Exception ex)
+        }
+
+        private static async Task GetCorrectInt(SocketHelper socketHelper, string errorMsg, string input)
+        {
+            bool isValueCorrect = int.TryParse(input, out int intValue) && intValue > 0;
+            while (!isValueCorrect)
             {
-                Console.WriteLine("Error de conexion");
+                Print(errorMsg);
+                input = Read();
+                isValueCorrect = int.TryParse(input, out intValue) && intValue > 0;
             }
-            
+            await SendData(socketHelper, input);
         }
 
         private static void PrintModifyProductOptions()
         {
-            Console.WriteLine("Que campo desea modificar: (Digite la opción)");
-            Console.WriteLine("1. Descripcion");
-            Console.WriteLine("2. Stock Disponible");
-            Console.WriteLine("3. Precio");
-            Console.WriteLine("4. Imagen");
+            Println("Que campo desea modificar: (Digite la opción)");
+            Println("1. Descripcion");
+            Println("2. Stock Disponible");
+            Println("3. Precio");
+            Println("4. Imagen");
         }
 
         private static void ShowMenu()
@@ -377,309 +431,123 @@ namespace Cliente
             return Console.ReadLine();
         }
 
-        private static void SendData(SocketHelper socketHelper, string text)
+        private static async Task SendData(SocketHelper socketHelper, string text)
         {
             byte[] data = Encoding.UTF8.GetBytes(text);
             byte[] dataLength = BitConverter.GetBytes(data.Length);
-
             try
             {
-                socketHelper.Send(dataLength);
-                socketHelper.Send(data);
+                await socketHelper.SendAsync(dataLength);
+                await socketHelper.SendAsync(data);
+                if (text.ToLower().Equals("exit")) throw new ExitMenuException();
             }
             catch (SocketException)
             {
-                Println("Error de conexión");
-                errorDeConexion = true;
-                throw new Exception("Error de conexion");
+                throw new ServerErrorException("Se produjo un error de conexión con el servidor");
             }
         }
 
-        private static bool ReceiveData(SocketHelper socketHelper, ref string text)
+        private static async Task<string> ReceiveData(SocketHelper socketHelper)
         {
             try
             {
-                byte[] largoData = socketHelper.Receive(Protocol.DataSize);
-                byte[] data = socketHelper.Receive(BitConverter.ToInt32(largoData));
-
-                text = Encoding.UTF8.GetString(data);
-                return true;
+                byte[] dataLength = await socketHelper.ReceiveAsync(Protocol.DataSize);
+                byte[] data = await socketHelper.ReceiveAsync(BitConverter.ToInt32(dataLength));
+                return Encoding.UTF8.GetString(data);
             }
-            catch (SocketException e)
+            catch (SocketException)
             {
-                return false;
+                throw new ServerErrorException("Se produjo un error de conexión con el servidor");
             }
         }
 
-        private static void PublishProduct(SocketHelper socketHelper, Socket socketClient)
+        private static async Task RegisterUser(SocketHelper socketHelper)
         {
-            try
-            {
-                Println("Has seleccionado la opción Publicación de producto");
-                //SendData(socketHelper, "Creando Proucto");
-                Print("Nombre del producto: ");
-                string productName = Console.ReadLine();
-                SendData(socketHelper, productName);
-
-                string isOK = "";
-                ReceiveData(socketHelper, ref isOK);
-                while (isOK != "OK")
-                {
-                    Print("El producto ya se encuentra en el sistema. Inserte un nombre de producto no publicado:  ");
-                    productName = Console.ReadLine();
-                    SendData(socketHelper, productName);
-                    ReceiveData(socketHelper, ref isOK);
-                }
-
-                Print("Descripción del producto: ");
-                string productDescription = Console.ReadLine();
-                SendData(socketHelper, productDescription);
-
-                int stock;
-                bool stockCorrect = false;
-                while (!stockCorrect)
-                {
-                    Print("Cantidad disponible: ");
-                    string input = Console.ReadLine();
-
-                    if (int.TryParse(input, out stock) && stock >= 0)
-                    {
-                        stockCorrect = true;
-                        SendData(socketHelper, input);
-                    }
-                    else
-                    {
-                        Println("Ingrese un número entero válido mayor o igual a 0.");
-                    }
-                }
-
-                int precioProducto = 0;
-                bool priceCorrect = false;
-                while (!priceCorrect)
-                {
-                    Print("Precio del producto: ");
-                    string input = Console.ReadLine();
-
-                    if (int.TryParse(input, out precioProducto) && precioProducto > 0)
-                    {
-                        priceCorrect = true;
-                        SendData(socketHelper, input);
-                    }
-                    else
-                    {
-                        Println("Ingrese un número válido mayor a 0.");
-                    }
-                }
-                Println("Desea agregar imagen?");
-                Println("1-Si");
-                Println("2-No");
-                bool eleccionValida = false;
-                int eleccion = 0;
-                while (!eleccionValida)
-                {                   
-                    try
-                    {
-                        eleccion = int.Parse(Read());
-                        eleccionValida = true;
-                    }catch (Exception e)
-                    {
-                        Println("Ingrese 1 o 2 según su eleccón ");
-                    }
-                }
-
-                if (eleccion == 1)
-                {
-                    SendData(socketHelper, eleccion+"");
-                    Print("Ruta de la imagen del producto: ");
-                    string path = Console.ReadLine();
-                    string imageName = productName + "InServer.png";
-
-                    var fileCommonHandler = new FileCommsHandler(socketClient);
-                    try
-                    {
-                        fileCommonHandler.SendFile(path, imageName);
-                        SendData(socketHelper, path);
-                        Console.WriteLine("Se envio el archivo al Servidor");
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex.Message);
-                        SendData(socketHelper, "");
-                    }
-                }
-                else
-                {
-                    SendData(socketHelper, eleccion + "");
-                    SendData(socketHelper, "sin imagen");
-                }
-                string resultCreate = "";
-                connected = ReceiveData(socketHelper, ref resultCreate);
-                if (connected && resultCreate == "OK") Console.WriteLine("Producto agregado con éxito.");
-                else Console.WriteLine("No se pudo agregar el producto");
-            }
-            catch
-            {
-                Console.WriteLine("Error de conexion");
-            }
-        }
-
-        private static void EnterSystem(SocketHelper socketHandler)
-        {
-            Println("Ingrese la opción:");
-            Println("1. Iniciar Sesión");
-            Println("2. Registrarse");
-
-            string initOption = Console.ReadLine();
-
-            while (initOption != "1" && initOption != "2")
-            {
-
-                Println("Ingrese una opcion valida.");
-
-                initOption = Console.ReadLine();
-
-            }
-            try
-            {
-                SendData(socketHandler, initOption);
-
-                if (initOption == "1") LogIn(socketHandler, ref connected);
-
-                else RegisterUser(socketHandler, ref connected);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("No fue posible acceder al servidor");
-                errorDeConexion = true;
-            }
-
-        }
-
-        private static void RegisterUser(SocketHelper socketHelper, ref bool connected)
-        {
-            Print("Ingrese nombre de usuario:   ");
-            string username = Console.ReadLine();
-            Print("Ingrese constraseña:   ");
-            string password = Console.ReadLine();
+            Print("Ingrese nombre de usuario: ");
+            string username = Read();
+            Print("Ingrese constraseña: ");
+            string password = Read();
             while (password == "")
             {
                 Print("La contraseña no puede ser vacía. Ingrese una contraseña nuevamente:  ");
-                password = Console.ReadLine();
+                password = Read();
             }
             try
             {
                 string user = username + "@" + password;
-                SendData(socketHelper, user);
-                string response = "";
-                connected = ReceiveData(socketHelper, ref response);
+                await SendData(socketHelper, user);
+                var response = await ReceiveData(socketHelper);
                 if (connected)
                 {
-                    if (response == "OK")
+                    if (response.ToString() == "OK")
                     {
                         Println("Bienvenido al sistema " + username);
-                        errorDeConexion = false;
+                        conectionError = false;
                     }
                     else
                     {
                         Println("Ya hay un usuario con ese nombre en el sistema. Intente nuevamente.");
-                        RegisterUser(socketHelper, ref connected);
+                        await RegisterUser(socketHelper);
                     }
                 }
             }
             catch
             {
-                errorDeConexion = true;
+                conectionError = true;
                 Println("Conexión con el servidor perdida.");
             }
         }
-/*
-        private static void ReconectarAlServidor()
+
+        private static async Task RateAProduct(SocketHelper socketHelper)
         {
-            socketClient = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            Println("Has seleccionado la opción Calificar un producto");
 
-            clientIp = settingMng.ReadSettings(ClientConfig.clientIPconfigKey);
-            clientPort = int.Parse(settingMng.ReadSettings(ClientConfig.clientPortconfigKey));
-            serverIp = settingMng.ReadSettings(ClientConfig.serverIPconfigKey);
-            serverPort = int.Parse(settingMng.ReadSettings(ClientConfig.serverPortconfigKey));
+            List<string> productsToRate = await GetUserProducts(socketHelper);
+            ShowProducts(productsToRate);
 
-            localEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 0);
-            socketClient.Bind(localEndPoint);
-            remoteEndPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 20000);
-            errorDeConexion = false;
+            Print("Ingrese el nombre del producto a calificar: ");
+            string prodName = Read();
+            await ValueEqualsExit(socketHelper, prodName);
+            productsToRate = productsToRate.Select(product => product.Split('|')[0].Trim()).ToList();
 
-
-        }*/
-        private static void RateAProduct(SocketHelper socketHelper, ref bool connected)
-        {
-            try
+            bool productExists = productsToRate.Contains(prodName);
+            while (!productExists)
             {
-                Println("Has seleccionado la opción Calificar un producto");
-
-                List<string> productsToRate = GetUserProducts(socketHelper, ref connected);
-                ShowProducts(productsToRate);
-
-                Console.Write("Ingrese el nombre del producto a calificar: ");
-                string prodName = Read();
-                productsToRate = productsToRate.Select(product => product.Split('|')[0].Trim()).ToList();
-
-                bool productExists = productsToRate.Contains(prodName);
-                while (!productExists)
+                Print("Ingrese alguna de las opciones listadas: ");
+                prodName = Read();
+                await ValueEqualsExit(socketHelper, prodName);
+                if (productsToRate.Contains(prodName))
                 {
-                    Print("Ingrese alguna de las opciones listadas: ");
-                    prodName = Read();
-                    if (productsToRate.Contains(prodName))
-                    {
-                        productExists = true;
-                    }
+                    productExists = true;
                 }
+            }
                
-                SendData(socketHelper, prodName);
+            await SendData(socketHelper, prodName);
 
-                Println("¿Cuál es su opinión del producto?");
-                var opinion = Console.ReadLine();
-                SendData(socketHelper, opinion);
+            Println("¿Cuál es su opinión del producto?");
+            var opinion = Read();
+            await SendData(socketHelper, opinion);
 
-                string input = "";
-                while (true)
+            string input = "";
+            while (true)
+            {
+                Println("Califique el producto con numero del 1 al 10");
+                input = Read();
+                try
                 {
-                    /*
-                    Println("Califique el producto con numero del 1 al 10");
-                    input = Console.ReadLine();
-
-                    if (int.Parse(input) >=1 && int.Parse(input)<=10)
+                    int checkOption = int.Parse(input);
+                    if(checkOption >= 1 && checkOption <= 10)
                     {
+                        await SendData(socketHelper, input);
                         break;
                     }
-                    else
-                    {
-                        Println("Ingrese un número entero válido.");
-                    }
-                    */
-                    Println("Califique el producto con numero del 1 al 10");
-                    input = Read();
-                    try
-                    {
-                        int checkOption = int.Parse(input);
-                        if(checkOption >= 1 && checkOption <= 10)
-                        {
-                            SendData(socketHelper, input);
-                            break;
-                        }
                         
-                    }
-                    catch (Exception ex)
-                    {
-                        Println("Ingrese un número entero válido.");
-                    }
                 }
-
-                
+                catch (Exception)
+                {
+                    Println("Ingrese un número entero válido.");
+                }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error de conexion");
-            }
-            
         }
 
         private static void ShowProducts(List<string> products)
@@ -692,151 +560,153 @@ namespace Cliente
             Println("");
         }
 
-        private static List<string> GetUserProducts(SocketHelper socketHelper, ref bool connected)
+        private static async Task<List<string>> GetUserProducts(SocketHelper socketHelper)
         {
-            string strQuantProducts = "";
-            connected = ReceiveData(socketHelper, ref strQuantProducts);
+            var strQuantProducts = await ReceiveData(socketHelper);
             int quantProducts = int.Parse(strQuantProducts);
 
             List<string> products = new List<string>();
 
             for (int i=0; i<quantProducts; i++)
             {
-                string prod = "";
-                connected = ReceiveData(socketHelper, ref prod);
+                var prod = await ReceiveData(socketHelper);
                 products.Add(prod);
             }
 
             return products;
         }
 
-        private static List<NameStock> GetProductsToBuy(SocketHelper socketHelper, ref bool connected)
+        private static async Task<List<NameStock>> GetProductsToBuy(SocketHelper socketHelper)
         {
             var products = new List<NameStock>();
-            string reception = "";
-            connected = ReceiveData(socketHelper, ref reception);
+            var reception = await ReceiveData(socketHelper);
             while (connected && reception != "end")
             {
-                NameStock product = new NameStock()
+                NameStock product = new()
                 {
                     Name = reception.Split("@")[0],
                     Stock = reception.Split("@")[1]
                 };
                 products.Add(product);
                 Console.WriteLine("Producto: {0}   |   Stock: {1}", product.Name, product.Stock);
-                connected = ReceiveData(socketHelper, ref reception);
+                reception = await ReceiveData(socketHelper);
             }
             return products;
         }
 
-        private static void ConsultAProduct(ref bool connected, SocketHelper socketHelper)
+        private static async Task ConsultAProduct(SocketHelper socketHelper, TcpClient client)
         {
-            try
-            {
-                Println("Has seleccionado la opción Consultar un producto específico");
-                Println("Productos disponibles:");
-                List<string> productsToConsult = GetUserProducts(socketHelper, ref connected);
-                ShowProducts(productsToConsult);
-                Print("Ingrese el nombre del producto que quiera consultar: ");
-                string prodName = Read();
-                productsToConsult = productsToConsult.Select(product => product.Split('|')[0].Trim()).ToList();
+            Println("Has seleccionado la opción Consultar un producto específico");
+            Println("Productos disponibles:");
+            List<string> productsToConsult = await GetUserProducts(socketHelper);
+            ShowProducts(productsToConsult);
+            Print("Ingrese el nombre del producto que quiera consultar: ");
+            string prodName = Read();
+            await ValueEqualsExit(socketHelper, prodName);
+            productsToConsult = productsToConsult.Select(product => product.Split('|')[0].Trim()).ToList();
 
-                bool productExists = productsToConsult.Contains(prodName);
-                while (!productExists)
+            bool productExists = productsToConsult.Contains(prodName);
+            while (!productExists)
+            {
+                Print("Ingrese alguna de las opciones listadas: ");
+                prodName = Read();
+                await ValueEqualsExit(socketHelper, prodName);
+                if (productsToConsult.Contains(prodName))
                 {
-                    Print("Ingrese alguna de las opciones listadas: ");
-                    prodName = Read();
-                    if (productsToConsult.Contains(prodName))
-                    {
-                        productExists = true;
-                    }
+                    productExists = true;
                 }
-                Println("Información sobre el producto: " + prodName);
-                SendData(socketHelper, prodName);
-
-                string consultedProduct = "";
-                ReceiveData(socketHelper, ref consultedProduct);
-                Println(consultedProduct);
-
-                Console.WriteLine("Antes de recibir el archivo");
-                var fileCommonHandler = new FileCommsHandler(socketClient);
-                fileCommonHandler.ReceiveFile();
-                string productImage = prodName;
-                string imageName = productImage;
-                connected = ReceiveData(socketHelper, ref productImage);
-                Console.WriteLine("Archivo recibido!!");
             }
-            catch (Exception ex)
+            Println("Información sobre el producto: " + prodName);
+            await SendData(socketHelper, prodName);
+
+            var consultedProduct = await ReceiveData(socketHelper);
+            Println(consultedProduct);
+
+            var image = await ReceiveData(socketHelper);
+            if (image != "sin imagen")
             {
-                Console.WriteLine("Error de conexion");
+                var imageToDelete = prodName + "InClient.png";
+                FileStreamHandler.Delete(imageToDelete, settingMng.ReadSettings(ClientConfig.clientImageRouteKey));
+
+                Println("Antes de recibir el archivo");
+                var fileCommonHandler = new FileCommsHandler(client);
+                fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ClientConfig.clientImageRouteKey));
+                string imageName = prodName;
+                var productImage = await ReceiveData(socketHelper);
+                if (productImage == "error")
+                {
+                    Println("La imagen no fue encontrada.");
+                }
+                else
+                {
+                    Println("Archivo recibido!!");
+                }
             }
+            Println("Presione una tecla para volver al menú");
+            Console.ReadKey();
         }
 
-        private static void BuyAProduct(SocketHelper socketHelper, ref bool connected)
+        private static async Task BuyAProduct(SocketHelper socketHelper)
         {
-            try
+            Println("Has seleccionado la opción Compra de productos");
+            List<NameStock> products = await GetProductsToBuy(socketHelper);
+
+            while (true)
             {
-                Println("Has seleccionado la opción Compra de productos");
-                bool isBought = false;
-                List<NameStock> products = GetProductsToBuy(socketHelper, ref connected);
-                while (!isBought)
+                Print("Ingrese nombre del producto a comprar: ");
+                string productToBuyName = Read();
+                await ValueEqualsExit(socketHelper, productToBuyName);
+                NameStock? productNameStock = products.FirstOrDefault(p => p.Name.Equals(productToBuyName));
+
+                if (productNameStock != null)
                 {
-                    Print("Ingrese nombre del producto a comprar: ");
-                    string productToBuyName = Read();
-                    NameStock productNameStock = products.Find(p => p.Name.Equals(productToBuyName));
-                    if (productNameStock != null)
+                    if (int.TryParse(productNameStock.Stock, out int stock) && stock > 0)
                     {
-                        int stock = int.Parse(productNameStock.Stock);
-                        if (stock > 0)
+                        Print("Ingrese cantidad a comprar: ");
+                        if (int.TryParse(Read(), out int amountToBuy) && amountToBuy > 0 && amountToBuy <= stock)
                         {
-                            Print("Ingrese cantidad a comprar: ");
-                            int amountToBuy = -1;
-                            while (amountToBuy < 1)
+                            var message = $"{productNameStock.Name}@{amountToBuy}";
+                            await SendData(socketHelper, message);
+                            var response = await ReceiveData(socketHelper);
+
+                            if (response.Equals("ok"))
                             {
-                                try
-                                {
-                                    amountToBuy = int.Parse(Read());
-                                }
-                                catch
-                                {
-                                    Print("Ingrese un numero positivo de cantidad a comprar: ");
-                                }
-                                if (amountToBuy > stock)
-                                {
-                                    Println("Stock Insuficiente, inserte una cantidad que no exceda el stock:");
-                                    amountToBuy = -1;
-                                }
-                                else
-                                {
-                                    string message = productNameStock.Name + "@" + amountToBuy.ToString();
-                                    SendData(socketHelper, message);
-                                    connected = ReceiveData(socketHelper, ref message);
-                                    if (connected)
-                                    {
-                                        if (message.Equals("ok")) isBought = true;
-                                        else Println("No hay stock disponible del producto seleccionado");
-                                    }
-                                }
+                                Println("Se ha realizado la compra correctamente!\nPresione una tecla para volver al menú.");
+                                Console.ReadKey();
+                                break;
+                            }
+                            else
+                            {
+                                Println("No hay stock disponible del producto seleccionado");
                             }
                         }
                         else
                         {
-                            Println("No hay Stock del producto");
+                            Println("Cantidad inválida. Asegúrese de ingresar un número positivo menor o igual al stock disponible.");
                         }
                     }
                     else
                     {
-                        Println("Nombre de producto no valido");
+                        Println("No hay Stock del producto");
                     }
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error de conexion");
+                else
+                {
+                    Println("Nombre de producto no válido");
+                }
             }
         }
 
-        private static void LogIn(SocketHelper socketHelper, ref bool connected)
+        private static async Task ValueEqualsExit(SocketHelper socketHelper, string value)
+        {
+            if (value.ToLower().Equals("exit"))
+            {
+                await SendData(socketHelper, "exit");
+                throw new ExitMenuException();
+            }
+        }
+
+        private static async Task LogIn(SocketHelper socketHelper)
         {
             try
             {
@@ -845,19 +715,19 @@ namespace Cliente
                 {
                     Print("Ingrese su nombre de usuario: ");
                     string userName = Read();
+                    await ValueEqualsExit(socketHelper, userName);
                     Print("Ingrese su contraseña: ");
                     string userPass = Read();
                     string user = userName + "#" + userPass;
-                    SendData(socketHelper, user);
+                    await SendData(socketHelper, user);
 
-                    string response = "";
-                    connected = ReceiveData(socketHelper, ref response);
+                    var response = await ReceiveData(socketHelper);
 
                     if (response == "ok")
                     {
                         Println("Bienvenido al sistema " + userName);
                         correctUser = true;
-                        errorDeConexion = false;
+                        conectionError = false;
                     }
                     else
                     {
@@ -865,13 +735,12 @@ namespace Cliente
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Console.WriteLine("No fue posible acceder al servidor");
-                errorDeConexion = true;
+                Println("No fue posible acceder al servidor");
+                conectionError = true;
             }
         }
     }
-
 }
 

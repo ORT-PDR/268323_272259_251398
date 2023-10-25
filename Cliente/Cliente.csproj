@@ -5,7 +5,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <ApplicationIcon>ClientIcon.ico</ApplicationIcon>
+    <ApplicationIcon>IconoCliente.ico</ApplicationIcon>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -18,6 +18,10 @@
 
   <ItemGroup>
     <Content Include="ClientIcon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="IconoCliente.ico" />
   </ItemGroup>
 
   <ItemGroup>

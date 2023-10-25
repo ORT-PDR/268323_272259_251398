@@ -1,4 +1,5 @@
 ﻿using Common;
+using Exceptions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,7 +24,7 @@ namespace Protocolo
                 return new FileInfo(path).Name;
             }
 
-            throw new Exception("File does not exist");
+            throw new NonexistingFileException("File does not exist");
         }
 
         public static long GetFileSize(string path)
@@ -33,14 +34,13 @@ namespace Protocolo
                 return new FileInfo(path).Length;
             }
 
-            throw new Exception("File does not exist");
+            throw new NonexistingFileException("File does not exist");
         }
 
         public static void DeleteFile(string fileName, string pathDir)
         {
             try
             {
-                 fileName += "InServer.png";
                 string searchDirectory = @pathDir;
                 // Search for image files with the specified name
                 string[] imageFiles = Directory.GetFiles(searchDirectory, $"{fileName}.*");

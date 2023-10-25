@@ -1,64 +1,52 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Net.Sockets;
 
 namespace Protocolo
 {
     public class SocketHelper
     {
-        private readonly Socket _socket;
+        private readonly TcpClient _client;
         private string _userName;
 
         public string UserName { get => _userName; set => _userName = value; }
 
-        public SocketHelper(Socket socket)
+        public SocketHelper(TcpClient client)
         {
-            _socket = socket;
+            _client = client;
         }
 
-        public void Send(byte[] data) 
+        public async Task SendAsync(byte[] data) 
         {
-            int offset = 0;
-            int size = data.Length;
-            while (offset < size)
+            try
             {
-                try
-                {
-                    int cantEnviada = _socket.Send(data, offset, size - offset, SocketFlags.None);
-                    if (cantEnviada == 0)
-                    {
-                        throw new SocketException();
-                    }
-                    offset += cantEnviada;
-                    
-                }catch (System.ObjectDisposedException ex)
-                {
-                    throw new SocketException();
-
-                }
-                
+                var networkStream = _client.GetStream();
+                await networkStream.WriteAsync(data, 0, data.Length);
+            }
+            catch (Exception)
+            {
+                throw new SocketException();
             }
         }
 
-        public byte[] Receive(int size) 
+        public async Task <byte[]> ReceiveAsync(int size) 
         {
             byte[] data = new byte[size];
             int offset = 0;
+            var networkStream = _client.GetStream();
+
             while (offset < size)
             {
                 try
                 {
-                    int cantRecibido = _socket.Receive(data, offset, size - offset, SocketFlags.None);
-                    if (cantRecibido == 0)
+                    int received = await networkStream.ReadAsync(data, offset, size - offset);
+                    
+                    if (received == 0)
                     {
                         throw new SocketException();
                     }
-                    offset += cantRecibido;
+                    offset += received;
 
-                }catch(System.ObjectDisposedException ex)
+                }
+                catch (Exception)
                 {
                     throw new SocketException();
                 }
