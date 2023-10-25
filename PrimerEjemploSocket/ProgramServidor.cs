@@ -550,7 +550,6 @@ namespace PrimerEjemploSocket
                     if (prod.Name.Contains(filterText))
                     {
                         filteredProds.Add(prod.ToString());
-                        Println(prod.Name);
                     }
                 }
             }
@@ -626,7 +625,7 @@ namespace PrimerEjemploSocket
                     }
                 }
             }
-            Println(socketHelper.UserName + "calificó un producto.");
+            Println(socketHelper.UserName + " calificó un producto.");
         }
 
         private static void LoadTestData()
