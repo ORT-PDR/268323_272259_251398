@@ -87,15 +87,22 @@ namespace Cliente
         private static async Task EstablishConection(TcpClient tcpClient)
         {
             bool connectionEstablished = false;
+            bool errorSent = false;
+            Console.WriteLine("Intentando establecer conexión con el servidor...");
             while (!connectionEstablished)
             {
                 try
                 {
                     await tcpClient.ConnectAsync(remoteEndPoint);
                     connectionEstablished = true;
+                    Console.Clear();
                     Println("Se estableció conexión con el servidor");
                 }
-                catch { }
+                catch 
+                {
+                    if (!errorSent) Console.WriteLine("Intento Fallido. Estableciendo conexión nuevamente...");
+                    errorSent = true;
+                }
             }
         }
         private static bool Reconnect()
