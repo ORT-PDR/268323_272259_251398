@@ -33,14 +33,29 @@ namespace Cliente
                 serverIp = settingMng.ReadSettings(ClientConfig.serverIPconfigKey);
                 serverPort = int.Parse(settingMng.ReadSettings(ClientConfig.serverPortconfigKey));
 
-                localEndPoint = new IPEndPoint(IPAddress.Parse(clientIp), clientPort);
-                remoteEndPoint = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
-                    
-                TcpClient tcpClient = new(localEndPoint);
+                TcpClient tcpClient = null;
+                SocketHelper socketHelper = null;
+                try
+                {
+                    localEndPoint = new IPEndPoint(IPAddress.Parse(clientIp), clientPort);
+                    remoteEndPoint = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
 
-                await EstablishConection(tcpClient);
-                
-                SocketHelper socketHelper = new(tcpClient);
+                    tcpClient = new(localEndPoint);
+
+                    await EstablishConection(tcpClient);
+
+                    socketHelper = new(tcpClient);
+                }
+                catch
+                {
+                    Println("No se ha podido establecer conexión con el servidor.");
+                    Println("Verifique que el archivo .config esté correcto.");
+                    Println("Verifique que servidor este encendido y admita conexiones (revisar firewall).");
+                    Println("");
+                    Println("Presione cualquier tecla para cerrar el programa...");
+                    Console.ReadKey();
+                    return;
+                }
                 try
                 {
                     await EnterSystem(socketHelper, tcpClient);
@@ -72,15 +87,22 @@ namespace Cliente
         private static async Task EstablishConection(TcpClient tcpClient)
         {
             bool connectionEstablished = false;
+            bool errorSent = false;
+            Console.WriteLine("Intentando establecer conexión con el servidor...");
             while (!connectionEstablished)
             {
                 try
                 {
                     await tcpClient.ConnectAsync(remoteEndPoint);
                     connectionEstablished = true;
+                    Console.Clear();
                     Println("Se estableció conexión con el servidor");
                 }
-                catch { }
+                catch 
+                {
+                    if (!errorSent) Console.WriteLine("Intento Fallido. Estableciendo conexión nuevamente...");
+                    errorSent = true;
+                }
             }
         }
         private static bool Reconnect()
@@ -304,8 +326,6 @@ namespace Cliente
                 Println(product);
                 product = await ReceiveData(socketHelper);
             }
-            Println("Presione una tecla para volver al menú");
-            Console.ReadKey();
         }
         
         private static async Task ModifyAProduct(SocketHelper socketHelper, TcpClient client)
@@ -642,8 +662,6 @@ namespace Cliente
                     Println("Archivo recibido!!");
                 }
             }
-            Println("Presione una tecla para volver al menú");
-            Console.ReadKey();
         }
 
         private static async Task BuyAProduct(SocketHelper socketHelper)
@@ -671,8 +689,6 @@ namespace Cliente
 
                             if (response.Equals("ok"))
                             {
-                                Println("Se ha realizado la compra correctamente!\nPresione una tecla para volver al menú.");
-                                Console.ReadKey();
                                 break;
                             }
                             else
