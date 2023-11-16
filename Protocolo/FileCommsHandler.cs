@@ -42,19 +42,19 @@ namespace Protocolo
             }
         }
 
-        public void ReceiveFile(string path)
+        public async Task ReceiveFile(string path)
         {
             // ---> Recibir el largo del nombre del archivo
             int fileNameSize = _conversionHandler.ConvertBytesToInt(
-                _socketHelper.ReceiveAsync(Protocol.DataSize).Result);
+                await _socketHelper.ReceiveAsync(Protocol.DataSize));
             // ---> Recibir el nombre del archivo
-            string fileName = _conversionHandler.ConvertBytesToString(_socketHelper.ReceiveAsync(fileNameSize).Result);
+            string fileName = _conversionHandler.ConvertBytesToString(await _socketHelper.ReceiveAsync(fileNameSize));
             Console.WriteLine(fileName);
             // ---> Recibir el largo del archivo
             long fileSize = _conversionHandler.ConvertBytesToLong(
-                _socketHelper.ReceiveAsync(Protocol.FileSize).Result);
+                await _socketHelper.ReceiveAsync(Protocol.FileSize));
             // ---> Recibir el archivo
-            ReceiveFileWithStreams(fileSize, path + @"\" + fileName);
+            await ReceiveFileWithStreams(fileSize, path + @"\" + fileName);
         }
 
         private async Task SendFileWithStream(long fileSize, string path)
@@ -89,7 +89,7 @@ namespace Protocolo
             }
         }
 
-        private void ReceiveFileWithStreams(long fileSize, string fileName)
+        private async Task ReceiveFileWithStreams(long fileSize, string fileName)
         {
             long fileParts = Protocol.CalculateFileParts(fileSize);
             long offset = 0;
@@ -104,13 +104,13 @@ namespace Protocolo
                 {
                     //1.1 - Si es, recibo la ultima parte
                     var lastPartSize = (int)(fileSize - offset);
-                    data = _socketHelper.ReceiveAsync(lastPartSize).Result;
+                    data = await _socketHelper.ReceiveAsync(lastPartSize);
                     offset += lastPartSize;
                 }
                 else
                 {
                     //2.2- Si no, recibo una parte cualquiera
-                    data = _socketHelper.ReceiveAsync(Protocol.MaxPacketSize).Result;
+                    data = await _socketHelper.ReceiveAsync(Protocol.MaxPacketSize);
                     offset += Protocol.MaxPacketSize;
                 }
                 //3- Escribo esa parte del archivo a disco

@@ -334,7 +334,7 @@ namespace PrimerEjemploSocket
                 var fileCommonHandler = new FileCommsHandler(client);
                 try
                 {
-                    fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
+                    await fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
                     imageName = productName + ".png";
                     productImage = await ReceiveData(socketHelper);
                     if (productImage.Equals("")) imageName = "sin imagen";
@@ -513,7 +513,7 @@ namespace PrimerEjemploSocket
                     FileStreamHandler.Delete(imageToDelete, settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
 
                     var fileCommonHandler2 = new FileCommsHandler(client);
-                    fileCommonHandler2.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
+                    await fileCommonHandler2.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
                     string imageName = productName + ".png";
                     string productImage = await ReceiveData(socketHelper);
                     if (productImage.Equals("")) imageName = "sin imagen";

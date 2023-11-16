@@ -549,7 +549,8 @@ namespace Cliente
             await SendData(socketHelper, opinion);
 
             string input = "";
-            while (true)
+            bool isCorrect = false;
+            while (!isCorrect)
             {
                 Println("Califique el producto con numero del 1 al 10");
                 input = Read();
@@ -559,7 +560,7 @@ namespace Cliente
                     if(checkOption >= 1 && checkOption <= 10)
                     {
                         await SendData(socketHelper, input);
-                        break;
+                        isCorrect = true;
                     }
                         
                 }
@@ -650,7 +651,7 @@ namespace Cliente
 
                 Println("Antes de recibir el archivo");
                 var fileCommonHandler = new FileCommsHandler(client);
-                fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ClientConfig.clientImageRouteKey));
+                await fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ClientConfig.clientImageRouteKey));
                 string imageName = prodName;
                 var productImage = await ReceiveData(socketHelper);
                 if (productImage == "error")
@@ -668,8 +669,8 @@ namespace Cliente
         {
             Println("Has seleccionado la opción Compra de productos");
             List<NameStock> products = await GetProductsToBuy(socketHelper);
-
-            while (true)
+            bool isCorrectName = false;
+            while (!isCorrectName)
             {
                 Print("Ingrese nombre del producto a comprar: ");
                 string productToBuyName = Read();
@@ -689,7 +690,7 @@ namespace Cliente
 
                             if (response.Equals("ok"))
                             {
-                                break;
+                                isCorrectName = true;
                             }
                             else
                             {
