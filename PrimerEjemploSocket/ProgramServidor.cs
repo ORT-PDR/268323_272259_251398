@@ -16,7 +16,7 @@ namespace PrimerEjemploSocket
         private static List<Product> products = new List<Product>();
         private static List<User> users = new List<User>();
 
-        static async Task Main(string[] args)
+        public static async Task IniciarServidor()
         {
             
             List<TcpClient> activeClients = new();
