@@ -2,6 +2,7 @@
 using Exceptions;
 using Protocolo;
 using Servidor;
+using Domain;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;

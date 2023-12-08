@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Servidor
+namespace Domain
 {
-    internal class Review
+    public class Review
     {
         public string UserName { get; set; }
 

@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Servidor
+namespace Domain
 {
-    internal class Product
+    public class Product
     {
         public int Id { get; set; }
         public string OwnerUserName { get; set; }
