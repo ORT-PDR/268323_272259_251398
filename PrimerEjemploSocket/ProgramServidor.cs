@@ -1,13 +1,12 @@
 ﻿using Common;
 using Exceptions;
 using Protocolo;
-using Servidor;
 using Domain;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
-namespace PrimerEjemploSocket
+namespace Servidor
 {
     public class ProgramServidor
     {
@@ -16,8 +15,34 @@ namespace PrimerEjemploSocket
         private static bool isServerOn = true;
         private static List<Product> products = new List<Product>();
         private static List<User> users = new List<User>();
+        private static ProgramServidor _instance;
 
-        public static async Task IniciarServidor()
+        public static ProgramServidor Instance
+        {
+            get
+            {
+                lock (locker)
+                {
+                    if (_instance == null)
+                    {
+                        throw new ExitException("No se pudo conectar con el servidor.");
+                    }
+                    return _instance;
+                }
+            }
+        }
+        public static void SetInstance(ProgramServidor instance)
+        {
+            lock (locker)
+            {
+                if (_instance == null)
+                {
+                    _instance = instance;
+                }
+            }
+        }
+
+        public static async Task Main(string[] args)
         {
             
             List<TcpClient> activeClients = new();
@@ -304,7 +329,7 @@ namespace PrimerEjemploSocket
             bool isInProducts;
             lock (locker)
             {
-                isInProducts = products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
+                isInProducts = ExistsProductName(productName);
             }
             while (isInProducts)
             {
@@ -312,7 +337,7 @@ namespace PrimerEjemploSocket
                 productName = await ReceiveData(socketHelper);
                 lock (locker)
                 {
-                    isInProducts = products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
+                    isInProducts = ExistsProductName(productName);
                 }
             }
             await SendData(socketHelper, "OK");
@@ -366,17 +391,39 @@ namespace PrimerEjemploSocket
             bool productAlreadyExists = false;
             lock (locker)
             {
-                productAlreadyExists = !products.Contains(product);
+                productAlreadyExists = ExistsProduct(product);
             }
             if (productAlreadyExists)
             {
                 lock (locker)
                 {
-                    products.Add(product);
+                    AddProduct(product);
                 }
                 await SendData(socketHelper, "OK");
                 Println(socketHelper.UserName + " agrego un producto");
             }
+        }
+
+        public Product CreateProduct(Product product)
+        {
+            if (ExistsProduct(product)) throw new ArgumentException("El producto ya existe.");
+            products.Add(product);
+            return product;
+        }
+
+        public static void AddProduct(Product product)
+        {
+            products.Add(product);
+        }
+
+        public static bool ExistsProduct(Product product)
+        {
+            return !products.Contains(product);
+        }
+
+        public static bool ExistsProductName(string productName)
+        {
+            return products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
         }
 
         private static async Task<User> RegisterUser(SocketHelper socketHelper)
