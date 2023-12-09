@@ -30,6 +30,7 @@ namespace ServidorAdmin.Controllers
         [HttpPost]
         public async Task<ActionResult> PostProduct([FromBody] ProductDTO product)
         {
+            /*http://localhost:5156*/
             using var channel = GrpcChannel.ForAddress("http://localhost:5156");
             client = new Admin.AdminClient(channel);
             var reply = await client.PostProductAsync(product);

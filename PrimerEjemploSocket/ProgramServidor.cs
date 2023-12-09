@@ -35,7 +35,7 @@ namespace Servidor
                 }
             }
         }
-        /*
+        
         public static void SetInstance(ProgramServidor instance)
         {
             lock (locker)
@@ -46,7 +46,7 @@ namespace Servidor
                 }
             }
         }
-       */
+       
         public ProgramServidor(string serverIpAddress, string serverPort)
         {
 
@@ -55,6 +55,7 @@ namespace Servidor
 
             tcpListener = new TcpListener(localEndPoint);
             acceptingConnections = true;
+
         }
         public async Task StartReceivingConnections()
         {
@@ -422,7 +423,7 @@ namespace Servidor
         public Product CreateProduct(Product product)
         {
            
-            if (ExistsProduct(product)) throw new ArgumentException("El producto ya existe.");
+           // if (ExistsProduct(product)) throw new ArgumentException("El producto ya existe.");
             products.Add(product);
             return product;
         }

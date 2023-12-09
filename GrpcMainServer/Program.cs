@@ -17,6 +17,7 @@ namespace GrpcMainServer
             Console.WriteLine($"Server is starting in address {serverIpAddress} and port {serverPort}");
 
             ProgramServidor server = new ProgramServidor(serverIpAddress, serverPort);
+            ProgramServidor.SetInstance(server);
             StartServer(server);
 
             var builder = WebApplication.CreateBuilder(args);
