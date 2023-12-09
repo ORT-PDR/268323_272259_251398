@@ -550,13 +550,14 @@ namespace Servidor
             if (stock < 0) await SendData(socketHelper, "error");
             else
             {
-                productBought.Stock -= int.Parse(amountBought);
+                //productBought.Stock -= int.Parse(amountBought);
+                await RealizeProductPurchase(productBought, int.Parse(amountBought));
                 Println(socketHelper.UserName + " compró " + amountBought + " unidades de " + nameProduct);
                 await SendData(socketHelper, "ok");
             }
         }
 
-        private static async Task RealizeProductPurchase(Product boughtProduct, int amount, string userName)
+        private static async Task RealizeProductPurchase(Product boughtProduct, int amount)
         {
             boughtProduct.Stock -= amount;
             Purchase newPurchase = new Purchase
@@ -565,6 +566,7 @@ namespace Servidor
                 Total = amount * boughtProduct.Price,
                 UserName = connectedUser
             };
+            compras.Add(newPurchase);
         }
 
         private static async Task ModifyProduct(SocketHelper socketHelper, TcpClient client)
