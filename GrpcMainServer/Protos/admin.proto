@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+option csharp_namespace = "GrpcMainServer";
+
+package admin;
+
+// The admin service definition.
+service Admin {
+
+  // Functions availables
+  rpc PostUser(UserDTO) returns (MessageReply);
+  rpc DeleteUser(Id) returns (MessageReply);
+ 
+}
+
+  message UserDTO{
+	int32 id = 1;
+	string name = 2;
+}
+
+message Id {
+	int32 id = 1;
+}
+
+
+message MessageReply {
+	string message = 1;
+}

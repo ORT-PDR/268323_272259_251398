@@ -2,6 +2,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Domain;
 using Servidor;
+using Grpc.Net.Client;
+
+using System;
+using System.Threading.Tasks;
+using Grpc.Net.Client;
+using Microsoft.AspNetCore.Mvc;
+using Common;
 
 namespace ServidorAdmin.Controllers
 {
@@ -9,19 +16,23 @@ namespace ServidorAdmin.Controllers
     [ApiController]
     public class ProductController : Controller
     {
-        private ProgramServidor _server;
+        private Admin.AdminClient client;
+      //  static readonly ISettingsManager SettingsMgr = new SettingsManager();
+        public ProductController()
+        {
+
+
+            AppContext.SetSwitch(
+                  "System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+
+        }
 
         [HttpPost]
-        public ActionResult Create([FromBody] Product product)
+        public async Task<ActionResult> PostProduct([FromBody] Product product)
         {
-            try
-            {
-                _server = ProgramServidor.Instance;
-            }
-            catch (ExitException ex)
-            {
-                return StatusCode(503, ex.Message);
-            }
+            using var channel = GrpcChannel.ForAddress("https://localhost:7008");
+            client = new Admin.AdminClient(channel);
+            var reply = await client.PostUserAsync(user);
             Product result = _server.CreateProduct(product);
             return CreatedAtAction(nameof(Create), new { id = result.Id }, result);
         }
