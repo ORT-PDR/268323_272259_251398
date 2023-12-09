@@ -16,6 +16,8 @@ namespace Servidor
         private static bool isServerOn = true;
         private static List<Product> products = new List<Product>();
         private static List<User> users = new List<User>();
+        private static List<Compra> compras = new List<Compra>();
+
         private static ProgramServidor _instance;
 
         public bool acceptingConnections;
