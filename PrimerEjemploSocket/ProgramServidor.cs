@@ -5,6 +5,7 @@ using Domain;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using DTOs;
 
 namespace Servidor
 {
@@ -16,6 +17,9 @@ namespace Servidor
         private static List<Product> products = new List<Product>();
         private static List<User> users = new List<User>();
         private static ProgramServidor _instance;
+
+        public bool acceptingConnections;
+        private readonly TcpListener tcpListener;
 
         public static ProgramServidor Instance
         {
@@ -31,6 +35,7 @@ namespace Servidor
                 }
             }
         }
+        /*
         public static void SetInstance(ProgramServidor instance)
         {
             lock (locker)
@@ -41,34 +46,44 @@ namespace Servidor
                 }
             }
         }
+       */
+        public ProgramServidor(string serverIpAddress, string serverPort)
+        {
 
-        public static async Task Main(string[] args)
+            var localEndPoint = new IPEndPoint(
+                 IPAddress.Parse(serverIpAddress), int.Parse(serverPort));
+
+            tcpListener = new TcpListener(localEndPoint);
+            acceptingConnections = true;
+        }
+        public async Task StartReceivingConnections()
         {
             
             List<TcpClient> activeClients = new();
             
             LoadTestData();
 
-            string serverIp = settingMng.ReadSettings(ServerConfig.serverIPconfigKey);
-            int serverPort = int.Parse(settingMng.ReadSettings(ServerConfig.serverPortconfigKey));
-            var localEndPoint = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
+            //string serverIp = settingMng.ReadSettings(ServerConfig.serverIPconfigKey);
+            //int serverPort = int.Parse(settingMng.ReadSettings(ServerConfig.serverPortconfigKey));
+            //var localEndPoint = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
 
-            TcpListener listener = new(localEndPoint);
-            listener.Start();
+            //TcpListener tcpListener = new(localEndPoint);
+            Console.WriteLine("######### Server Tcp Iniciado y aceptando conexiones ###########");
+            tcpListener.Start();
             Println("Esperando por clientes....");
             int connectedClients = 0;
 
-            var server = Task.Run(async () => await HandleServer(listener));
+            var server = Task.Run(async () => await HandleServer(tcpListener));
 
             while (isServerOn) 
             {
                 try
                 {
-                    TcpClient tcpClient = await listener.AcceptTcpClientAsync();
+                    TcpClient tcpClient = await tcpListener.AcceptTcpClientAsync();
                     activeClients.Add(tcpClient);
                     Println("Se conecto un cliente..");
                     connectedClients++;
-                    var thread = Task.Run(async () => await HandleClientAsync(tcpClient, connectedClients, listener));
+                    var thread = Task.Run(async () => await HandleClientAsync(tcpClient, connectedClients, tcpListener));
                 }
                 catch (Exception)
                 {
@@ -83,7 +98,7 @@ namespace Servidor
 
             if (isServerOn)
             {
-                listener.Stop();
+                tcpListener.Stop();
                 Println("Servidor apagado");
             }
             
@@ -406,6 +421,7 @@ namespace Servidor
 
         public Product CreateProduct(Product product)
         {
+           
             if (ExistsProduct(product)) throw new ArgumentException("El producto ya existe.");
             products.Add(product);
             return product;

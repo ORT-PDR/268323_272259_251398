@@ -7,6 +7,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Remove="App.config" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Protobuf Include="Protos\admin.proto" GrpcServices="Server" />
   </ItemGroup>
 
@@ -16,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\PrimerEjemploSocket\Servidor.csproj" />
+    <ProjectReference Include="..\ServidorAdmin\ServidorAdmin.csproj" />
   </ItemGroup>
 
 </Project>

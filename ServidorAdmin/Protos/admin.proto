@@ -19,7 +19,7 @@ service Admin {
 	string OwnerUserName = 3;
     string Description = 4;
     string Stock = 5;
-    int32 id = 6;
+    int32 price = 6;
     string Image  = 7;
 }
 

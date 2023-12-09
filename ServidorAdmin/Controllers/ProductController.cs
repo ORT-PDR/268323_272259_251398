@@ -28,13 +28,12 @@ namespace ServidorAdmin.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> PostProduct([FromBody] Product product)
+        public async Task<ActionResult> PostProduct([FromBody] ProductDTO product)
         {
-            using var channel = GrpcChannel.ForAddress("https://localhost:7008");
+            using var channel = GrpcChannel.ForAddress("http://localhost:5156");
             client = new Admin.AdminClient(channel);
-            var reply = await client.PostUserAsync(user);
-            Product result = _server.CreateProduct(product);
-            return CreatedAtAction(nameof(Create), new { id = result.Id }, result);
+            var reply = await client.PostProductAsync(product);
+            return Ok(reply.Message);
         }
     }
 }

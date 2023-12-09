@@ -8,14 +8,19 @@ package admin;
 service Admin {
 
   // Functions availables
-  rpc PostUser(UserDTO) returns (MessageReply);
+  rpc PostProduct(ProductDTO) returns (MessageReply);
   rpc DeleteUser(Id) returns (MessageReply);
  
 }
 
-  message UserDTO{
+  message ProductDTO{
 	int32 id = 1;
 	string name = 2;
+	string OwnerUserName = 3;
+    string Description = 4;
+    int32 Stock = 5;
+    int32 price = 6;
+    string Image  = 7;
 }
 
 message Id {
