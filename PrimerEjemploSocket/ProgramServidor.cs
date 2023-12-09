@@ -423,7 +423,7 @@ namespace Servidor
         public Product CreateProduct(Product product)
         {
            
-           // if (ExistsProduct(product)) throw new ArgumentException("El producto ya existe.");
+            if (ExistsProductName(product.Name)) throw new ArgumentException("El producto ya existe.");
             products.Add(product);
             return product;
         }
