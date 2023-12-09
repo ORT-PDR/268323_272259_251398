@@ -16,7 +16,7 @@ namespace GrpcMainServer {
         public override Task<MessageReply> PostProduct(ProductDTO request, ServerCallContext context)
         {
             ProgramServidor session = ProgramServidor.Instance;
-            Console.WriteLine("Antes de crear el usuario con nombre {0}",request.Name);
+            Console.WriteLine("Antes de crear el producto con nombre {0}",request.Name);
             Product product = new()
             {
                 Name = request.Name,
@@ -30,7 +30,20 @@ namespace GrpcMainServer {
             return Task.FromResult(new MessageReply { Message = receivedProduct.ToString() });
         }
 
-        
+        public override Task<MessageReply> GetAllProducts(Name name, ServerCallContext context)
+        {
+            ProgramServidor session = ProgramServidor.Instance;
+            Console.WriteLine("Antes de enviar todos los productos");
+           
+            List<Product> receivedProduct = ProgramServidor.GetClientProducts("Alan");
+            string products = "";
+            foreach (Product product in receivedProduct)
+            {
+                products+=(product.ToString());
+            }
+            return Task.FromResult(new MessageReply { Message = products });
+        }
+
 
     }
 }

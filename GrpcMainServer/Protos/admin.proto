@@ -9,6 +9,7 @@ service Admin {
 
   // Functions availables
   rpc PostProduct(ProductDTO) returns (MessageReply);
+  rpc GetAllProducts(Name) returns (MessageReply);
   rpc DeleteUser(Id) returns (MessageReply);
  
 }
@@ -30,4 +31,8 @@ message Id {
 
 message MessageReply {
 	string message = 1;
+}
+
+message Name {
+	string name = 1;
 }

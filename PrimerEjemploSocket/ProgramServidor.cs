@@ -515,7 +515,7 @@ namespace Servidor
             }
         }
 
-        private static List<Product> GetClientProducts(string clientUserName)
+        public static List<Product> GetClientProducts(string clientUserName)
         {
             List<Product> clientProducts;
             lock (locker)

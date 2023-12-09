@@ -17,7 +17,7 @@ namespace ServidorAdmin.Controllers
     public class ProductController : Controller
     {
         private Admin.AdminClient client;
-      //  static readonly ISettingsManager SettingsMgr = new SettingsManager();
+        //  static readonly ISettingsManager SettingsMgr = new SettingsManager();
         public ProductController()
         {
 
@@ -35,6 +35,19 @@ namespace ServidorAdmin.Controllers
             client = new Admin.AdminClient(channel);
             var reply = await client.PostProductAsync(product);
             return Ok(reply.Message);
+        }
+
+
+        [HttpGet("{name}")]
+        public async Task<ActionResult> GetAllProducts([FromRoute] Name name)
+        {
+            /*http://localhost:5156*/
+            using var channel = GrpcChannel.ForAddress("http://localhost:5156");
+            client = new Admin.AdminClient(channel);
+            var reply = await client.GetAllProductsAsync(name);
+            var listOfStrings = reply.Message;
+
+            return Ok(listOfStrings);
         }
     }
 }
