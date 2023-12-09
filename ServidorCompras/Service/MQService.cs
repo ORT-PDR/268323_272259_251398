@@ -4,12 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Domain;
 using Microsoft.AspNetCore.Connections;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Servidor;
 using ServidorCompras;
-using WebApiRabbitMQ.Data;
 
 namespace WebApiRabbitMQ.Service
 {
@@ -58,14 +58,15 @@ namespace WebApiRabbitMQ.Service
                     var body = ea.Body.ToArray();
                     var message = Encoding.UTF8.GetString(body);
                     Console.WriteLine(" [x] Received {0}", message);
-                    Compra compra = JsonSerializer.Deserialize<Compra>(message);
+                    Purchase purchase = JsonSerializer.Deserialize<Purchase>(message);
 
-                    var data = ProgramServidor.GetInstance();
-                    data.AddForecast(forecast);
+
+                    var servidor = ProgramServidor.Instance;
+                    servidor.AddPurchase(purchase);
                 };
 
                 //"PRENDO" el consumo de mensajes
-                channel.BasicConsume(queue: "weather",
+                channel.BasicConsume(queue: "purchases",
                     autoAck: true,
                     consumer: consumer);
 
@@ -78,4 +79,3 @@ namespace WebApiRabbitMQ.Service
         }
 
     }
-}
