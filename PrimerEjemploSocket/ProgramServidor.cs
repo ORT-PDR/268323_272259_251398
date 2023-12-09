@@ -17,6 +17,7 @@ namespace Servidor
         private static List<Product> products = new List<Product>();
         private static List<User> users = new List<User>();
         private static List<Purchase> compras = new List<Purchase>();
+        private static string connectedUser = "";
 
         private static ProgramServidor _instance;
 
@@ -335,6 +336,7 @@ namespace Servidor
                 if (usr.Username == userName && usr.Password == userPass)
                 {
                     userName = usr.Username;
+                    connectedUser = usr.Username;
                     return true;
                 }
             }
@@ -552,6 +554,17 @@ namespace Servidor
                 Println(socketHelper.UserName + " compró " + amountBought + " unidades de " + nameProduct);
                 await SendData(socketHelper, "ok");
             }
+        }
+
+        private static async Task RealizeProductPurchase(Product boughtProduct, int amount, string userName)
+        {
+            boughtProduct.Stock -= amount;
+            Purchase newPurchase = new Purchase
+            {
+                Product = boughtProduct.Name,
+                Total = amount * boughtProduct.Price,
+                UserName = connectedUser
+            };
         }
 
         private static async Task ModifyProduct(SocketHelper socketHelper, TcpClient client)
