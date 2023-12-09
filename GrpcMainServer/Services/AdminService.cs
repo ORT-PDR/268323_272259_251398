@@ -44,6 +44,23 @@ namespace GrpcMainServer {
             return Task.FromResult(new MessageReply { Message = products });
         }
 
+        public override Task<MessageReply> DeleteProduct(DeleteProductRequest product, ServerCallContext context)
+        {
+            ProgramServidor session = ProgramServidor.Instance;
+            Console.WriteLine("Antes de eliminar producto ", product.Name);
+
+            try
+            {
+                ProgramServidor.DeleteProduct(product.UserName, product.Name);
+            }
+            catch (ArgumentException ex)
+            {
+                return Task.FromResult(new MessageReply { Message = ex.Message });
+            }
+            string message = "Se eliminó correctamente el producto " + product.Name;
+            return Task.FromResult(new MessageReply { Message = message });
+        }
+
 
     }
 }

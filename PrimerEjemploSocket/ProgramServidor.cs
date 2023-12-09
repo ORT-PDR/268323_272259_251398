@@ -257,7 +257,6 @@ namespace Servidor
         {
             Console.WriteLine(text);
         }
-
         private static string Read()
         {
             return Console.ReadLine();
@@ -593,14 +592,19 @@ namespace Servidor
             List<Product> clientProducts = GetClientProducts(socketHelper.UserName);
             await SendProducts(socketHelper, clientProducts);
             var prodToDelete = await ReceiveData(socketHelper);
+            DeleteProduct(socketHelper.UserName, prodToDelete);
+            await SendData(socketHelper, "Se ha eliminado el producto correctamente");
+        }
 
+        public static void DeleteProduct(string username, string prodToDelete)
+        {
+            if(products.Where(prod => prod.Name.Equals(prodToDelete) && prod.OwnerUserName == username).ToList().Count() == 0) throw new ArgumentException("El producto no existe o no le pertenece al usuario");
             lock (locker)
             {
                 products = products.Where(prod => !(prod.Name.Equals(prodToDelete))).ToList();
             }
-            await SendData(socketHelper, "Se ha eliminado el producto correctamente");
             FileStreamHandler.Delete(prodToDelete, settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
-            Println(socketHelper.UserName + " eliminó el producto " + prodToDelete);
+            Println(username + " eliminó el producto " + prodToDelete);
         }
 
         private static async Task SearchForProducts(SocketHelper socketHelper)
