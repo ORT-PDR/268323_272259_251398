@@ -513,7 +513,7 @@ namespace Servidor
             }
         }
 
-        public static List<Product> GetClientProducts(string clientUserName)
+        public List<Product> GetClientProducts(string clientUserName)
         {
             List<Product> clientProducts;
             lock (locker)
@@ -586,7 +586,7 @@ namespace Servidor
             Println(socketHelper.UserName + " modificó el producto " + productName);
         }
 
-        public static Product ModifyProduct(Product product, string username)
+        public Product ModifyProduct(Product product, string username)
         {
             Product productToModify;
             lock (locker)
@@ -603,14 +603,14 @@ namespace Servidor
 
         private static async Task DeleteProduct(SocketHelper socketHelper)
         {
-            List<Product> clientProducts = GetClientProducts(socketHelper.UserName);
+            List<Product> clientProducts = _instance.GetClientProducts(socketHelper.UserName);
             await SendProducts(socketHelper, clientProducts);
             var prodToDelete = await ReceiveData(socketHelper);
-            DeleteProduct(socketHelper.UserName, prodToDelete);
+            _instance.DeleteProduct(socketHelper.UserName, prodToDelete);
             await SendData(socketHelper, "Se ha eliminado el producto correctamente");
         }
 
-        public static void DeleteProduct(string username, string prodToDelete)
+        public void DeleteProduct(string username, string prodToDelete)
         {
             if(products.Where(prod => prod.Name.Equals(prodToDelete) && prod.OwnerUserName == username).ToList().Count() == 0) throw new ArgumentException("El producto no existe o no le pertenece al usuario");
             lock (locker)

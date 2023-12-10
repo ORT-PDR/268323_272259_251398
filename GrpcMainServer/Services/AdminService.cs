@@ -1,5 +1,4 @@
 ﻿using Domain;
-using DTOs;
 using Grpc.Core;
 //using Servidor;
 using Microsoft.Extensions.Logging;
@@ -18,8 +17,15 @@ namespace GrpcMainServer {
             ProgramServidor session = ProgramServidor.Instance;
             Console.WriteLine("Antes de crear el producto con nombre {0}",request.Name);
             Product product = toEntity(request);
-            Product receivedProduct = session.CreateProduct(product);
-            return Task.FromResult(new MessageReply { Message = receivedProduct.ToString() });
+            try
+            {
+                Product receivedProduct = session.CreateProduct(product);
+                return Task.FromResult(new MessageReply { Message = receivedProduct.ToString() });
+            }
+            catch (ArgumentException ex)
+            {
+                throw new RpcException(new Status(StatusCode.AlreadyExists, ex.Message));
+            }    
         }
 
         public override Task<MessageReply> GetAllProducts(Name name, ServerCallContext context)
@@ -27,7 +33,7 @@ namespace GrpcMainServer {
             ProgramServidor session = ProgramServidor.Instance;
             Console.WriteLine("Antes de enviar todos los productos");
            
-            List<Product> receivedProduct = ProgramServidor.GetClientProducts("Alan");
+            List<Product> receivedProduct = session.GetClientProducts("Alan");
             string products = "";
             foreach (Product product in receivedProduct)
             {
@@ -44,11 +50,11 @@ namespace GrpcMainServer {
             Product product = toEntity(requestProduct.Product);
             try
             {
-                ProgramServidor.ModifyProduct(product, requestProduct.Username);
+                session.ModifyProduct(product, requestProduct.Username);
             }
             catch (ArgumentException ex)
             {
-                return Task.FromResult(new MessageReply { Message = ex.Message });
+                throw new RpcException(new Status(StatusCode.AlreadyExists, ex.Message));
             }
             string message = "Se modificó correctamente el producto " + requestProduct.Product.Name;
             return Task.FromResult(new MessageReply { Message = message });
@@ -61,11 +67,11 @@ namespace GrpcMainServer {
 
             try
             {
-                ProgramServidor.DeleteProduct(product.UserName, product.Name);
+                session.DeleteProduct(product.UserName, product.Name);
             }
             catch (ArgumentException ex)
             {
-                return Task.FromResult(new MessageReply { Message = ex.Message });
+                throw new RpcException(new Status(StatusCode.AlreadyExists, ex.Message));
             }
             string message = "Se eliminó correctamente el producto " + product.Name;
             return Task.FromResult(new MessageReply { Message = message });

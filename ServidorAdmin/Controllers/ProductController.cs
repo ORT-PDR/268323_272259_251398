@@ -7,12 +7,14 @@ using Grpc.Core;
 using System;
 using System.Threading.Tasks;
 using Common;
+using ServidorAdmin.Filters;
 
 namespace ServidorAdmin.Controllers
 {
-    [Route("api/products")]
+    [Route("admin/products")]
     [ApiController]
-    public class ProductController : Controller
+    [ExceptionFilter]
+    public class ProductController : ControllerBase
     {
         private Admin.AdminClient client;
         //  static readonly ISettingsManager SettingsMgr = new SettingsManager();
@@ -57,15 +59,11 @@ namespace ServidorAdmin.Controllers
         }
 
         [HttpPut]
-        public async Task<ActionResult> ModifyProduct([FromBody] ProductDTO product, [FromBody] string username)
+        public async Task<ActionResult> ModifyProduct([FromBody] ModifyProductRequest modifyProductRequest)
         {
             /*http://localhost:5156*/
             using var channel = GrpcChannel.ForAddress("http://localhost:5156");
             client = new Admin.AdminClient(channel);
-            ModifyProductRequest modifyProductRequest = new ModifyProductRequest(){
-                Product = product,
-                Username = username
-            };
             var reply = await client.ModifyProductAsync(modifyProductRequest);
             return Ok(reply.Message);
         }
