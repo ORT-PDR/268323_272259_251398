@@ -51,14 +51,10 @@ namespace ServidorCompras
         public static async Task StartPurchaseServer(MQService mq)
         {
             Console.WriteLine("Server will start accepting connections from the clients");
-          //  await Task.Run(() => server.StartReceivingConnections());
             await Task.Run(() => mq.HandleQueue());
         }
 
-        public static async Task ConnectToOldServer()
-        {
-
-        }
+        
 
        
     }

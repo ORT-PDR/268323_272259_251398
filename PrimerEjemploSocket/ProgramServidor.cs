@@ -603,8 +603,8 @@ namespace Servidor
                 routingKey: "",
                 basicProperties: null,
                 body: body);
+           // Console.WriteLine(" [x] Mensaje Enviado: {0}", message);
 
-         
             return messsage;
 
         }
