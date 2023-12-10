@@ -10,6 +10,7 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using Servidor;
 using ServidorCompras;
+using WebApiRabbitMQ.Data;
 
 namespace WebApiRabbitMQ.Service
 {
@@ -42,6 +43,10 @@ namespace WebApiRabbitMQ.Service
                     var body = ea.Body.ToArray();
                     var message = Encoding.UTF8.GetString(body);
                     Console.WriteLine(" [x] {0}", message);
+                    var purchaseObject = JsonSerializer.Deserialize<Purchase>(message);
+
+                    var data = PurchaseDataAccess.GetInstance();
+                    data.AddPurchase(purchaseObject);
                 };
                 channel.BasicConsume(queue: queueName,
                                      autoAck: true,

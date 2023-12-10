@@ -1,5 +1,7 @@
+using Common;
 using Microsoft.AspNetCore.Hosting.Server;
 using Servidor;
+using System.Net;
 using WebApiRabbitMQ.Service;
 
 namespace ServidorCompras
@@ -8,12 +10,15 @@ namespace ServidorCompras
     {
         private static MQService mq;
 
+       
+
         public static void Main(string[] args)
         {
             // creamos conexion con RabbitMQ
             mq = new MQService();
             StartPurchaseServer(mq);
 
+           
 
             var builder = WebApplication.CreateBuilder(args);
 
@@ -49,5 +54,12 @@ namespace ServidorCompras
           //  await Task.Run(() => server.StartReceivingConnections());
             await Task.Run(() => mq.HandleQueue());
         }
+
+        public static async Task ConnectToOldServer()
+        {
+
+        }
+
+       
     }
 }

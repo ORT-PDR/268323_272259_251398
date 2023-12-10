@@ -6,6 +6,7 @@ using Domain;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Servidor;
+using WebApiRabbitMQ.Data;
 
 namespace WebApiRabbitMQ.Controllers
 {
@@ -28,15 +29,17 @@ namespace WebApiRabbitMQ.Controllers
         [HttpGet]
         public IEnumerable<Purchase> Get()
         {
-            return ProgramServidor.Instance.GetAllPurchases();
+            return PurchaseDataAccess.GetInstance().GetPurchases();
         }
 
         [HttpPost]
         public ActionResult PostPurchase([FromBody] Purchase purchase) 
         {
-            ProgramServidor session = ProgramServidor.Instance;
-            session.AddPurchase(purchase);
-            var reply = "Se realizó la compra con un total de " + purchase.Total;
+            //ProgramServidor session = ProgramServidor.Instance;
+            //session.AddPurchase(purchase);
+            //var reply = "Se realizó la compra con un total de " + purchase.Total;
+            PurchaseDataAccess.GetInstance().AddPurchase(purchase);
+            var reply = "added purchase of " + purchase.UserName + " with cost of " + purchase.Total;
             return Ok(reply);
         }
     }
