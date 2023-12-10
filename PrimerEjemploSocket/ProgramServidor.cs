@@ -711,6 +711,16 @@ namespace Servidor
             Println(socketHelper.UserName + " calificó un producto.");
         }
 
+        public List<Review> GetReviews(string productName)
+        {
+            List<Review> reviews;
+            lock (locker)
+            {
+                reviews = products.Find(p => p.Name == productName).Reviews;
+            }
+            return reviews;
+        }
+
         private static void LoadTestData()
         {
             User user1 = new()

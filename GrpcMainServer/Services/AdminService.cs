@@ -33,7 +33,7 @@ namespace GrpcMainServer {
             ProgramServidor session = ProgramServidor.Instance;
             Console.WriteLine("Antes de enviar todos los productos");
            
-            List<Product> receivedProduct = session.GetClientProducts("Alan");
+            List<Product> receivedProduct = session.GetClientProducts(name.Name_);
             string products = "";
             foreach (Product product in receivedProduct)
             {
@@ -75,6 +75,20 @@ namespace GrpcMainServer {
             }
             string message = "Se eliminó correctamente el producto " + product.Name;
             return Task.FromResult(new MessageReply { Message = message });
+        }
+
+        public override Task<MessageReply> GetReviews(Name productName, ServerCallContext context)
+        {
+            ProgramServidor session = ProgramServidor.Instance;
+            Console.WriteLine("Antes de enviar las reviews del producto ", productName);
+
+            List<Review> reviewsReceibed = session.GetReviews(productName.Name_);
+            string reviews = "";
+            foreach (Review review in reviewsReceibed)
+            {
+                reviews += (review.ToString());
+            }
+            return Task.FromResult(new MessageReply { Message = reviews });
         }
 
         private Product toEntity(ProductDTO product)

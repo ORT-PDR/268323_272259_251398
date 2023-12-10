@@ -13,6 +13,7 @@ service Admin {
   rpc ModifyProduct(ModifyProductRequest) returns (MessageReply);
   rpc DeleteProduct(DeleteProductRequest) returns (MessageReply);
   rpc DeleteUser(Id) returns (MessageReply);
+  rpc GetReviews(Name) returns (MessageReply);
  
 }
 

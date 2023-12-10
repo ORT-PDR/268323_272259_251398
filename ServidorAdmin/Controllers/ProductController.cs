@@ -67,5 +67,16 @@ namespace ServidorAdmin.Controllers
             var reply = await client.ModifyProductAsync(modifyProductRequest);
             return Ok(reply.Message);
         }
+
+        [HttpGet("/{name}/reviews")]
+        public async Task<ActionResult> GetReviews([FromRoute] string name)
+        {
+            /*http://localhost:5156*/
+            using var channel = GrpcChannel.ForAddress("http://localhost:5156");
+            client = new Admin.AdminClient(channel);
+            Name productName = new Name { Name_ = name };
+            var reply = await client.GetReviewsAsync(productName);
+            return Ok(reply.Message);
+        }
     }
 }
