@@ -2,13 +2,15 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Domain;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Servidor;
 
 namespace WebApiRabbitMQ.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/purchases")]
     public class PurchaseController : ControllerBase
     {
         private static readonly string[] Summaries = new[]
@@ -24,9 +26,18 @@ namespace WebApiRabbitMQ.Controllers
         }
 
         [HttpGet]
-        public IEnumerable<WeatherForecast> Get()
+        public IEnumerable<Purchase> Get()
         {
-            return ForecastDataAccess.GetInstance().GetForecasts();
+            return ProgramServidor.Instance.GetAllPurchases();
+        }
+
+        [HttpPost]
+        public ActionResult PostPurchase([FromBody] Purchase purchase) 
+        {
+            ProgramServidor session = ProgramServidor.Instance;
+            session.AddPurchase(purchase);
+            var reply = "Se realizó la compra con un total de " + purchase.Total;
+            return Ok(reply);
         }
     }
 }

@@ -1,9 +1,20 @@
+using Microsoft.AspNetCore.Hosting.Server;
+using Servidor;
+using WebApiRabbitMQ.Service;
+
 namespace ServidorCompras
 {
     public class Program
     {
+        private static MQService mq;
+
         public static void Main(string[] args)
         {
+            // creamos conexion con RabbitMQ
+            mq = new MQService();
+            StartPurchaseServer(mq);
+
+
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
@@ -30,6 +41,13 @@ namespace ServidorCompras
             app.MapControllers();
 
             app.Run();
+        }
+
+        public static async Task StartPurchaseServer(MQService mq)
+        {
+            Console.WriteLine("Server will start accepting connections from the clients");
+          //  await Task.Run(() => server.StartReceivingConnections());
+            await Task.Run(() => mq.HandleQueue());
         }
     }
 }
