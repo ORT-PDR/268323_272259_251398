@@ -3,11 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Domain;
 using Servidor;
 using Grpc.Net.Client;
-
+using Grpc.Core;
 using System;
 using System.Threading.Tasks;
-using Grpc.Net.Client;
-using Microsoft.AspNetCore.Mvc;
 using Common;
 
 namespace ServidorAdmin.Controllers
@@ -48,13 +46,27 @@ namespace ServidorAdmin.Controllers
         //    return Ok(listOfStrings);
         //}
 
-        [HttpDelete("{name}")]
-        public async Task<ActionResult> DeleteProduct([FromRoute] DeleteProductRequest product)
+        [HttpDelete]
+        public async Task<ActionResult> DeleteProduct([FromBody] DeleteProductRequest product)
         {
             /*http://localhost:5156*/
             using var channel = GrpcChannel.ForAddress("http://localhost:5156");
             client = new Admin.AdminClient(channel);
             var reply = await client.DeleteProductsAsync(product);
+            return Ok(reply.Message);
+        }
+
+        [HttpPut]
+        public async Task<ActionResult> ModifyProduct([FromBody] ProductDTO product, [FromBody] string username)
+        {
+            /*http://localhost:5156*/
+            using var channel = GrpcChannel.ForAddress("http://localhost:5156");
+            client = new Admin.AdminClient(channel);
+            ModifyProductRequest modifyProductRequest = new ModifyProductRequest(){
+                Product = product,
+                Username = username
+            };
+            var reply = await client.ModifyProductAsync(modifyProductRequest);
             return Ok(reply.Message);
         }
     }

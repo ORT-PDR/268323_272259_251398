@@ -26,7 +26,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Domain\Domain.csproj" />
-    <ProjectReference Include="..\DTOs\DTOs.csproj" />
     <ProjectReference Include="..\Protocolo\Protocolo.csproj" />
   </ItemGroup>
 

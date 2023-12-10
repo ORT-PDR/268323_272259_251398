@@ -11,6 +11,7 @@ service Admin {
   rpc PostProduct(ProductDTO) returns (MessageReply);
   rpc GetAllProducts(Name) returns (MessageReply);
   rpc DeleteProducts(DeleteProductRequest) returns (MessageReply);
+  rpc ModifyProduct(ModifyProductRequest) returns (MessageReply);
   rpc DeleteUser(Id) returns (MessageReply);
  
 }
@@ -25,7 +26,12 @@ service Admin {
     string Image  = 7;
 }
 
- message DeleteProductRequest{
+message ModifyProductRequest{
+	string Username = 1;
+	ProductDTO product = 2;
+}
+
+message DeleteProductRequest{
 	string Username = 1;
 	string Name = 2;
 }

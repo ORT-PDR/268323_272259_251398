@@ -10,6 +10,7 @@ service Admin {
   // Functions availables
   rpc PostProduct(ProductDTO) returns (MessageReply);
   rpc GetAllProducts(Name) returns (MessageReply);
+  rpc ModifyProduct(ModifyProductRequest) returns (MessageReply);
   rpc DeleteProduct(DeleteProductRequest) returns (MessageReply);
   rpc DeleteUser(Id) returns (MessageReply);
  
@@ -23,6 +24,11 @@ service Admin {
     int32 Stock = 5;
     int32 price = 6;
     string Image  = 7;
+}
+
+message ModifyProductRequest{
+	string Username = 1;
+	ProductDTO product = 2;
 }
 
  message DeleteProductRequest{

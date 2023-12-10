@@ -5,7 +5,6 @@ using Domain;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using DTOs;
 
 namespace Servidor
 {
@@ -586,6 +585,21 @@ namespace Servidor
             }
             Println(socketHelper.UserName + " modificó el producto " + productName);
         }
+
+        public static Product ModifyProduct(Product product, string username)
+        {
+            Product productToModify;
+            lock (locker)
+            {
+                productToModify = products.Find(p => p.Name.ToLower() == product.Name.ToLower() && p.OwnerUserName == username);
+            }
+            if(productToModify == null) throw new ArgumentException("El producto no existe o no le pertenece al usuario");
+            productToModify.Description = product.Description;
+            productToModify.Stock = product.Stock;
+            productToModify.Price = product.Price;
+            productToModify.Image = product.Image;
+            return productToModify;
+        } 
 
         private static async Task DeleteProduct(SocketHelper socketHelper)
         {
