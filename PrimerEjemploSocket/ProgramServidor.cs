@@ -626,7 +626,7 @@ namespace Servidor
 
         }
 
-        public async void BuyProduct(string username, string name, int amount)
+        public void BuyProduct(string username, string name, int amount)
         {
             if (amount <= 0) throw new ArgumentException("La cantidad debe ser mayor a 0");
             VerifyUsername(username);
@@ -635,9 +635,10 @@ namespace Servidor
             {
                 product = products.Find(p => p.Name == name);
             }
+            if (product == null) throw new ArgumentException("El producto no existe");
             int stock = product.Stock - amount;
             if (stock < 0) throw new ArgumentException("No hay stock suficiente");
-            await FinishPurchase(username, name, amount.ToString(), product);
+            FinishPurchase(username, name, amount.ToString(), product);
         }
 
         private static async Task ModifyProduct(SocketHelper socketHelper, TcpClient client)
@@ -820,12 +821,13 @@ namespace Servidor
 
         public List<Review> GetReviews(string productName)
         {
-            List<Review> reviews;
+            Product product;
             lock (locker)
             {
-                reviews = products.Find(p => p.Name == productName).Reviews;
+                product = products.Find(p => p.Name == productName);
             }
-            return reviews;
+            if(product == null) throw new ArgumentException("El producto no existe");
+            return product.Reviews;
         }
 
         private static void LoadTestData()

@@ -10,7 +10,7 @@ service Admin {
   // Functions availables
   rpc PostProduct(ProductDTO) returns (MessageReply);
   rpc GetAllProducts(Name) returns (MessageReply);
-  rpc DeleteProducts(DeleteProductRequest) returns (MessageReply);
+  rpc DeleteProduct(DeleteProductRequest) returns (MessageReply);
   rpc ModifyProduct(ModifyProductRequest) returns (MessageReply);
   rpc DeleteUser(Id) returns (MessageReply);
   rpc GetReviews(Name) returns (MessageReply);

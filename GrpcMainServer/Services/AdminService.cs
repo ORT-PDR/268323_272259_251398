@@ -38,6 +38,8 @@ namespace GrpcMainServer {
             foreach (Product product in receivedProduct)
             {
                 products+=(product.ToString());
+                products += "\n";
+                products += "\n";
             }
             return Task.FromResult(new MessageReply { Message = products });
         }
@@ -87,12 +89,22 @@ namespace GrpcMainServer {
         {
             ProgramServidor session = ProgramServidor.Instance;
             Console.WriteLine("Antes de enviar las reviews del producto ", productName);
-
-            List<Review> reviewsReceibed = session.GetReviews(productName.Name_);
+            List<Review> reviewsReceibed;
+            try
+            {
+                reviewsReceibed = session.GetReviews(productName.Name_);
+            }
+            catch (ArgumentException ex)
+            {
+                throw new RpcException(new Status(StatusCode.AlreadyExists, ex.Message));
+            }
+            
             string reviews = "";
             foreach (Review review in reviewsReceibed)
             {
                 reviews += (review.ToString());
+                reviews += "\n";
+                reviews += "\n";
             }
             return Task.FromResult(new MessageReply { Message = reviews });
         }
@@ -109,7 +121,7 @@ namespace GrpcMainServer {
             {
                 throw new RpcException(new Status(StatusCode.AlreadyExists, ex.Message));
             }
-            string message = "Se compraron correctamente" + request.Amount + " unidades de " + request.Name;
+            string message = "Se compraron correctamente " + request.Amount + " unidades de " + request.Name;
             return Task.FromResult(new MessageReply { Message = message });
         }
 
