@@ -25,8 +25,10 @@ namespace MailServer.Service
             {
                 channel.ExchangeDeclare(exchange: "purchases", type: ExchangeType.Fanout); // Le indicamos un exchange tipo fanout
 
-                var queueName = channel.QueueDeclare().QueueName; //Declaro una queue por defecto
-
+               // var queueName = channel.QueueDeclare().QueueName; //Declaro una queue por defecto
+                var queueName = "MensajesServidorMail";
+                channel.QueueDeclare(queue: queueName, durable: false, exclusive: false, autoDelete: false, arguments: null);
+                //channel.QueueBind(queue: queueName, exchange: "purchases", routingKey: "");
                 channel.QueueBind(queue: queueName,
                                   exchange: "purchases",
                                   routingKey: "");
@@ -39,6 +41,10 @@ namespace MailServer.Service
                     var body = ea.Body.ToArray();
                     var message = Encoding.UTF8.GetString(body);
                     var purchaseObject = JsonSerializer.Deserialize<Purchase>(message);
+                    lock(purchaseObject)
+                    {
+                        Console.WriteLine("Se recibio la compra de " + purchaseObject.UserName + " de " + purchaseObject.Amount + " unidades del producto " + purchaseObject.Product);
+                    }
 
                     Console.WriteLine(" [x] Enviando correo a {0}", purchaseObject.UserName);
                     Thread.Sleep(5000);
