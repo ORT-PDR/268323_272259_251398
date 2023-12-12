@@ -5,6 +5,11 @@ using Domain;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using DTOs;
+using System.Text.Json;
+using System.Threading.Channels;
+using RabbitMQ.Client;
+
 
 namespace Servidor
 {
@@ -15,6 +20,9 @@ namespace Servidor
         private static bool isServerOn = true;
         private static List<Product> products = new List<Product>();
         private static List<User> users = new List<User>();
+        private static List<Purchase> purchases = new List<Purchase>();
+        private static string connectedUser = "";
+
         private static ProgramServidor _instance;
 
         public bool acceptingConnections;
@@ -331,6 +339,7 @@ namespace Servidor
                 if (usr.Username == userName && usr.Password == userPass)
                 {
                     userName = usr.Username;
+                    connectedUser = usr.Username;
                     return true;
                 }
             }
@@ -431,6 +440,14 @@ namespace Servidor
             products.Add(product);
         }
 
+        public  void AddPurchase(Purchase purchase)
+        {
+            lock (locker)
+            {
+                purchases.Add(purchase);
+            }
+        }
+
         public static bool ExistsProduct(Product product)
         {
             return !products.Contains(product);
@@ -523,6 +540,15 @@ namespace Servidor
             return clientProducts;
         }
 
+        public  List<Purchase> GetAllPurchases()
+        {
+            lock (locker)
+            {
+                return purchases;
+
+            }
+        }
+
         private static async Task BuyProduct(SocketHelper socketHelper)
         {
             await SendProductsNameStock(socketHelper);
@@ -539,10 +565,54 @@ namespace Servidor
             if (stock < 0) await SendData(socketHelper, "error");
             else
             {
-                productBought.Stock -= int.Parse(amountBought);
+                //productBought.Stock -= int.Parse(amountBought);
+                //await RealizeProductPurchase(productBought, int.Parse(amountBought));
+
+                var factory = new ConnectionFactory() { HostName = "localhost" };
+                using (var connection = factory.CreateConnection())
+                using (var channel = connection.CreateModel())
+                {
+                    channel.ExchangeDeclare(exchange: "purchases", type: ExchangeType.Fanout); // Le indicamos un exchange tipo fanout
+
+
+                    var purchaseMessage = "";
+                    while (!(purchaseMessage.Length>0))
+                    {
+                        purchaseMessage = await RealizeProductPurchase(productBought, int.Parse(amountBought), channel); 
+                        Console.WriteLine(" [x] Sent {0}", message);
+                    }
+                }
                 Println(socketHelper.UserName + " compró " + amountBought + " unidades de " + nameProduct);
                 await SendData(socketHelper, "ok");
             }
+        }
+
+        private static async Task<string> RealizeProductPurchase(Product boughtProduct, int amount, IModel channel)
+        {
+            boughtProduct.Stock -= amount;
+            DateTime currentDate = DateTime.Now;
+            string formattedDate = currentDate.ToString("dd/MM/yyyy");
+
+            Purchase newPurchase = new Purchase
+            {
+                Product = boughtProduct.Name,
+                TotalPrice = amount * boughtProduct.Price,
+                UserName = connectedUser,
+                PurchaseDate = formattedDate,
+                Amount = amount
+            };
+
+            purchases.Add(newPurchase);
+            string messsage = JsonSerializer.Serialize(newPurchase);
+            var body = Encoding.UTF8.GetBytes(messsage);
+            channel.BasicPublish(exchange: "purchases",
+                routingKey: "",
+                basicProperties: null,
+                body: body);
+           // Console.WriteLine(" [x] Mensaje Enviado: {0}", message);
+
+            return messsage;
+
         }
 
         private static async Task ModifyProduct(SocketHelper socketHelper, TcpClient client)
