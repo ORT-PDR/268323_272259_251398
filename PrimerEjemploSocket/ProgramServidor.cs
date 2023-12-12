@@ -10,6 +10,7 @@ using System.Text.Json;
 using System.Threading.Channels;
 using RabbitMQ.Client;
 
+
 namespace Servidor
 {
     public class ProgramServidor
@@ -263,7 +264,6 @@ namespace Servidor
         {
             Console.WriteLine(text);
         }
-
         private static string Read()
         {
             return Console.ReadLine();
@@ -530,7 +530,7 @@ namespace Servidor
             }
         }
 
-        public static List<Product> GetClientProducts(string clientUserName)
+        public List<Product> GetClientProducts(string clientUserName)
         {
             List<Product> clientProducts;
             lock (locker)
@@ -656,19 +656,39 @@ namespace Servidor
             Println(socketHelper.UserName + " modificó el producto " + productName);
         }
 
+        public Product ModifyProduct(Product product, string username)
+        {
+            Product productToModify;
+            lock (locker)
+            {
+                productToModify = products.Find(p => p.Name.ToLower() == product.Name.ToLower() && p.OwnerUserName == username);
+            }
+            if(productToModify == null) throw new ArgumentException("El producto no existe o no le pertenece al usuario");
+            productToModify.Description = product.Description;
+            productToModify.Stock = product.Stock;
+            productToModify.Price = product.Price;
+            productToModify.Image = product.Image;
+            return productToModify;
+        } 
+
         private static async Task DeleteProduct(SocketHelper socketHelper)
         {
-            List<Product> clientProducts = GetClientProducts(socketHelper.UserName);
+            List<Product> clientProducts = _instance.GetClientProducts(socketHelper.UserName);
             await SendProducts(socketHelper, clientProducts);
             var prodToDelete = await ReceiveData(socketHelper);
+            _instance.DeleteProduct(socketHelper.UserName, prodToDelete);
+            await SendData(socketHelper, "Se ha eliminado el producto correctamente");
+        }
 
+        public void DeleteProduct(string username, string prodToDelete)
+        {
+            if(products.Where(prod => prod.Name.Equals(prodToDelete) && prod.OwnerUserName == username).ToList().Count() == 0) throw new ArgumentException("El producto no existe o no le pertenece al usuario");
             lock (locker)
             {
                 products = products.Where(prod => !(prod.Name.Equals(prodToDelete))).ToList();
             }
-            await SendData(socketHelper, "Se ha eliminado el producto correctamente");
             FileStreamHandler.Delete(prodToDelete, settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
-            Println(socketHelper.UserName + " eliminó el producto " + prodToDelete);
+            Println(username + " eliminó el producto " + prodToDelete);
         }
 
         private static async Task SearchForProducts(SocketHelper socketHelper)
@@ -759,6 +779,16 @@ namespace Servidor
                 }
             }
             Println(socketHelper.UserName + " calificó un producto.");
+        }
+
+        public List<Review> GetReviews(string productName)
+        {
+            List<Review> reviews;
+            lock (locker)
+            {
+                reviews = products.Find(p => p.Name == productName).Reviews;
+            }
+            return reviews;
         }
 
         private static void LoadTestData()

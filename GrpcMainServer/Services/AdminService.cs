@@ -1,5 +1,4 @@
 ﻿using Domain;
-using DTOs;
 using Grpc.Core;
 //using Servidor;
 using Microsoft.Extensions.Logging;
@@ -17,17 +16,16 @@ namespace GrpcMainServer {
         {
             ProgramServidor session = ProgramServidor.Instance;
             Console.WriteLine("Antes de crear el producto con nombre {0}",request.Name);
-            Product product = new()
+            Product product = toEntity(request);
+            try
             {
-                Name = request.Name,
-                Description = request.Description,
-                Price = request.Price,
-                Stock = request.Stock,
-                Image = request.Image,
-                OwnerUserName = request.OwnerUserName
-            };
-            Product receivedProduct = session.CreateProduct(product);
-            return Task.FromResult(new MessageReply { Message = receivedProduct.ToString() });
+                Product receivedProduct = session.CreateProduct(product);
+                return Task.FromResult(new MessageReply { Message = receivedProduct.ToString() });
+            }
+            catch (ArgumentException ex)
+            {
+                throw new RpcException(new Status(StatusCode.AlreadyExists, ex.Message));
+            }    
         }
 
         public override Task<MessageReply> GetAllProducts(Name name, ServerCallContext context)
@@ -35,7 +33,7 @@ namespace GrpcMainServer {
             ProgramServidor session = ProgramServidor.Instance;
             Console.WriteLine("Antes de enviar todos los productos");
            
-            List<Product> receivedProduct = ProgramServidor.GetClientProducts("Alan");
+            List<Product> receivedProduct = session.GetClientProducts(name.Name_);
             string products = "";
             foreach (Product product in receivedProduct)
             {
@@ -44,6 +42,66 @@ namespace GrpcMainServer {
             return Task.FromResult(new MessageReply { Message = products });
         }
 
+        public override Task<MessageReply> ModifyProduct(ModifyProductRequest requestProduct, ServerCallContext context)
+        {
+            ProgramServidor session = ProgramServidor.Instance;
+            Console.WriteLine("Antes de modificar el producto ", requestProduct.Product.Name);
 
+            Product product = toEntity(requestProduct.Product);
+            try
+            {
+                session.ModifyProduct(product, requestProduct.Username);
+            }
+            catch (ArgumentException ex)
+            {
+                throw new RpcException(new Status(StatusCode.AlreadyExists, ex.Message));
+            }
+            string message = "Se modificó correctamente el producto " + requestProduct.Product.Name;
+            return Task.FromResult(new MessageReply { Message = message });
+        }
+
+        public override Task<MessageReply> DeleteProduct(DeleteProductRequest product, ServerCallContext context)
+        {
+            ProgramServidor session = ProgramServidor.Instance;
+            Console.WriteLine("Antes de eliminar producto ", product.Name);
+
+            try
+            {
+                session.DeleteProduct(product.UserName, product.Name);
+            }
+            catch (ArgumentException ex)
+            {
+                throw new RpcException(new Status(StatusCode.AlreadyExists, ex.Message));
+            }
+            string message = "Se eliminó correctamente el producto " + product.Name;
+            return Task.FromResult(new MessageReply { Message = message });
+        }
+
+        public override Task<MessageReply> GetReviews(Name productName, ServerCallContext context)
+        {
+            ProgramServidor session = ProgramServidor.Instance;
+            Console.WriteLine("Antes de enviar las reviews del producto ", productName);
+
+            List<Review> reviewsReceibed = session.GetReviews(productName.Name_);
+            string reviews = "";
+            foreach (Review review in reviewsReceibed)
+            {
+                reviews += (review.ToString());
+            }
+            return Task.FromResult(new MessageReply { Message = reviews });
+        }
+
+        private Product toEntity(ProductDTO product)
+        {
+            return new Product
+            {
+                Name = product.Name,
+                Description = product.Description,
+                Price = product.Price,
+                Stock = product.Stock,
+                Image = product.Image,
+                OwnerUserName = product.OwnerUserName
+            };
+        }
     }
 }

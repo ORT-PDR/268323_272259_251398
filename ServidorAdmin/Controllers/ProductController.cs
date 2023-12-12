@@ -3,28 +3,25 @@ using Microsoft.AspNetCore.Mvc;
 using Domain;
 using Servidor;
 using Grpc.Net.Client;
-
+using Grpc.Core;
 using System;
 using System.Threading.Tasks;
-using Grpc.Net.Client;
-using Microsoft.AspNetCore.Mvc;
 using Common;
+using ServidorAdmin.Filters;
 
 namespace ServidorAdmin.Controllers
 {
-    [Route("api/products")]
+    [Route("admin/products")]
     [ApiController]
-    public class ProductController : Controller
+    [ExceptionFilter]
+    public class ProductController : ControllerBase
     {
         private Admin.AdminClient client;
         //  static readonly ISettingsManager SettingsMgr = new SettingsManager();
         public ProductController()
         {
-
-
             AppContext.SetSwitch(
                   "System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
-
         }
 
         [HttpPost]
@@ -33,21 +30,53 @@ namespace ServidorAdmin.Controllers
             /*http://localhost:5156*/
             using var channel = GrpcChannel.ForAddress("http://localhost:5156");
             client = new Admin.AdminClient(channel);
+            if (product.Image == "") product.Image = "sin imagen";
             var reply = await client.PostProductAsync(product);
             return Ok(reply.Message);
         }
 
 
-        [HttpGet("{name}")]
-        public async Task<ActionResult> GetAllProducts([FromRoute] Name name)
+        //[HttpGet("{name}")]
+        //public async Task<ActionResult> GetAllProducts([FromRoute] Name name)
+        //{
+        //    /*http://localhost:5156*/
+        //    using var channel = GrpcChannel.ForAddress("http://localhost:5156");
+        //    client = new Admin.AdminClient(channel);
+        //    var reply = await client.GetAllProductsAsync(name);
+        //    var listOfStrings = reply.Message;
+
+        //    return Ok(listOfStrings);
+        //}
+
+        [HttpDelete]
+        public async Task<ActionResult> DeleteProduct([FromBody] DeleteProductRequest product)
         {
             /*http://localhost:5156*/
             using var channel = GrpcChannel.ForAddress("http://localhost:5156");
             client = new Admin.AdminClient(channel);
-            var reply = await client.GetAllProductsAsync(name);
-            var listOfStrings = reply.Message;
+            var reply = await client.DeleteProductsAsync(product);
+            return Ok(reply.Message);
+        }
 
-            return Ok(listOfStrings);
+        [HttpPut]
+        public async Task<ActionResult> ModifyProduct([FromBody] ModifyProductRequest modifyProductRequest)
+        {
+            /*http://localhost:5156*/
+            using var channel = GrpcChannel.ForAddress("http://localhost:5156");
+            client = new Admin.AdminClient(channel);
+            var reply = await client.ModifyProductAsync(modifyProductRequest);
+            return Ok(reply.Message);
+        }
+
+        [HttpGet("{name}/reviews")]
+        public async Task<ActionResult> GetReviews([FromRoute] string name)
+        {
+            /*http://localhost:5156*/
+            using var channel = GrpcChannel.ForAddress("http://localhost:5156");
+            client = new Admin.AdminClient(channel);
+            Name productName = new Name { Name_ = name };
+            var reply = await client.GetReviewsAsync(productName);
+            return Ok(reply.Message);
         }
     }
 }
