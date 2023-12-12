@@ -1,12 +1,15 @@
 ﻿using Common;
 using Exceptions;
 using Protocolo;
-using Servidor;
+using Domain;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Text.Json;
+using System.Threading.Channels;
+using RabbitMQ.Client;
 
-namespace PrimerEjemploSocket
+namespace Servidor
 {
     public class ProgramServidor
     {
@@ -15,38 +18,77 @@ namespace PrimerEjemploSocket
         private static bool isServerOn = true;
         private static List<Product> products = new List<Product>();
         private static List<User> users = new List<User>();
+        private static List<Purchase> purchases = new List<Purchase>();
+        private static string connectedUser = "";
 
-        static async Task Main(string[] args)
+        private static ProgramServidor _instance;
+
+        public bool acceptingConnections;
+        private readonly TcpListener tcpListener;
+
+        public static ProgramServidor Instance
+        {
+            get
+            {
+                lock (locker)
+                {
+                    if (_instance == null)
+                    {
+                        throw new ExitException("No se pudo conectar con el servidor.");
+                    }
+                    return _instance;
+                }
+            }
+        }
+        
+        public static void SetInstance(ProgramServidor instance)
+        {
+            lock (locker)
+            {
+                if (_instance == null)
+                {
+                    _instance = instance;
+                }
+            }
+        }
+       
+        public ProgramServidor(string serverIpAddress, string serverPort)
+        {
+
+            var localEndPoint = new IPEndPoint(
+                 IPAddress.Parse(serverIpAddress), int.Parse(serverPort));
+
+            tcpListener = new TcpListener(localEndPoint);
+            acceptingConnections = true;
+
+        }
+        public async Task StartReceivingConnections()
         {
             
             List<TcpClient> activeClients = new();
             
             LoadTestData();
 
-            string serverIp = settingMng.ReadSettings(ServerConfig.serverIPconfigKey);
-            int serverPort = int.Parse(settingMng.ReadSettings(ServerConfig.serverPortconfigKey));
-            var localEndPoint = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
-
-            TcpListener listener = new(localEndPoint);
-            listener.Start();
+            Console.WriteLine("######### Server Tcp Iniciado y aceptando conexiones ###########");
+            tcpListener.Start();
             Println("Esperando por clientes....");
             int connectedClients = 0;
 
-            var server = Task.Run(async () => await HandleServer(listener));
+            var server = Task.Run(async () => await HandleServer(tcpListener));
 
             while (isServerOn) 
             {
                 try
                 {
-                    TcpClient tcpClient = await listener.AcceptTcpClientAsync();
+                    TcpClient tcpClient = await tcpListener.AcceptTcpClientAsync();
                     activeClients.Add(tcpClient);
                     Println("Se conecto un cliente..");
                     connectedClients++;
-                    var thread = Task.Run(async () => await HandleClientAsync(tcpClient, connectedClients, listener));
+                    var thread = Task.Run(async () => await HandleClientAsync(tcpClient, connectedClients, tcpListener));
                 }
                 catch (Exception)
                 {
-                    Println("Cerrando Servidor");
+                    Println("Cerrando Servidor tcp");
                 }
             }
 
@@ -57,7 +99,7 @@ namespace PrimerEjemploSocket
 
             if (isServerOn)
             {
-                listener.Stop();
+                tcpListener.Stop();
                 Println("Servidor apagado");
             }
             
@@ -215,7 +257,6 @@ namespace PrimerEjemploSocket
         {
             Console.WriteLine(text);
         }
-
         private static string Read()
         {
             return Console.ReadLine();
@@ -263,6 +304,7 @@ namespace PrimerEjemploSocket
                     socketHelper.UserName = user.Split('#')[0];
                     Println(socketHelper.UserName + " conectado");
                     correctUser = true;
+                    connectedUser = socketHelper.UserName;
                 }
                 else
                 {
@@ -291,6 +333,7 @@ namespace PrimerEjemploSocket
                 if (usr.Username == userName && usr.Password == userPass)
                 {
                     userName = usr.Username;
+                    connectedUser = usr.Username;
                     return true;
                 }
             }
@@ -303,7 +346,7 @@ namespace PrimerEjemploSocket
             bool isInProducts;
             lock (locker)
             {
-                isInProducts = products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
+                isInProducts = ExistsProductName(productName);
             }
             while (isInProducts)
             {
@@ -311,7 +354,7 @@ namespace PrimerEjemploSocket
                 productName = await ReceiveData(socketHelper);
                 lock (locker)
                 {
-                    isInProducts = products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
+                    isInProducts = ExistsProductName(productName);
                 }
             }
             await SendData(socketHelper, "OK");
@@ -334,7 +377,7 @@ namespace PrimerEjemploSocket
                 var fileCommonHandler = new FileCommsHandler(client);
                 try
                 {
-                    fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
+                    await fileCommonHandler.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
                     imageName = productName + ".png";
                     productImage = await ReceiveData(socketHelper);
                     if (productImage.Equals("")) imageName = "sin imagen";
@@ -365,17 +408,56 @@ namespace PrimerEjemploSocket
             bool productAlreadyExists = false;
             lock (locker)
             {
-                productAlreadyExists = !products.Contains(product);
+                productAlreadyExists = ExistsProduct(product);
             }
             if (productAlreadyExists)
             {
                 lock (locker)
                 {
-                    products.Add(product);
+                    AddProduct(product);
                 }
                 await SendData(socketHelper, "OK");
                 Println(socketHelper.UserName + " agrego un producto");
             }
+        }
+
+        public Product CreateProduct(Product product)
+        {
+            VerifyUsername(product.OwnerUserName);
+            VerifyProductsAtributes(product);
+            if (ExistsProductName(product.Name)) throw new ArgumentException("El producto ya existe.");
+            products.Add(product);
+            return product;
+        }
+
+        private static void VerifyProductsAtributes(Product product)
+        {
+            if (string.IsNullOrEmpty(product.Name)) throw new ArgumentException("El nombre no puede ser vacío.");
+            if (product.Price < 0) throw new ArgumentException("El precio no puede ser negativo.");
+            if (product.Stock < 0) throw new ArgumentException("El stock no puede ser negativo.");
+        }
+
+        public static void AddProduct(Product product)
+        {
+            products.Add(product);
+        }
+
+        public  void AddPurchase(Purchase purchase)
+        {
+            lock (locker)
+            {
+                purchases.Add(purchase);
+            }
+        }
+
+        public static bool ExistsProduct(Product product)
+        {
+            return !products.Contains(product);
+        }
+
+        public static bool ExistsProductName(string productName)
+        {
+            return products.Exists(product => product.Name.ToLower().Equals(productName.ToLower()));
         }
 
         private static async Task<User> RegisterUser(SocketHelper socketHelper)
@@ -450,7 +532,7 @@ namespace PrimerEjemploSocket
             }
         }
 
-        private static List<Product> GetClientProducts(string clientUserName)
+        public List<Product> GetClientProducts(string clientUserName)
         {
             List<Product> clientProducts;
             lock (locker)
@@ -458,6 +540,15 @@ namespace PrimerEjemploSocket
                 clientProducts = products.Where(prod => prod.OwnerUserName == clientUserName).ToList();
             }
             return clientProducts;
+        }
+
+        public  List<Purchase> GetAllPurchases()
+        {
+            lock (locker)
+            {
+                return purchases;
+
+            }
         }
 
         private static async Task BuyProduct(SocketHelper socketHelper)
@@ -476,10 +567,78 @@ namespace PrimerEjemploSocket
             if (stock < 0) await SendData(socketHelper, "error");
             else
             {
-                productBought.Stock -= int.Parse(amountBought);
-                Println(socketHelper.UserName + " compró " + amountBought + " unidades de " + nameProduct);
+                //productBought.Stock -= int.Parse(amountBought);
+                //await RealizeProductPurchase(productBought, int.Parse(amountBought));
+
+                await FinishPurchase(socketHelper.UserName, nameProduct, amountBought, productBought);
                 await SendData(socketHelper, "ok");
             }
+        }
+
+        private static async Task FinishPurchase(string username, string nameProduct, string amountBought, Product productBought)
+        {
+            var factory = new ConnectionFactory() { HostName = "localhost" };
+            using (var connection = factory.CreateConnection())
+            using (var channel = connection.CreateModel())
+            {
+                channel.ExchangeDeclare(exchange: "purchases", type: ExchangeType.Fanout); // Le indicamos un exchange tipo fanout
+
+                var queueName = "MensajesServidor";
+                channel.QueueDeclare(queue: queueName, durable:false, exclusive:false, autoDelete:false, arguments:null);
+                channel.QueueBind(queue: queueName, exchange: "purchases", routingKey: "");
+
+                string message = nameProduct + "@" + amountBought;
+                var purchaseMessage = "";
+                while (!(purchaseMessage.Length > 0))
+                {
+                    purchaseMessage = await RealizeProductPurchase(productBought, username, int.Parse(amountBought), channel);
+                    Console.WriteLine(" [x] Sent {0}", message);
+                }
+            }
+            Println(username + " compró " + amountBought + " unidades de " + nameProduct);
+        }
+
+        private static async Task<string> RealizeProductPurchase(Product boughtProduct,string buyer ,int amount, IModel channel)
+        {
+            boughtProduct.Stock -= amount;
+            DateTime currentDate = DateTime.Now;
+            string formattedDate = currentDate.ToString("dd/MM/yyyy");
+
+            Purchase newPurchase = new Purchase
+            {
+                Product = boughtProduct.Name,
+                TotalPrice = amount * boughtProduct.Price,
+                UserName = buyer,
+                PurchaseDate = formattedDate,
+                Amount = amount
+            };
+
+            purchases.Add(newPurchase);
+            string messsage = JsonSerializer.Serialize(newPurchase);
+            var body = Encoding.UTF8.GetBytes(messsage);
+            channel.BasicPublish(exchange: "purchases",
+                routingKey: "",
+                basicProperties: null,
+                body: body);
+           // Console.WriteLine(" [x] Mensaje Enviado: {0}", message);
+
+            return messsage;
+
+        }
+
+        public void BuyProduct(string username, string name, int amount)
+        {
+            if (amount <= 0) throw new ArgumentException("La cantidad debe ser mayor a 0");
+            VerifyUsername(username);
+            Product product;
+            lock (locker)
+            {
+                product = products.Find(p => p.Name == name);
+            }
+            if (product == null) throw new ArgumentException("El producto no existe");
+            int stock = product.Stock - amount;
+            if (stock < 0) throw new ArgumentException("No hay stock suficiente");
+            FinishPurchase(username, name, amount.ToString(), product);
         }
 
         private static async Task ModifyProduct(SocketHelper socketHelper, TcpClient client)
@@ -513,7 +672,7 @@ namespace PrimerEjemploSocket
                     FileStreamHandler.Delete(imageToDelete, settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
 
                     var fileCommonHandler2 = new FileCommsHandler(client);
-                    fileCommonHandler2.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
+                    await fileCommonHandler2.ReceiveFile(settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
                     string imageName = productName + ".png";
                     string productImage = await ReceiveData(socketHelper);
                     if (productImage.Equals("")) imageName = "sin imagen";
@@ -523,19 +682,51 @@ namespace PrimerEjemploSocket
             Println(socketHelper.UserName + " modificó el producto " + productName);
         }
 
+        public Product ModifyProduct(Product product, string username)
+        {
+            VerifyProductsAtributes(product);
+            Product productToModify;
+            lock (locker)
+            {
+                productToModify = products.Find(p => p.Name.ToLower() == product.Name.ToLower() && p.OwnerUserName == username);
+            }
+            if (productToModify == null) throw new ArgumentException("El producto no existe o no le pertenece al usuario");
+            productToModify.Description = product.Description;
+            productToModify.Stock = product.Stock;
+            productToModify.Price = product.Price;
+            productToModify.Image = product.Image;
+            return productToModify;
+        }
+
+        private static void VerifyUsername(string username)
+        {
+            User user;
+            lock (locker)
+            {
+                user = users.Find(u => u.Username == username);
+            }
+            if (user == null) throw new ArgumentException("El usuario no existe");
+        }
+
         private static async Task DeleteProduct(SocketHelper socketHelper)
         {
-            List<Product> clientProducts = GetClientProducts(socketHelper.UserName);
+            List<Product> clientProducts = _instance.GetClientProducts(socketHelper.UserName);
             await SendProducts(socketHelper, clientProducts);
             var prodToDelete = await ReceiveData(socketHelper);
+            _instance.DeleteProduct(socketHelper.UserName, prodToDelete);
+            await SendData(socketHelper, "Se ha eliminado el producto correctamente");
+        }
 
+        public void DeleteProduct(string username, string prodToDelete)
+        {
+            if(products.Where(prod => prod.Name.ToLower().Equals(prodToDelete.ToLower()) && prod.OwnerUserName == username).ToList().Count() == 0)
+                throw new ArgumentException("El producto no existe o no le pertenece al usuario");
             lock (locker)
             {
                 products = products.Where(prod => !(prod.Name.Equals(prodToDelete))).ToList();
             }
-            await SendData(socketHelper, "Se ha eliminado el producto correctamente");
             FileStreamHandler.Delete(prodToDelete, settingMng.ReadSettings(ServerConfig.serverImageRouteKey));
-            Println(socketHelper.UserName + " eliminó el producto " + prodToDelete);
+            Println(username + " eliminó el producto " + prodToDelete);
         }
 
         private static async Task SearchForProducts(SocketHelper socketHelper)
@@ -628,25 +819,34 @@ namespace PrimerEjemploSocket
             Println(socketHelper.UserName + " calificó un producto.");
         }
 
+        public List<Review> GetReviews(string productName)
+        {
+            Product product;
+            lock (locker)
+            {
+                product = products.Find(p => p.Name == productName);
+            }
+            if(product == null) throw new ArgumentException("El producto no existe");
+            return product.Reviews;
+        }
+
         private static void LoadTestData()
         {
             User user1 = new()
             {
-                Id = 2,
-                Username = "Nahuel",
-                Password = "Nah123"
+                Username = "Alan",
+                Password = "Alan123"
             };
             users.Add(user1);
             User user2 = new()
             {
-                Id = 1,
-                Username = "Alan",
-                Password = "Alan123"
+                Username = "Nahuel",
+                Password = "Nah123"
             };
-            users.Add(user2);
+            users.Add(user2);         
             User user3 = new()
             {
-                Id = 3,
+                //Id = 3,
                 Username = "Lucas",
                 Password = "Luc123"
             };
@@ -654,8 +854,8 @@ namespace PrimerEjemploSocket
 
             Product prod1 = new()
             {
-                Id = 1,
-                OwnerUserName = user1.Username,
+               // Id = 1,
+                OwnerUserName = user2.Username,
                 Name = "Mesa",
                 Description = "Primera mesa de Nahuel",
                 Stock = 4,
@@ -665,8 +865,8 @@ namespace PrimerEjemploSocket
             products.Add(prod1);
             Product prod2 = new()
             {
-                Id = 2,
-                OwnerUserName = user1.Username,
+              //  Id = 2,
+                OwnerUserName = user2.Username,
                 Name = "Silla",
                 Description = "Primera silla de Nahuel",
                 Stock = 3,
@@ -676,8 +876,8 @@ namespace PrimerEjemploSocket
             products.Add(prod2);
             Product prod3 = new()
             {
-                Id = 3,
-                OwnerUserName = user2.Username,
+           //     Id = 3,
+                OwnerUserName = user1.Username,
                 Name = "Cama",
                 Description = "Primera cama de Alan",
                 Stock = 7,
@@ -687,7 +887,7 @@ namespace PrimerEjemploSocket
             products.Add(prod3);
             Product prod4 = new()
             {
-                Id = 4,
+          //      Id = 4,
                 OwnerUserName = user3.Username,
                 Name = "Escritorio",
                 Description = "Primer escritorio de Lucas",
@@ -696,6 +896,67 @@ namespace PrimerEjemploSocket
                 Image = "sin imagen"
             };
             products.Add(prod4);
+
+            Review review = new()
+            {
+                UserName = user1.Username,
+                Comment = "Muy buena cama",
+                Rating = 5,
+            };
+            prod3.Reviews.Add(review);
+
+            Review review2 = new()
+            {
+                UserName = user2.Username,
+                Comment = "Muy buena mesa",
+                Rating = 4,
+            };
+            prod1.Reviews.Add(review2);
+
+            Review review3 = new()
+            {
+                UserName = user3.Username,
+                Comment = "Muy buena silla",
+                Rating = 3,
+            };
+            prod2.Reviews.Add(review3);
+
+            Review review4 = new()
+            {
+                UserName = user3.Username,
+                Comment = "Muy buen escritorio",
+                Rating = 2,
+            };
+            prod4.Reviews.Add(review4);
+
+            Purchase purchase1 = new()
+            {
+                Product = prod1.Name,
+                TotalPrice = 252,
+                UserName = user1.Username,
+                PurchaseDate = "12/12/2023",
+                Amount = 1
+            };
+            purchases.Add(purchase1);
+            Purchase purchase2 = new()
+            {
+                Product = prod2.Name,
+                TotalPrice = 134,
+                UserName = user1.Username,
+                PurchaseDate = "12/12/2023",
+                Amount = 1
+            };
+            purchases.Add(purchase2);
+
+            Purchase purchase3 = new()
+            {
+                Product = prod3.Name,
+                TotalPrice = 300,
+                UserName = user2.Username,
+                PurchaseDate = "10/12/2023",
+                Amount = 1
+            };
+            purchases.Add(purchase3);
         }
 
         static void ApagarServidor()

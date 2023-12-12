@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Servidor
+﻿namespace Domain
 {
     public class User
     {
@@ -12,6 +6,15 @@ namespace Servidor
         public string Username { get; set; }
         public string Password { get; set; }
         public bool Connected { get; set; }
+
+
+        private static int currentId = 0;
+
+        public User()
+        {
+            currentId++;
+            Id = currentId;
+        }
 
         public override bool Equals(object? obj)
         {

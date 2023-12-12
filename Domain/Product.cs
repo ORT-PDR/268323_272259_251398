@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Servidor
+﻿namespace Domain
 {
-    internal class Product
+    public class Product
     {
         public int Id { get; set; }
         public string OwnerUserName { get; set; }
@@ -17,8 +11,12 @@ namespace Servidor
         public string Image { get; set; }
         public List<Review> Reviews { get; set; }
 
+        private static int currentId = 0;
+
         public Product() {
             this.Reviews = new List<Review>();
+            currentId++;
+            Id = currentId;
         }
 
         public override string ToString()
@@ -30,7 +28,7 @@ namespace Servidor
                 reviews += "\n --------------------- \n ";
             }
             return "\nId: " + this.Id +
-                "\nId Dueño: " + this.OwnerUserName +
+                "\nNombre Dueño: " + this.OwnerUserName +
                 "\nNombre: " + this.Name +
                 "\nDescripción: " + this.Description +
                 "\nStock: " + this.Stock +
