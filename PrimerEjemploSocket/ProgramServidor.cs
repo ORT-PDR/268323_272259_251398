@@ -588,6 +588,10 @@ namespace Servidor
             {
                 channel.ExchangeDeclare(exchange: "purchases", type: ExchangeType.Fanout); // Le indicamos un exchange tipo fanout
 
+                var queueName = "MensajesServidor";
+                channel.QueueDeclare(queue: queueName, durable:false, exclusive:false, autoDelete:false, arguments:null);
+                channel.QueueBind(queue: queueName, exchange: "purchases", routingKey: "");
+
                 string message = nameProduct + "@" + amountBought;
                 var purchaseMessage = "";
                 while (!(purchaseMessage.Length > 0))
