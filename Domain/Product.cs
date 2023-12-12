@@ -17,8 +17,12 @@ namespace Domain
         public string Image { get; set; }
         public List<Review> Reviews { get; set; }
 
+        private static int currentId = 0;
+
         public Product() {
             this.Reviews = new List<Review>();
+            currentId++;
+            Id = currentId;
         }
 
         public override string ToString()
@@ -30,7 +34,7 @@ namespace Domain
                 reviews += "\n --------------------- \n ";
             }
             return "\nId: " + this.Id +
-                "\nId Dueño: " + this.OwnerUserName +
+                "\nNombre Dueño: " + this.OwnerUserName +
                 "\nNombre: " + this.Name +
                 "\nDescripción: " + this.Description +
                 "\nStock: " + this.Stock +
