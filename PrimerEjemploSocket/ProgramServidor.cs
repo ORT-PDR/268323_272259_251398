@@ -590,12 +590,18 @@ namespace Servidor
         private static async Task<string> RealizeProductPurchase(Product boughtProduct, int amount, IModel channel)
         {
             boughtProduct.Stock -= amount;
+            DateTime currentDate = DateTime.Now;
+            string formattedDate = currentDate.ToString("dd/MM/yyyy");
+
             Purchase newPurchase = new Purchase
             {
                 Product = boughtProduct.Name,
-                Total = amount * boughtProduct.Price,
-                UserName = connectedUser
+                TotalPrice = amount * boughtProduct.Price,
+                UserName = connectedUser,
+                PurchaseDate = formattedDate,
+                Amount = amount
             };
+
             purchases.Add(newPurchase);
             string messsage = JsonSerializer.Serialize(newPurchase);
             var body = Encoding.UTF8.GetBytes(messsage);

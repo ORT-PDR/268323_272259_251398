@@ -27,20 +27,28 @@ namespace WebApiRabbitMQ.Controllers
         }
 
         [HttpGet]
-        public IEnumerable<Purchase> Get()
+        public IEnumerable<Purchase> Get([FromQuery] string? userName, [FromQuery] string? productName, [FromQuery] string? purchaseDate)
         {
-            return PurchaseDataAccess.GetInstance().GetPurchases();
+            IEnumerable<Purchase> purchases =  PurchaseDataAccess.GetInstance().GetPurchases();
+            if (!string.IsNullOrEmpty(userName))
+            {
+                purchases = purchases.Where(p => p.UserName == userName);
+            }
+
+            if (!string.IsNullOrEmpty(productName))
+            {
+                purchases = purchases.Where(p => p.Product == productName);
+            }
+
+            if (!string.IsNullOrEmpty(purchaseDate))
+            {
+                purchases = purchases.Where(p => p.PurchaseDate == purchaseDate);
+            }
+
+            return purchases;
+
         }
 
-        [HttpPost]
-        public ActionResult PostPurchase([FromBody] Purchase purchase) 
-        {
-            //ProgramServidor session = ProgramServidor.Instance;
-            //session.AddPurchase(purchase);
-            //var reply = "Se realizó la compra con un total de " + purchase.Total;
-            PurchaseDataAccess.GetInstance().AddPurchase(purchase);
-            var reply = "added purchase of " + purchase.UserName + " with cost of " + purchase.Total;
-            return Ok(reply);
-        }
+        
     }
 }

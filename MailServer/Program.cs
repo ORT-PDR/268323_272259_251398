@@ -7,18 +7,18 @@ namespace MailServer
     {
         private static MQServiceMailServer mq;
 
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             Console.WriteLine("Hello, World!");
             mq = new MQServiceMailServer();
-            StartMailServer(mq);
+            await StartMailServer(mq);
         }
 
 
         public static async Task StartMailServer(MQServiceMailServer mq)
         {
             Console.WriteLine("Server will start listening to purchase queue");
-         //   await Task.Run(() => mq.HandleQueue());
+            await Task.Run(() => mq.HandleQueue());
         }
     }
 }

@@ -14,7 +14,7 @@ namespace MailServer.Service
     {
         public MQServiceMailServer()
         {
-            HandleQueue();
+            //HandleQueue();
         }
 
         public async Task HandleQueue() 

@@ -35,9 +35,9 @@ namespace WebApiRabbitMQ.Data
             }
         }
 
-        public Purchase[] GetPurchases() {
+        public List<Purchase> GetPurchases() {
             lock (padlock) { 
-            return purchases.ToArray();
+            return purchases;
             }
         }
 
