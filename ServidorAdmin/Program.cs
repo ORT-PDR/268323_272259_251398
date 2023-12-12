@@ -4,6 +4,7 @@ namespace ServidorAdmin
     {
         public static void Main(string[] args)
         {
+            Console.WriteLine("Servidor admin inicializando");
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.

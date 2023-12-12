@@ -93,7 +93,7 @@ namespace Servidor
                 }
                 catch (Exception)
                 {
-                    Println("Cerrando Servidor");
+                    Println("Cerrando Servidor tcp");
                 }
             }
 
@@ -309,6 +309,7 @@ namespace Servidor
                     socketHelper.UserName = user.Split('#')[0];
                     Println(socketHelper.UserName + " conectado");
                     correctUser = true;
+                    connectedUser = socketHelper.UserName;
                 }
                 else
                 {
@@ -591,14 +592,14 @@ namespace Servidor
                 var purchaseMessage = "";
                 while (!(purchaseMessage.Length > 0))
                 {
-                    purchaseMessage = await RealizeProductPurchase(productBought, int.Parse(amountBought), channel);
+                    purchaseMessage = await RealizeProductPurchase(productBought, username, int.Parse(amountBought), channel);
                     Console.WriteLine(" [x] Sent {0}", message);
                 }
             }
             Println(username + " compró " + amountBought + " unidades de " + nameProduct);
         }
 
-        private static async Task<string> RealizeProductPurchase(Product boughtProduct, int amount, IModel channel)
+        private static async Task<string> RealizeProductPurchase(Product boughtProduct,string buyer ,int amount, IModel channel)
         {
             boughtProduct.Stock -= amount;
             DateTime currentDate = DateTime.Now;
@@ -608,7 +609,7 @@ namespace Servidor
             {
                 Product = boughtProduct.Name,
                 TotalPrice = amount * boughtProduct.Price,
-                UserName = connectedUser,
+                UserName = buyer,
                 PurchaseDate = formattedDate,
                 Amount = amount
             };

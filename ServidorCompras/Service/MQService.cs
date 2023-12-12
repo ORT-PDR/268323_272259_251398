@@ -35,7 +35,7 @@ namespace WebApiRabbitMQ.Service
                                   exchange: "purchases",
                                   routingKey: "");
 
-                Console.WriteLine(" [*] Waiting for purchases.");
+                Console.WriteLine(" [*] Esperando por compras.");
 
                 var consumer = new EventingBasicConsumer(channel);
                 consumer.Received += (model, ea) =>
@@ -52,7 +52,7 @@ namespace WebApiRabbitMQ.Service
                                      autoAck: true,
                                      consumer: consumer);
 
-                Console.WriteLine(" Press [enter] to exit.");
+                Console.WriteLine(" Presione [enter] para salir.");
                 Console.ReadLine();
 
 

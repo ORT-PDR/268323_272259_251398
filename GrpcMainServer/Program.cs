@@ -14,7 +14,7 @@ namespace GrpcMainServer
         {
             var serverIpAddress = SettingsMgr.ReadSettings(ServerConfig.serverIPconfigKey);
             var serverPort = SettingsMgr.ReadSettings(ServerConfig.serverPortconfigKey);
-            Console.WriteLine($"Server is starting in address {serverIpAddress} and port {serverPort}");
+            Console.WriteLine($"Servidor principal esta iniciando en la dirección {serverIpAddress} y puerto {serverPort}");
 
             ProgramServidor server = new ProgramServidor(serverIpAddress, serverPort);
             ProgramServidor.SetInstance(server);
@@ -39,7 +39,7 @@ namespace GrpcMainServer
 
         public static async Task StartServer(ProgramServidor server)
         {
-            Console.WriteLine("Server will start accepting connections from the clients");
+            Console.WriteLine("Servidor principal empezará a aceptar conexiones de clientes");
             await Task.Run(() => server.StartReceivingConnections());
         }
     }

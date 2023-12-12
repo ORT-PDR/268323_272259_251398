@@ -50,7 +50,7 @@ namespace ServidorCompras
 
         public static async Task StartPurchaseServer(MQService mq)
         {
-            Console.WriteLine("Server will start accepting connections from the clients");
+            Console.WriteLine("Servidor de compras empezará a procesar cola de compras");
             await Task.Run(() => mq.HandleQueue());
         }
 
