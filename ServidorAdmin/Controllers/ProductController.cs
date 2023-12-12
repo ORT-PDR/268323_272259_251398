@@ -68,7 +68,7 @@ namespace ServidorAdmin.Controllers
             return Ok(reply.Message);
         }
 
-        [HttpGet("/{name}/reviews")]
+        [HttpGet("{name}/reviews")]
         public async Task<ActionResult> GetReviews([FromRoute] string name)
         {
             /*http://localhost:5156*/
