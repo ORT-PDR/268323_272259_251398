@@ -14,7 +14,7 @@ service Admin {
   rpc ModifyProduct(ModifyProductRequest) returns (MessageReply);
   rpc DeleteUser(Id) returns (MessageReply);
   rpc GetReviews(Name) returns (MessageReply);
- 
+  rpc BuyProduct(PurchaseRequest) returns (MessageReply);
 }
 
   message ProductDTO{
@@ -35,6 +35,12 @@ message ModifyProductRequest{
 message DeleteProductRequest{
 	string Username = 1;
 	string Name = 2;
+}
+
+message PurchaseRequest {
+	string UserName = 1;
+	string Name = 2;
+	int32 Amount = 3;
 }
 
 message Id {

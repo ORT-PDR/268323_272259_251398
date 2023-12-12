@@ -36,17 +36,17 @@ namespace ServidorAdmin.Controllers
         }
 
 
-        //[HttpGet("{name}")]
-        //public async Task<ActionResult> GetAllProducts([FromRoute] Name name)
-        //{
-        //    /*http://localhost:5156*/
-        //    using var channel = GrpcChannel.ForAddress("http://localhost:5156");
-        //    client = new Admin.AdminClient(channel);
-        //    var reply = await client.GetAllProductsAsync(name);
-        //    var listOfStrings = reply.Message;
+        [HttpGet("{name}")]
+        public async Task<ActionResult> GetAllProducts([FromRoute] Name name)
+        {
+            /*http://localhost:5156*/
+            using var channel = GrpcChannel.ForAddress("http://localhost:5156");
+            client = new Admin.AdminClient(channel);
+            var reply = await client.GetAllProductsAsync(name);
+            var listOfStrings = reply.Message;
 
-        //    return Ok(listOfStrings);
-        //}
+            return Ok(listOfStrings);
+        }
 
         [HttpDelete]
         public async Task<ActionResult> DeleteProduct([FromBody] DeleteProductRequest product)
@@ -76,6 +76,17 @@ namespace ServidorAdmin.Controllers
             client = new Admin.AdminClient(channel);
             Name productName = new Name { Name_ = name };
             var reply = await client.GetReviewsAsync(productName);
+            return Ok(reply.Message);
+        }
+
+        [HttpPost("/Purchases")]
+        public async Task<ActionResult> BuyProduct([FromBody] PurchaseRequest purchase)
+        {
+            /*http://localhost:5156*/
+            using var channel = GrpcChannel.ForAddress("http://localhost:5156");
+            client = new Admin.AdminClient(channel);
+
+            var reply = await client.BuyProductAsync(purchase);
             return Ok(reply.Message);
         }
     }

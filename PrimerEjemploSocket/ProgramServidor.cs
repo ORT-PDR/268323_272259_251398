@@ -566,23 +566,28 @@ namespace Servidor
                 //productBought.Stock -= int.Parse(amountBought);
                 //await RealizeProductPurchase(productBought, int.Parse(amountBought));
 
-                var factory = new ConnectionFactory() { HostName = "localhost" };
-                using (var connection = factory.CreateConnection())
-                using (var channel = connection.CreateModel())
-                {
-                    channel.ExchangeDeclare(exchange: "purchases", type: ExchangeType.Fanout); // Le indicamos un exchange tipo fanout
-
-
-                    var purchaseMessage = "";
-                    while (!(purchaseMessage.Length>0))
-                    {
-                        purchaseMessage = await RealizeProductPurchase(productBought, int.Parse(amountBought), channel); 
-                        Console.WriteLine(" [x] Sent {0}", message);
-                    }
-                }
-                Println(socketHelper.UserName + " compró " + amountBought + " unidades de " + nameProduct);
+                await FinishPurchase(socketHelper.UserName, nameProduct, amountBought, productBought);
                 await SendData(socketHelper, "ok");
             }
+        }
+
+        private static async Task FinishPurchase(string username, string nameProduct, string amountBought, Product productBought)
+        {
+            var factory = new ConnectionFactory() { HostName = "localhost" };
+            using (var connection = factory.CreateConnection())
+            using (var channel = connection.CreateModel())
+            {
+                channel.ExchangeDeclare(exchange: "purchases", type: ExchangeType.Fanout); // Le indicamos un exchange tipo fanout
+
+                string message = nameProduct + "@" + amountBought;
+                var purchaseMessage = "";
+                while (!(purchaseMessage.Length > 0))
+                {
+                    purchaseMessage = await RealizeProductPurchase(productBought, int.Parse(amountBought), channel);
+                    Console.WriteLine(" [x] Sent {0}", message);
+                }
+            }
+            Println(username + " compró " + amountBought + " unidades de " + nameProduct);
         }
 
         private static async Task<string> RealizeProductPurchase(Product boughtProduct, int amount, IModel channel)
@@ -605,6 +610,18 @@ namespace Servidor
 
             return messsage;
 
+        }
+
+        public async void BuyProduct(string username, string name, int amount)
+        {
+            Product product;
+            lock (locker)
+            {
+                product = products.Find(p => p.Name == name);
+            }
+            int stock = product.Stock - amount;
+            if (stock < 0) throw new ArgumentException("No hay stock suficiente");
+            await FinishPurchase(username, name, amount.ToString(), product);
         }
 
         private static async Task ModifyProduct(SocketHelper socketHelper, TcpClient client)

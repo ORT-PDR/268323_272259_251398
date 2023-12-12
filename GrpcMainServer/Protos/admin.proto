@@ -14,6 +14,7 @@ service Admin {
   rpc DeleteProduct(DeleteProductRequest) returns (MessageReply);
   rpc DeleteUser(Id) returns (MessageReply);
   rpc GetReviews(Name) returns (MessageReply);
+  rpc BuyProduct(PurchaseRequest) returns (MessageReply);
  
 }
 
@@ -44,6 +45,12 @@ message Id {
 
 message MessageReply {
 	string message = 1;
+}
+
+message PurchaseRequest {
+	string UserName = 1;
+	string Name = 2;
+	int32 Amount = 3;
 }
 
 message Name {
