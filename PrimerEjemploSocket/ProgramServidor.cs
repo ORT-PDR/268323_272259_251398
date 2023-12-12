@@ -896,6 +896,67 @@ namespace Servidor
                 Image = "sin imagen"
             };
             products.Add(prod4);
+
+            Review review = new()
+            {
+                UserName = user1.Username,
+                Comment = "Muy buena cama",
+                Rating = 5,
+            };
+            prod3.Reviews.Add(review);
+
+            Review review2 = new()
+            {
+                UserName = user2.Username,
+                Comment = "Muy buena mesa",
+                Rating = 4,
+            };
+            prod1.Reviews.Add(review2);
+
+            Review review3 = new()
+            {
+                UserName = user3.Username,
+                Comment = "Muy buena silla",
+                Rating = 3,
+            };
+            prod2.Reviews.Add(review3);
+
+            Review review4 = new()
+            {
+                UserName = user3.Username,
+                Comment = "Muy buen escritorio",
+                Rating = 2,
+            };
+            prod4.Reviews.Add(review4);
+
+            Purchase purchase1 = new()
+            {
+                Product = prod1.Name,
+                TotalPrice = 252,
+                UserName = user1.Username,
+                PurchaseDate = "12/12/2023",
+                Amount = 1
+            };
+            purchases.Add(purchase1);
+            Purchase purchase2 = new()
+            {
+                Product = prod2.Name,
+                TotalPrice = 134,
+                UserName = user1.Username,
+                PurchaseDate = "12/12/2023",
+                Amount = 1
+            };
+            purchases.Add(purchase2);
+
+            Purchase purchase3 = new()
+            {
+                Product = prod3.Name,
+                TotalPrice = 300,
+                UserName = user2.Username,
+                PurchaseDate = "10/12/2023",
+                Amount = 1
+            };
+            purchases.Add(purchase3);
         }
 
         static void ApagarServidor()
