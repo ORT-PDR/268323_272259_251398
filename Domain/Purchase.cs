@@ -1,6 +1,6 @@
-namespace ServidorCompras
+namespace Domain
 {
-    public class Compra
+    public class Purchase
     {
         public string UserName { get; set; }
 
