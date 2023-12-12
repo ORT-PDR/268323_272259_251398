@@ -5,7 +5,6 @@ using Domain;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using DTOs;
 using System.Text.Json;
 using System.Threading.Channels;
 using RabbitMQ.Client;

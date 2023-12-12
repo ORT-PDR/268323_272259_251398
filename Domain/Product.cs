@@ -17,8 +17,13 @@ namespace Domain
         public string Image { get; set; }
         public List<Review> Reviews { get; set; }
 
+        public static int id = 0;
+
+
         public Product() {
             this.Reviews = new List<Review>();
+            Id = id;
+            id++;
         }
 
         public override string ToString()

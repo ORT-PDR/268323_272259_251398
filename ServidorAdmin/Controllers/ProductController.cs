@@ -54,7 +54,7 @@ namespace ServidorAdmin.Controllers
             /*http://localhost:5156*/
             using var channel = GrpcChannel.ForAddress("http://localhost:5156");
             client = new Admin.AdminClient(channel);
-            var reply = await client.DeleteProductsAsync(product);
+            var reply = await client.DeleteProductAsync(product);
             return Ok(reply.Message);
         }
 
