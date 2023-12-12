@@ -427,10 +427,18 @@ namespace Servidor
 
         public Product CreateProduct(Product product)
         {
-           
+            VerifyUsername(product.OwnerUserName);
+            VerifyProductsAtributes(product);
             if (ExistsProductName(product.Name)) throw new ArgumentException("El producto ya existe.");
             products.Add(product);
             return product;
+        }
+
+        private static void VerifyProductsAtributes(Product product)
+        {
+            if (string.IsNullOrEmpty(product.Name)) throw new ArgumentException("El nombre no puede ser vacío.");
+            if (product.Price < 0) throw new ArgumentException("El precio no puede ser negativo.");
+            if (product.Stock < 0) throw new ArgumentException("El stock no puede ser negativo.");
         }
 
         public static void AddProduct(Product product)
@@ -614,6 +622,8 @@ namespace Servidor
 
         public async void BuyProduct(string username, string name, int amount)
         {
+            if (amount <= 0) throw new ArgumentException("La cantidad debe ser mayor a 0");
+            VerifyUsername(username);
             Product product;
             lock (locker)
             {
@@ -667,18 +677,29 @@ namespace Servidor
 
         public Product ModifyProduct(Product product, string username)
         {
+            VerifyProductsAtributes(product);
             Product productToModify;
             lock (locker)
             {
                 productToModify = products.Find(p => p.Name.ToLower() == product.Name.ToLower() && p.OwnerUserName == username);
             }
-            if(productToModify == null) throw new ArgumentException("El producto no existe o no le pertenece al usuario");
+            if (productToModify == null) throw new ArgumentException("El producto no existe o no le pertenece al usuario");
             productToModify.Description = product.Description;
             productToModify.Stock = product.Stock;
             productToModify.Price = product.Price;
             productToModify.Image = product.Image;
             return productToModify;
-        } 
+        }
+
+        private static void VerifyUsername(string username)
+        {
+            User user;
+            lock (locker)
+            {
+                user = users.Find(u => u.Username == username);
+            }
+            if (user == null) throw new ArgumentException("El usuario no existe");
+        }
 
         private static async Task DeleteProduct(SocketHelper socketHelper)
         {
@@ -691,7 +712,8 @@ namespace Servidor
 
         public void DeleteProduct(string username, string prodToDelete)
         {
-            if(products.Where(prod => prod.Name.Equals(prodToDelete) && prod.OwnerUserName == username).ToList().Count() == 0) throw new ArgumentException("El producto no existe o no le pertenece al usuario");
+            if(products.Where(prod => prod.Name.ToLower().Equals(prodToDelete.ToLower()) && prod.OwnerUserName == username).ToList().Count() == 0)
+                throw new ArgumentException("El producto no existe o no le pertenece al usuario");
             lock (locker)
             {
                 products = products.Where(prod => !(prod.Name.Equals(prodToDelete))).ToList();
