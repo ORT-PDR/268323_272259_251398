@@ -42,12 +42,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/products",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products"
@@ -88,12 +86,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/products",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products"
@@ -134,12 +130,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/products",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products"
@@ -180,12 +174,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/products",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products"
@@ -226,12 +218,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/products",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products"
@@ -272,12 +262,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/products",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products"
@@ -318,12 +306,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/products",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products"
@@ -360,12 +346,10 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:5059/admin/products/Lucas",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products/Lucas",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products",
@@ -397,12 +381,10 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:5059/admin/products/Nahuel",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products/Nahuel",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products",
@@ -434,12 +416,10 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:5059/admin/products/Alan",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products/Alan",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products",
@@ -485,12 +465,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/products",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products"
@@ -530,12 +508,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/products",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products"
@@ -575,12 +551,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/products",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products"
@@ -620,12 +594,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/products",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products"
@@ -665,12 +637,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/products",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products"
@@ -715,12 +685,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/products",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products"
@@ -760,12 +728,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/products",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products"
@@ -805,12 +771,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/products",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products"
@@ -850,12 +814,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/products",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products"
@@ -888,12 +850,10 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:5059/admin/products/RemeraDeNacional/reviews",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products/RemeraDeNacional/reviews",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products",
@@ -923,12 +883,10 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "http://localhost:5059/admin/products/NoExistente/reviews",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/products/NoExistente/reviews",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"products",
@@ -975,12 +933,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/purchases",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/purchases",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"purchases"
@@ -1020,12 +976,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/purchases",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/purchases",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"purchases"
@@ -1065,12 +1019,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/purchases",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/purchases",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"purchases"
@@ -1110,12 +1062,10 @@
 							}
 						},
 						"url": {
-							"raw": "http://localhost:5059/admin/purchases",
-							"protocol": "http",
+							"raw": "{{base_url}}/admin/purchases",
 							"host": [
-								"localhost"
+								"{{base_url}}"
 							],
-							"port": "5059",
 							"path": [
 								"admin",
 								"purchases"
@@ -1154,7 +1104,7 @@
 		},
 		{
 			"key": "base_url",
-			"value": "https://postman-rest-api-learner.glitch.me/"
+			"value": "http://localhost:5059"
 		}
 	]
 }
