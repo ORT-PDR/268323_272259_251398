@@ -80,15 +80,16 @@ namespace ServidorAdmin.Controllers
             return Ok(reply.Message);
         }
 
+        /*
         [HttpPost("/admin/purchases")]
         public async Task<ActionResult> BuyProduct([FromBody] PurchaseRequest purchase)
         {
-            /*http://localhost:5156*/
             using var channel = GrpcChannel.ForAddress(_serverAddress);
             client = new Admin.AdminClient(channel);
 
             var reply = await client.BuyProductAsync(purchase);
             return Ok(reply.Message);
         }
+        */
     }
 }
