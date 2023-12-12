@@ -41,6 +41,7 @@ namespace MailServer.Service
                     var purchaseObject = JsonSerializer.Deserialize<Purchase>(message);
 
                     Console.WriteLine(" [x] Enviando correo a {0}", purchaseObject.UserName);
+                    Thread.Sleep(5000);
 
 
 
