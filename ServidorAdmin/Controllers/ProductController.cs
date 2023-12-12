@@ -8,6 +8,7 @@ using System;
 using System.Threading.Tasks;
 using Common;
 using ServidorAdmin.Filters;
+using Common.Interfaces;
 
 namespace ServidorAdmin.Controllers
 {
@@ -17,12 +18,13 @@ namespace ServidorAdmin.Controllers
     public class ProductController : ControllerBase
     {
         private Admin.AdminClient client;
-        private readonly string _serverAddress = "http://localhost:5156";
-        //  static readonly ISettingsManager SettingsMgr = new SettingsManager();
+        private string _serverAddress; //= "http://localhost:5156";
+        static readonly ISettingsManager SettingsMgr = new SettingsManager();
         public ProductController()
         {
             AppContext.SetSwitch(
                   "System.Net.Http.SocketsHttpHandler.Http2UnencryptedSupport", true);
+            _serverAddress = SettingsMgr.ReadSettings(AdminAPIConfig.gRCPAddressKey);
         }
 
         [HttpPost]
