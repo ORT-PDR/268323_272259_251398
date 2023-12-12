@@ -25,12 +25,14 @@ service Admin {
     string Description = 4;
     int32 Stock = 5;
     int32 price = 6;
-    string Image  = 7;
 }
 
 message ModifyProductRequest{
 	string Username = 1;
-	ProductDTO product = 2;
+	string Name = 2;
+	string Description = 3;
+	int32 Stock = 4;
+	int32 Price = 5;
 }
 
  message DeleteProductRequest{

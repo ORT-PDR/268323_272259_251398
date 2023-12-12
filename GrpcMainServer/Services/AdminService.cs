@@ -45,9 +45,15 @@ namespace GrpcMainServer {
         public override Task<MessageReply> ModifyProduct(ModifyProductRequest requestProduct, ServerCallContext context)
         {
             ProgramServidor session = ProgramServidor.Instance;
-            Console.WriteLine("Antes de modificar el producto ", requestProduct.Product.Name);
+            Console.WriteLine("Antes de modificar el producto ", requestProduct.Name);
 
-            Product product = toEntity(requestProduct.Product);
+            Product product = new Product
+            {
+                Name = requestProduct.Name,
+                Description = requestProduct.Description,
+                Price = requestProduct.Price,
+                Stock = requestProduct.Stock
+            };
             try
             {
                 session.ModifyProduct(product, requestProduct.Username);
@@ -56,7 +62,7 @@ namespace GrpcMainServer {
             {
                 throw new RpcException(new Status(StatusCode.AlreadyExists, ex.Message));
             }
-            string message = "Se modificó correctamente el producto " + requestProduct.Product.Name;
+            string message = "Se modificó correctamente el producto " + requestProduct.Name;
             return Task.FromResult(new MessageReply { Message = message });
         }
 
@@ -115,7 +121,7 @@ namespace GrpcMainServer {
                 Description = product.Description,
                 Price = product.Price,
                 Stock = product.Stock,
-                Image = product.Image,
+                Image = "sin imagen",
                 OwnerUserName = product.OwnerUserName
             };
         }

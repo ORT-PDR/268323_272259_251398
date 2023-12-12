@@ -17,6 +17,7 @@ namespace ServidorAdmin.Controllers
     public class ProductController : ControllerBase
     {
         private Admin.AdminClient client;
+        private readonly string _serverAddress = "http://localhost:5156";
         //  static readonly ISettingsManager SettingsMgr = new SettingsManager();
         public ProductController()
         {
@@ -28,9 +29,8 @@ namespace ServidorAdmin.Controllers
         public async Task<ActionResult> PostProduct([FromBody] ProductDTO product)
         {
             /*http://localhost:5156*/
-            using var channel = GrpcChannel.ForAddress("http://localhost:5156");
+            using var channel = GrpcChannel.ForAddress(_serverAddress);
             client = new Admin.AdminClient(channel);
-            if (product.Image == "") product.Image = "sin imagen";
             var reply = await client.PostProductAsync(product);
             return Ok(reply.Message);
         }
@@ -40,7 +40,7 @@ namespace ServidorAdmin.Controllers
         public async Task<ActionResult> GetAllProducts([FromRoute] Name name)
         {
             /*http://localhost:5156*/
-            using var channel = GrpcChannel.ForAddress("http://localhost:5156");
+            using var channel = GrpcChannel.ForAddress(_serverAddress);
             client = new Admin.AdminClient(channel);
             var reply = await client.GetAllProductsAsync(name);
             var listOfStrings = reply.Message;
@@ -52,7 +52,7 @@ namespace ServidorAdmin.Controllers
         public async Task<ActionResult> DeleteProduct([FromBody] DeleteProductRequest product)
         {
             /*http://localhost:5156*/
-            using var channel = GrpcChannel.ForAddress("http://localhost:5156");
+            using var channel = GrpcChannel.ForAddress(_serverAddress);
             client = new Admin.AdminClient(channel);
             var reply = await client.DeleteProductsAsync(product);
             return Ok(reply.Message);
@@ -62,7 +62,7 @@ namespace ServidorAdmin.Controllers
         public async Task<ActionResult> ModifyProduct([FromBody] ModifyProductRequest modifyProductRequest)
         {
             /*http://localhost:5156*/
-            using var channel = GrpcChannel.ForAddress("http://localhost:5156");
+            using var channel = GrpcChannel.ForAddress(_serverAddress);
             client = new Admin.AdminClient(channel);
             var reply = await client.ModifyProductAsync(modifyProductRequest);
             return Ok(reply.Message);
@@ -72,18 +72,18 @@ namespace ServidorAdmin.Controllers
         public async Task<ActionResult> GetReviews([FromRoute] string name)
         {
             /*http://localhost:5156*/
-            using var channel = GrpcChannel.ForAddress("http://localhost:5156");
+            using var channel = GrpcChannel.ForAddress(_serverAddress);
             client = new Admin.AdminClient(channel);
             Name productName = new Name { Name_ = name };
             var reply = await client.GetReviewsAsync(productName);
             return Ok(reply.Message);
         }
 
-        [HttpPost("/Purchases")]
+        [HttpPost("/admin/purchases")]
         public async Task<ActionResult> BuyProduct([FromBody] PurchaseRequest purchase)
         {
             /*http://localhost:5156*/
-            using var channel = GrpcChannel.ForAddress("http://localhost:5156");
+            using var channel = GrpcChannel.ForAddress(_serverAddress);
             client = new Admin.AdminClient(channel);
 
             var reply = await client.BuyProductAsync(purchase);
