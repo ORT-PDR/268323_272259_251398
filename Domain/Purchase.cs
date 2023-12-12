@@ -12,8 +12,5 @@ namespace Domain
 
         public string PurchaseDate { get; set; }
 
-
-
-
     }
 }
