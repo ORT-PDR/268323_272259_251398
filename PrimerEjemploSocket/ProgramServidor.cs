@@ -5,11 +5,9 @@ using Domain;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using DTOs;
 using System.Text.Json;
 using System.Threading.Channels;
 using RabbitMQ.Client;
-
 
 namespace Servidor
 {
@@ -429,10 +427,18 @@ namespace Servidor
 
         public Product CreateProduct(Product product)
         {
-           
+            VerifyUsername(product.OwnerUserName);
+            VerifyProductsAtributes(product);
             if (ExistsProductName(product.Name)) throw new ArgumentException("El producto ya existe.");
             products.Add(product);
             return product;
+        }
+
+        private static void VerifyProductsAtributes(Product product)
+        {
+            if (string.IsNullOrEmpty(product.Name)) throw new ArgumentException("El nombre no puede ser vacío.");
+            if (product.Price < 0) throw new ArgumentException("El precio no puede ser negativo.");
+            if (product.Stock < 0) throw new ArgumentException("El stock no puede ser negativo.");
         }
 
         public static void AddProduct(Product product)
@@ -568,23 +574,28 @@ namespace Servidor
                 //productBought.Stock -= int.Parse(amountBought);
                 //await RealizeProductPurchase(productBought, int.Parse(amountBought));
 
-                var factory = new ConnectionFactory() { HostName = "localhost" };
-                using (var connection = factory.CreateConnection())
-                using (var channel = connection.CreateModel())
-                {
-                    channel.ExchangeDeclare(exchange: "purchases", type: ExchangeType.Fanout); // Le indicamos un exchange tipo fanout
-
-
-                    var purchaseMessage = "";
-                    while (!(purchaseMessage.Length>0))
-                    {
-                        purchaseMessage = await RealizeProductPurchase(productBought, int.Parse(amountBought), channel); 
-                        Console.WriteLine(" [x] Sent {0}", message);
-                    }
-                }
-                Println(socketHelper.UserName + " compró " + amountBought + " unidades de " + nameProduct);
+                await FinishPurchase(socketHelper.UserName, nameProduct, amountBought, productBought);
                 await SendData(socketHelper, "ok");
             }
+        }
+
+        private static async Task FinishPurchase(string username, string nameProduct, string amountBought, Product productBought)
+        {
+            var factory = new ConnectionFactory() { HostName = "localhost" };
+            using (var connection = factory.CreateConnection())
+            using (var channel = connection.CreateModel())
+            {
+                channel.ExchangeDeclare(exchange: "purchases", type: ExchangeType.Fanout); // Le indicamos un exchange tipo fanout
+
+                string message = nameProduct + "@" + amountBought;
+                var purchaseMessage = "";
+                while (!(purchaseMessage.Length > 0))
+                {
+                    purchaseMessage = await RealizeProductPurchase(productBought, int.Parse(amountBought), channel);
+                    Console.WriteLine(" [x] Sent {0}", message);
+                }
+            }
+            Println(username + " compró " + amountBought + " unidades de " + nameProduct);
         }
 
         private static async Task<string> RealizeProductPurchase(Product boughtProduct, int amount, IModel channel)
@@ -613,6 +624,20 @@ namespace Servidor
 
             return messsage;
 
+        }
+
+        public async void BuyProduct(string username, string name, int amount)
+        {
+            if (amount <= 0) throw new ArgumentException("La cantidad debe ser mayor a 0");
+            VerifyUsername(username);
+            Product product;
+            lock (locker)
+            {
+                product = products.Find(p => p.Name == name);
+            }
+            int stock = product.Stock - amount;
+            if (stock < 0) throw new ArgumentException("No hay stock suficiente");
+            await FinishPurchase(username, name, amount.ToString(), product);
         }
 
         private static async Task ModifyProduct(SocketHelper socketHelper, TcpClient client)
@@ -658,18 +683,29 @@ namespace Servidor
 
         public Product ModifyProduct(Product product, string username)
         {
+            VerifyProductsAtributes(product);
             Product productToModify;
             lock (locker)
             {
                 productToModify = products.Find(p => p.Name.ToLower() == product.Name.ToLower() && p.OwnerUserName == username);
             }
-            if(productToModify == null) throw new ArgumentException("El producto no existe o no le pertenece al usuario");
+            if (productToModify == null) throw new ArgumentException("El producto no existe o no le pertenece al usuario");
             productToModify.Description = product.Description;
             productToModify.Stock = product.Stock;
             productToModify.Price = product.Price;
             productToModify.Image = product.Image;
             return productToModify;
-        } 
+        }
+
+        private static void VerifyUsername(string username)
+        {
+            User user;
+            lock (locker)
+            {
+                user = users.Find(u => u.Username == username);
+            }
+            if (user == null) throw new ArgumentException("El usuario no existe");
+        }
 
         private static async Task DeleteProduct(SocketHelper socketHelper)
         {
@@ -682,7 +718,8 @@ namespace Servidor
 
         public void DeleteProduct(string username, string prodToDelete)
         {
-            if(products.Where(prod => prod.Name.Equals(prodToDelete) && prod.OwnerUserName == username).ToList().Count() == 0) throw new ArgumentException("El producto no existe o no le pertenece al usuario");
+            if(products.Where(prod => prod.Name.ToLower().Equals(prodToDelete.ToLower()) && prod.OwnerUserName == username).ToList().Count() == 0)
+                throw new ArgumentException("El producto no existe o no le pertenece al usuario");
             lock (locker)
             {
                 products = products.Where(prod => !(prod.Name.Equals(prodToDelete))).ToList();
