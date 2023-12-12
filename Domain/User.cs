@@ -13,6 +13,15 @@ namespace Domain
         public string Password { get; set; }
         public bool Connected { get; set; }
 
+
+        private static int currentId = 0;
+
+        public User()
+        {
+            currentId++;
+            Id = currentId;
+        }
+
         public override bool Equals(object? obj)
         {
             if (obj is User otherUser)

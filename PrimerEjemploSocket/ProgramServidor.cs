@@ -834,21 +834,19 @@ namespace Servidor
         {
             User user1 = new()
             {
-                Id = 2,
-                Username = "Nahuel",
-                Password = "Nah123"
+                Username = "Alan",
+                Password = "Alan123"
             };
             users.Add(user1);
             User user2 = new()
             {
-                Id = 1,
-                Username = "Alan",
-                Password = "Alan123"
+                Username = "Nahuel",
+                Password = "Nah123"
             };
-            users.Add(user2);
+            users.Add(user2);         
             User user3 = new()
             {
-                Id = 3,
+                //Id = 3,
                 Username = "Lucas",
                 Password = "Luc123"
             };
@@ -856,8 +854,8 @@ namespace Servidor
 
             Product prod1 = new()
             {
-                Id = 1,
-                OwnerUserName = user1.Username,
+               // Id = 1,
+                OwnerUserName = user2.Username,
                 Name = "Mesa",
                 Description = "Primera mesa de Nahuel",
                 Stock = 4,
@@ -867,8 +865,8 @@ namespace Servidor
             products.Add(prod1);
             Product prod2 = new()
             {
-                Id = 2,
-                OwnerUserName = user1.Username,
+              //  Id = 2,
+                OwnerUserName = user2.Username,
                 Name = "Silla",
                 Description = "Primera silla de Nahuel",
                 Stock = 3,
@@ -878,8 +876,8 @@ namespace Servidor
             products.Add(prod2);
             Product prod3 = new()
             {
-                Id = 3,
-                OwnerUserName = user2.Username,
+           //     Id = 3,
+                OwnerUserName = user1.Username,
                 Name = "Cama",
                 Description = "Primera cama de Alan",
                 Stock = 7,
@@ -889,7 +887,7 @@ namespace Servidor
             products.Add(prod3);
             Product prod4 = new()
             {
-                Id = 4,
+          //      Id = 4,
                 OwnerUserName = user3.Username,
                 Name = "Escritorio",
                 Description = "Primer escritorio de Lucas",
