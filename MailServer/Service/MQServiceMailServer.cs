@@ -43,7 +43,8 @@ namespace MailServer.Service
                     var purchaseObject = JsonSerializer.Deserialize<Purchase>(message);
                     lock(purchaseObject)
                     {
-                        Console.WriteLine("Se recibio la compra de " + purchaseObject.UserName + " de " + purchaseObject.Amount + " unidades del producto " + purchaseObject.Product);
+
+                        Console.WriteLine("Se recibio compra de " + purchaseObject.UserName + " de " + purchaseObject.Amount + " unidades del producto " + purchaseObject.Product + " con un total de " + purchaseObject.TotalPrice+"$" + " del dia " + purchaseObject.PurchaseDate);
                     }
 
                     Console.WriteLine(" [x] Enviando correo a {0}", purchaseObject.UserName);

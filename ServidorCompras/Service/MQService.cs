@@ -40,7 +40,7 @@ namespace WebApiRabbitMQ.Service
                     var message = Encoding.UTF8.GetString(body);
                     var purchaseObject = JsonSerializer.Deserialize<Purchase>(message);
 
-                    var outPutMessage = "Se recibio compra de " + purchaseObject.UserName + " de " + purchaseObject.Amount + " unidades del producto " + purchaseObject.Product;
+                    var outPutMessage = "Se recibio compra de " + purchaseObject.UserName + " de " + purchaseObject.Amount + " unidades del producto " + purchaseObject.Product + " con un total de " + purchaseObject.TotalPrice + "$" + " del dia " + purchaseObject.PurchaseDate;
                     Console.WriteLine(" [x] {0}", outPutMessage);
 
                     var data = PurchaseDataAccess.GetInstance();
