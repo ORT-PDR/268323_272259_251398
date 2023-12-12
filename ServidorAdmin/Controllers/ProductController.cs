@@ -1,14 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Domain;
-using Servidor;
+﻿using Microsoft.AspNetCore.Mvc;
 using Grpc.Net.Client;
-using Grpc.Core;
-using System;
-using System.Threading.Tasks;
 using Common;
 using ServidorAdmin.Filters;
-using Common.Interfaces;
+using System.Net;
 
 namespace ServidorAdmin.Controllers
 {
@@ -19,7 +13,7 @@ namespace ServidorAdmin.Controllers
     {
         private Admin.AdminClient client;
         private string _serverAddress; //= "http://localhost:5156";
-        static readonly ISettingsManager SettingsMgr = new SettingsManager();
+        static readonly SettingsManager SettingsMgr = new SettingsManager();
         public ProductController()
         {
             AppContext.SetSwitch(
