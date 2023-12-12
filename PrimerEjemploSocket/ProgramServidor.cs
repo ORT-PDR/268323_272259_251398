@@ -69,11 +69,6 @@ namespace Servidor
             
             LoadTestData();
 
-            //string serverIp = settingMng.ReadSettings(ServerConfig.serverIPconfigKey);
-            //int serverPort = int.Parse(settingMng.ReadSettings(ServerConfig.serverPortconfigKey));
-            //var localEndPoint = new IPEndPoint(IPAddress.Parse(serverIp), serverPort);
-
-            //TcpListener tcpListener = new(localEndPoint);
             Console.WriteLine("######### Server Tcp Iniciado y aceptando conexiones ###########");
             tcpListener.Start();
             Println("Esperando por clientes....");

@@ -1,15 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 using Domain;
-using Microsoft.AspNetCore.Connections;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
-using Servidor;
-using ServidorCompras;
 using WebApiRabbitMQ.Data;
 
 namespace WebApiRabbitMQ.Service

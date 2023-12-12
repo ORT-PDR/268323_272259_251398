@@ -1,7 +1,6 @@
 
 using Common.Interfaces;
 using Common;
-using Microsoft.AspNetCore.Hosting.Server;
 using Servidor;
 
 namespace GrpcMainServer
@@ -14,7 +13,7 @@ namespace GrpcMainServer
         {
             var serverIpAddress = SettingsMgr.ReadSettings(ServerConfig.serverIPconfigKey);
             var serverPort = SettingsMgr.ReadSettings(ServerConfig.serverPortconfigKey);
-            Console.WriteLine($"Servidor principal esta iniciando en la dirección {serverIpAddress} y puerto {serverPort}");
+            Console.WriteLine($"Servidor principal esta iniciando en la direcciï¿½n {serverIpAddress} y puerto {serverPort}");
 
             ProgramServidor server = new ProgramServidor(serverIpAddress, serverPort);
             ProgramServidor.SetInstance(server);
@@ -39,7 +38,7 @@ namespace GrpcMainServer
 
         public static async Task StartServer(ProgramServidor server)
         {
-            Console.WriteLine("Servidor principal empezará a aceptar conexiones de clientes");
+            Console.WriteLine("Servidor principal empezarï¿½ a aceptar conexiones de clientes");
             await Task.Run(() => server.StartReceivingConnections());
         }
     }

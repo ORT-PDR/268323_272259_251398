@@ -1,7 +1,3 @@
-using Common;
-using Microsoft.AspNetCore.Hosting.Server;
-using Servidor;
-using System.Net;
 using WebApiRabbitMQ.Service;
 
 namespace ServidorCompras
@@ -11,7 +7,6 @@ namespace ServidorCompras
         private static MQService mq;
 
        
-
         public static void Main(string[] args)
         {
             // creamos conexion con RabbitMQ
@@ -50,7 +45,7 @@ namespace ServidorCompras
 
         public static async Task StartPurchaseServer(MQService mq)
         {
-            Console.WriteLine("Servidor de compras empezará a procesar cola de compras");
+            Console.WriteLine("Servidor de compras empezarï¿½ a procesar cola de compras");
             await Task.Run(() => mq.HandleQueue());
         }
 

@@ -1,15 +1,9 @@
 ﻿using Domain;
 using Grpc.Core;
-//using Servidor;
-using Microsoft.Extensions.Logging;
 using Servidor;
-using ServidorAdmin;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
-namespace GrpcMainServer { 
+namespace GrpcMainServer
+{
     public class AdminService : Admin.AdminBase
     {
         public override Task<MessageReply> PostProduct(ProductDTO request, ServerCallContext context)
